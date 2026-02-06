@@ -43,6 +43,21 @@ export const Sidebar: React.FC = () => {
         };
     }, [printers]);
 
+    const [isScrolling, setIsScrolling] = useState(false);
+    const scrollTimeoutRef = React.useRef<any>(null);
+
+    const handleScroll = () => {
+        if (!isScrolling) setIsScrolling(true);
+
+        if (scrollTimeoutRef.current) {
+            clearTimeout(scrollTimeoutRef.current);
+        }
+
+        scrollTimeoutRef.current = setTimeout(() => {
+            setIsScrolling(false);
+        }, 1000);
+    };
+
     if (loadingPrinters) return <div className="w-full md:w-80 bg-white border-b-2 md:border-b-0 md:border-r-2 border-guinda-700/15 p-4 flex items-center justify-center font-medium text-slate-400 italic">Cargando...</div>;
 
     return (
@@ -77,8 +92,15 @@ export const Sidebar: React.FC = () => {
                 </div>
             </div>
 
-            <div className="h-[25vh] md:h-auto md:flex-1 overflow-y-auto p-2 space-y-1 bg-white relative">
-                <div className="px-3 py-2 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-1">EQUIPOS DE IMPRESIÓN</div>
+            <div className="px-3 py-2 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-1 bg-white">EQUIPOS DE IMPRESIÓN</div>
+
+            <div
+                className={cn(
+                    "h-[25vh] md:h-auto md:flex-1 overflow-y-auto p-2 space-y-1 bg-white relative custom-scrollbar",
+                    isScrolling && "is-scrolling"
+                )}
+                onScroll={handleScroll}
+            >
 
                 {filteredPrinters.length > 0 ? (
                     filteredPrinters.map((printer) => (
