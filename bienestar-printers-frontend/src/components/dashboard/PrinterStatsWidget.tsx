@@ -23,7 +23,7 @@ export const PrinterStatsWidget = () => {
     });
 
     if (!selectedPrinterId) return (
-        <div className="h-full bg-white rounded-3xl shadow-sm border-2 border-guinda-700/30 p-12 flex flex-col items-center justify-center text-slate-300">
+        <div className="h-full bg-white rounded-3xl shadow-sm border-2 border-guinda-700/15 p-12 flex flex-col items-center justify-center text-slate-300 transition-all duration-300 ease-in-out hover:shadow-lg hover:-translate-y-0.5">
             <div className="w-24 h-24 bg-slate-50 rounded-full flex items-center justify-center mb-6">
                 <Activity className="w-12 h-12 opacity-20" />
             </div>
@@ -33,7 +33,7 @@ export const PrinterStatsWidget = () => {
     );
 
     if (isLoading) return (
-        <div className="h-full bg-white rounded-3xl shadow-sm border-2 border-guinda-700/30 p-8 flex items-center justify-center">
+        <div className="h-full bg-white rounded-3xl shadow-sm border-2 border-guinda-700/15 p-8 flex items-center justify-center transition-all duration-300 ease-in-out hover:shadow-lg hover:-translate-y-0.5">
             <div className="flex flex-col items-center gap-4">
                 <div className="w-12 h-12 border-4 border-guinda-100 border-t-guinda-700 rounded-full animate-spin"></div>
                 <p className="text-xs font-black text-slate-400 tracking-[0.3em]">SINCRONIZANDO MÉTRICAS...</p>
@@ -49,7 +49,7 @@ export const PrinterStatsWidget = () => {
     const total = (stats?.printerStats ?? 0) + (stats?.scanStats ?? 0);
 
     return (
-        <div className="h-full bg-white rounded-3xl shadow-sm border-2 border-guinda-700/30 p-8 flex flex-col overflow-hidden">
+        <div className="h-full bg-white rounded-3xl shadow-sm border-2 border-guinda-700/15 p-8 flex flex-col overflow-hidden transition-all duration-300 ease-in-out hover:shadow-lg hover:-translate-y-0.5">
             <div className="flex justify-between items-start mb-2">
                 <div>
                     <h3 className="text-3xl font-black text-slate-800 tracking-tight flex items-center gap-3">

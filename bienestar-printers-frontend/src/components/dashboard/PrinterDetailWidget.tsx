@@ -54,7 +54,7 @@ export const PrinterDetailWidget = () => {
 
     if (!selectedPrinter) {
         return (
-            <div className="h-full bg-slate-50 border-2 border-dashed border-guinda-700/30 rounded-3xl flex flex-col items-center justify-center text-slate-400 p-8 opacity-60">
+            <div className="h-full bg-slate-50 border-2 border-dashed border-guinda-700/15 rounded-3xl flex flex-col items-center justify-center text-slate-400 p-8 opacity-60 transition-all duration-300 ease-in-out hover:opacity-80 hover:shadow-lg hover:-translate-y-0.5">
                 <Fingerprint className="w-12 h-12 opacity-10 mb-4" />
                 <p className="text-sm font-black uppercase tracking-[0.2em] text-center leading-tight">Estado Técnico</p>
             </div>
@@ -73,7 +73,7 @@ export const PrinterDetailWidget = () => {
     });
 
     return (
-        <div className="h-full bg-white rounded-3xl shadow-sm border-2 border-guinda-700/30 p-6 flex flex-col overflow-hidden">
+        <div className="h-full bg-white rounded-3xl shadow-sm border-2 border-guinda-700/15 p-6 flex flex-col overflow-hidden transition-all duration-300 ease-in-out hover:shadow-lg hover:-translate-y-0.5">
             <div className="flex justify-between items-center mb-6">
                 <div className="flex items-center gap-3">
                     <div className={`p-2 rounded-xl ${isOnline ? 'bg-emerald-50 text-emerald-600 border border-emerald-100' : 'bg-red-50 text-red-600 border border-red-100'}`}>

@@ -43,10 +43,10 @@ export const Sidebar: React.FC = () => {
         };
     }, [printers]);
 
-    if (loadingPrinters) return <div className="w-80 bg-white border-r-2 border-guinda-700/30 p-4 flex items-center justify-center font-medium text-slate-400 italic">Cargando...</div>;
+    if (loadingPrinters) return <div className="w-full md:w-80 bg-white border-b-2 md:border-b-0 md:border-r-2 border-guinda-700/15 p-4 flex items-center justify-center font-medium text-slate-400 italic">Cargando...</div>;
 
     return (
-        <aside className="w-80 bg-white border-r-2 border-guinda-700/30 flex flex-col shadow-sm z-10 overflow-hidden">
+        <aside className="w-full md:w-80 bg-white border-b-2 md:border-b-0 md:border-r-2 border-guinda-700/15 flex flex-col shadow-sm z-10 shrink-0">
             <div className="p-4 border-b border-slate-100 bg-white">
                 <div className="flex items-center justify-between mb-4">
                     <h2 className="text-lg font-bold text-guinda-700 flex items-center gap-2">
@@ -77,7 +77,7 @@ export const Sidebar: React.FC = () => {
                 </div>
             </div>
 
-            <div className="flex-1 overflow-y-auto p-2 space-y-1 bg-white relative">
+            <div className="h-[25vh] md:h-auto md:flex-1 overflow-y-auto p-2 space-y-1 bg-white relative">
                 <div className="px-3 py-2 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-1">EQUIPOS DE IMPRESIÓN</div>
 
                 {filteredPrinters.length > 0 ? (

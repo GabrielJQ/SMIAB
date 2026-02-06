@@ -7,9 +7,9 @@ interface DashboardLayoutProps {
 
 export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
     return (
-        <div className="flex h-screen w-full bg-slate-50 text-slate-900">
+        <div className="flex flex-col md:flex-row h-screen w-full bg-slate-50 text-slate-900">
             <Sidebar />
-            <main className="flex-1 overflow-hidden p-6 relative">
+            <main className="flex-1 overflow-y-auto md:overflow-hidden p-4 md:p-6 relative">
                 <div className="h-full w-full max-w-7xl mx-auto flex flex-col">
                     {children}
                 </div>

@@ -27,7 +27,7 @@ export const UnitStatusWidget = () => {
     }, [printers]);
 
     return (
-        <div className="h-full bg-white rounded-xl shadow-sm border-2 border-guinda-700/30 p-6 flex flex-col justify-between">
+        <div className="h-full bg-white rounded-xl shadow-sm border-2 border-guinda-700/15 p-6 flex flex-col justify-between transition-all duration-300 ease-in-out hover:shadow-lg hover:-translate-y-0.5">
             <div className="flex items-center justify-between">
                 <h3 className="text-lg font-bold text-slate-700 flex items-center gap-2">
                     <Activity className="w-5 h-5 text-guinda-700" />
