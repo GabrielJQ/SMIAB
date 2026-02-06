@@ -70,21 +70,21 @@ export const GeneralStatsWidget = () => {
     }
 
     if (isLoading) return (
-        <div className="h-full bg-white rounded-3xl shadow-sm border border-slate-200 p-8 flex flex-col items-center justify-center font-bold text-slate-400 italic">
+        <div className="h-full bg-white rounded-3xl shadow-sm border-2 border-guinda-700/30 p-8 flex flex-col items-center justify-center font-bold text-slate-400 italic">
             <div className="w-10 h-10 border-4 border-slate-100 border-t-slate-400 rounded-full animate-spin mb-4"></div>
             <p className="text-[10px] font-black uppercase tracking-widest leading-relaxed text-center">Consolidando<br />Datos Globales...</p>
         </div>
     );
 
     if (!history || history.length === 0) return (
-        <div className="h-full bg-white rounded-3xl shadow-sm border border-slate-200 p-6 flex flex-col overflow-hidden items-center justify-center">
+        <div className="h-full bg-white rounded-3xl shadow-sm border-2 border-guinda-700/30 p-6 flex flex-col overflow-hidden items-center justify-center">
             <Globe className="w-8 h-8 text-slate-200 mb-2" />
             <p className="text-xs font-black text-slate-300 uppercase tracking-widest">Sin datos para el periodo</p>
         </div>
     );
 
     return (
-        <div className="h-full bg-white rounded-3xl shadow-sm border border-slate-200 p-6 flex flex-col overflow-hidden">
+        <div className="h-full bg-white rounded-3xl shadow-sm border-2 border-guinda-700/30 p-6 flex flex-col overflow-hidden">
             <div className="flex items-center justify-between mb-2">
                 <div>
                     <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest flex items-center gap-2 mb-1">
