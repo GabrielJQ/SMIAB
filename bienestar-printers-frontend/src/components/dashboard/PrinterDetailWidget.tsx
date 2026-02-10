@@ -24,8 +24,8 @@ const DonutMetric = ({ value, label, icon: Icon }: { value: number | null, label
     const color = getSemanticColor(value);
 
     return (
-        <div className="flex flex-col items-center group">
-            <div className="relative w-40 h-40 xl:w-56 xl:h-56 transition-transform duration-500 ease-out group-hover:scale-105">
+        <div className="flex flex-col items-center group w-full">
+            <div className="relative w-32 h-32 md:w-40 md:h-40 xl:w-56 xl:h-56 transition-transform duration-500 ease-out group-hover:scale-105">
                 {/* Glow Effect */}
                 <div className="absolute inset-0 rounded-full blur-3xl opacity-20 transition-opacity duration-700 group-hover:opacity-40" style={{ backgroundColor: color }}></div>
 
@@ -33,8 +33,8 @@ const DonutMetric = ({ value, label, icon: Icon }: { value: number | null, label
                     <PieChart>
                         <Pie
                             data={data}
-                            innerRadius={70}
-                            outerRadius={85}
+                            innerRadius="60%"
+                            outerRadius="80%"
                             startAngle={90}
                             endAngle={-270}
                             dataKey="value"
@@ -50,14 +50,14 @@ const DonutMetric = ({ value, label, icon: Icon }: { value: number | null, label
 
                 {/* Center Content */}
                 <div className="absolute inset-0 flex flex-col items-center justify-center">
-                    <Icon className="w-8 h-8 mb-2 text-slate-300" />
-                    <span className="text-4xl md:text-5xl font-black text-slate-800 tracking-tighter transition-colors duration-300 group-hover:text-slate-900">
+                    <Icon className="w-6 h-6 md:w-8 md:h-8 mb-1 md:mb-2 text-slate-300" />
+                    <span className="text-2xl md:text-4xl xl:text-5xl font-black text-slate-800 tracking-tighter transition-colors duration-300 group-hover:text-slate-900">
                         {value ?? '?'}
-                        <span className="text-lg md:text-xl text-slate-400 font-bold ml-1">%</span>
+                        <span className="text-xs md:text-lg xl:text-xl text-slate-400 font-bold ml-0.5">%</span>
                     </span>
                 </div>
             </div>
-            <span className="text-xs md:text-sm uppercase tracking-[0.2em] text-slate-400 font-black mt-6 text-center">{label}</span>
+            <span className="text-[10px] md:text-sm uppercase tracking-[0.1em] md:tracking-[0.2em] text-slate-400 font-black mt-3 md:mt-6 text-center leading-tight">{label}</span>
         </div>
     );
 };
@@ -92,11 +92,11 @@ export const PrinterDetailWidget = () => {
             <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-gradient-to-br from-guinda-50/50 to-transparent rounded-full blur-3xl -translate-y-1/2 translate-x-1/3 pointer-events-none" />
 
             {/* Header */}
-            <div className="relative z-10 flex flex-col md:flex-row justify-between items-start md:items-center mb-12 gap-6">
+            <div className="relative z-10 flex flex-col md:flex-row justify-between items-start md:items-center mb-6 md:mb-12 gap-4 md:gap-6">
                 <div>
-                    <div className="flex items-center gap-4 mb-2">
+                    <div className="flex items-center gap-2 md:gap-4 mb-2">
                         <div className={cn(
-                            "px-4 py-1.5 rounded-full text-xs font-black uppercase tracking-wider flex items-center gap-2 border shadow-sm transition-all duration-500",
+                            "px-3 py-1 md:px-4 md:py-1.5 rounded-full text-[10px] md:text-xs font-black uppercase tracking-wider flex items-center gap-2 border shadow-sm transition-all duration-500",
                             isOnline
                                 ? "bg-emerald-50 text-emerald-600 border-emerald-100 shadow-emerald-100/50"
                                 : "bg-red-50 text-red-600 border-red-100 shadow-red-100/50"
@@ -104,11 +104,11 @@ export const PrinterDetailWidget = () => {
                             {isOnline ? <Wifi className="w-3 h-3" /> : <WifiOff className="w-3 h-3" />}
                             {isOnline ? "En Línea" : "Desconectada"}
                         </div>
-                        <span className="text-[10px] font-black text-slate-300 uppercase tracking-widest bg-slate-50 px-3 py-1.5 rounded-lg border border-slate-100">
+                        <span className="text-[10px] font-black text-slate-300 uppercase tracking-widest bg-slate-50 px-2 py-1 md:px-3 md:py-1.5 rounded-lg border border-slate-100">
                             ID: {id}
                         </span>
                     </div>
-                    <h2 className="text-3xl md:text-5xl font-black text-slate-900 tracking-tight leading-none bg-clip-text text-transparent bg-gradient-to-r from-slate-900 to-slate-600">
+                    <h2 className="text-2xl md:text-5xl font-black text-slate-900 tracking-tight leading-none bg-clip-text text-transparent bg-gradient-to-r from-slate-900 to-slate-600">
                         {name}
                     </h2>
                 </div>
@@ -123,7 +123,7 @@ export const PrinterDetailWidget = () => {
             </div>
 
             {/* Metrics Grid */}
-            <div className="flex-1 relative z-10 flex flex-col md:flex-row items-center justify-evenly gap-12 py-8">
+            <div className="flex-1 relative z-10 grid grid-cols-2 md:flex md:flex-row items-center justify-evenly gap-6 md:gap-12 py-4 md:py-8">
                 <DonutMetric
                     value={tonerLevel}
                     label="Nivel de Tóner"

@@ -90,7 +90,7 @@ export const GeneralStatsWidget = () => {
             {/* Decoration */}
             <div className="absolute bottom-0 left-0 w-80 h-80 bg-gradient-to-tr from-slate-100/50 to-transparent rounded-full blur-3xl translate-y-1/3 -translate-x-1/4 pointer-events-none" />
 
-            <div className="flex items-center justify-between mb-4 relative z-10">
+            <div className="flex flex-col md:flex-row md:items-center justify-between mb-4 relative z-10 gap-4">
                 <div>
                     <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest flex items-center gap-2 mb-2">
                         <Globe className="w-4 h-4 text-guinda-700" />
@@ -111,7 +111,7 @@ export const GeneralStatsWidget = () => {
                     </div>
                 </div>
 
-                <div className="relative">
+                <div className="relative w-full md:w-auto">
                     <UnifiedFilter value={range} onChange={setRange} />
                 </div>
             </div>

@@ -59,7 +59,7 @@ export const TonerPrinterStatsWidget = () => {
 
     return (
         <DashboardCard className="p-6 flex flex-col overflow-hidden transition-all duration-300 ease-in-out hover:shadow-lg hover:-translate-y-0.5">
-            <div className="flex justify-between items-start mb-4 relative z-10">
+            <div className="flex flex-col md:flex-row md:items-start justify-between mb-4 relative z-10 gap-4">
                 <div>
                     <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest flex items-center gap-2 mb-2">
                         <Printer className="w-4 h-4 text-guinda-700" />
@@ -77,7 +77,7 @@ export const TonerPrinterStatsWidget = () => {
                     </div>
                 </div>
 
-                <div className="relative z-20">
+                <div className="relative z-20 w-full md:w-auto">
                     <UnifiedFilter value={range} onChange={setRange} />
                 </div>
             </div>

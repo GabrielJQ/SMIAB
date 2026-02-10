@@ -93,7 +93,7 @@ export const PrinterHistoryWidget = () => {
             {/* Decoration */}
             <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-bl from-slate-100/50 to-transparent rounded-full blur-3xl -translate-y-1/2 translate-x-1/3 pointer-events-none" />
 
-            <div className="flex justify-between items-start mb-6 relative z-10">
+            <div className="flex flex-col md:flex-row md:items-start justify-between mb-6 relative z-10 gap-4">
                 <div>
                     <div className="flex items-center gap-3 mb-2">
                         <Activity className="w-4 h-4 text-guinda-700" />
@@ -129,7 +129,7 @@ export const PrinterHistoryWidget = () => {
                     </p>
                 </div>
 
-                <div className="relative">
+                <div className="relative w-full md:w-auto">
                     <UnifiedFilter value={range} onChange={setRange} />
                 </div>
             </div>

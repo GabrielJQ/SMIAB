@@ -46,7 +46,7 @@ export const UnitStatusWidget = () => {
                 </span>
             </div>
 
-            <div className="flex-1 grid grid-cols-3 gap-4 mt-6 mb-6 relative z-10 min-h-[140px]">
+            <div className="flex-1 grid grid-cols-1 sm:grid-cols-3 gap-4 mt-6 mb-6 relative z-10 min-h-[140px]">
                 <div className="bg-white/60 backdrop-blur-sm border border-slate-200/60 p-4 rounded-2xl text-center shadow-sm transition-transform hover:scale-105 flex flex-col justify-center items-center h-full group">
                     <div className="text-5xl font-black text-slate-800 leading-none mb-2 group-hover:scale-110 transition-transform duration-300">{stats.total}</div>
                     <div className="text-[10px] text-slate-400 uppercase font-black tracking-[0.2em]">Total</div>

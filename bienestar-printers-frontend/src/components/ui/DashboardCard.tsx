@@ -13,7 +13,7 @@ export const DashboardCard: React.FC<DashboardCardProps> = ({ children, classNam
             "h-full bg-white/80 backdrop-blur-2xl rounded-[2.5rem]",
             "shadow-xl shadow-slate-200/50",
             "border-2 border-guinda-700/15", // Premium Guinda Border
-            "p-8 flex flex-col relative group overflow-hidden",
+            "p-5 md:p-8 flex flex-col relative group overflow-hidden",
             "transition-all duration-300 ease-in-out",
             "hover:shadow-2xl hover:-translate-y-1 hover:shadow-guinda-700/5", // Float effect
             minHeight,

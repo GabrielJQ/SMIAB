@@ -49,7 +49,7 @@ export const TonerUnitStatsWidget: React.FC<TonerUnitStatsWidgetProps> = ({ comp
 
     return (
         <DashboardCard className="min-h-[400px]">
-            <div className="flex justify-between items-start mb-4 relative z-10">
+            <div className="flex flex-col md:flex-row md:items-start justify-between mb-4 relative z-10 gap-4">
                 <div>
                     <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest flex items-center gap-2 mb-2">
                         <Droplet className="w-4 h-4 text-guinda-700" />
@@ -72,7 +72,7 @@ export const TonerUnitStatsWidget: React.FC<TonerUnitStatsWidgetProps> = ({ comp
                 </div>
 
                 {!compact && (
-                    <div className="relative z-20">
+                    <div className="relative z-20 w-full md:w-auto">
                         <UnifiedFilter value={range} onChange={setRange} />
                     </div>
                 )}
