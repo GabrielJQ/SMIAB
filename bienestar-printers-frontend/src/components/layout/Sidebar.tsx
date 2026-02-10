@@ -61,7 +61,7 @@ export const Sidebar: React.FC = () => {
     if (loadingPrinters) return <div className="w-full md:w-80 bg-white border-b-2 md:border-b-0 md:border-r-2 border-guinda-700/15 p-4 flex items-center justify-center font-medium text-slate-400 italic">Cargando...</div>;
 
     return (
-        <aside className="w-full md:w-80 bg-white border-b-2 md:border-b-0 md:border-r-2 border-guinda-700/15 flex flex-col shadow-sm z-10 shrink-0">
+        <aside className="w-full md:w-80 md:h-full bg-white border-b-2 md:border-b-0 md:border-r-2 border-guinda-700/15 flex flex-col shadow-sm z-10 shrink-0">
             <div className="p-4 border-b border-slate-100 bg-white">
                 <div className="flex items-center justify-between mb-4">
                     <h2 className="text-lg font-bold text-guinda-700 flex items-center gap-2">
