@@ -12,7 +12,7 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
     return (
         <div className="min-h-screen w-full bg-slate-50/50 text-slate-900 flex flex-col font-sans">
             <Navbar />
-            <main className="flex-1 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 animate-in fade-in duration-500">
+            <main className="flex-1 w-full mx-auto px-4 py-6 animate-in fade-in duration-500 flex flex-col min-h-0">
                 {children}
             </main>
         </div>

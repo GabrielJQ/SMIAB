@@ -9,7 +9,7 @@ export default function StatisticsPage() {
     return (
         <div className="flex flex-col md:flex-row h-[calc(100vh-8rem)] gap-6">
             {/* Printer List - Context */}
-            <div className="w-full md:w-80 flex-none h-auto md:h-auto">
+            <div className="w-full md:w-80 flex-none h-full md:h-full">
                 <Sidebar />
             </div>
 

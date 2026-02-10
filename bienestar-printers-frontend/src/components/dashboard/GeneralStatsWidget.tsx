@@ -5,7 +5,9 @@ import { useQuery } from '@tanstack/react-query';
 import { api } from '@/services/api';
 import { PrinterComparison } from '@/types/printer';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
-import { Globe, Activity } from 'lucide-react';
+import { Globe } from 'lucide-react';
+import { DashboardCard } from '@/components/ui/DashboardCard';
+import { UnifiedFilter } from '@/components/dashboard/UnifiedFilter';
 
 const fetchUnitHistory = async (months: number): Promise<PrinterComparison[]> => {
     // Uses the unit history endpoint which returns [ { year, month, printVolume }, ... ]
@@ -70,99 +72,99 @@ export const GeneralStatsWidget = () => {
     }
 
     if (isLoading) return (
-        <div className="h-full bg-white rounded-3xl shadow-sm border-2 border-guinda-700/15 p-8 flex flex-col items-center justify-center font-bold text-slate-400 italic transition-all duration-300 ease-in-out hover:shadow-lg hover:-translate-y-0.5">
-            <div className="w-10 h-10 border-4 border-slate-100 border-t-slate-400 rounded-full animate-spin mb-4"></div>
-            <p className="text-[10px] font-black uppercase tracking-widest leading-relaxed text-center">Consolidando<br />Datos Globales...</p>
-        </div>
+        <DashboardCard className="flex flex-col items-center justify-center font-bold text-slate-400 italic">
+            <div className="w-12 h-12 border-4 border-slate-100 border-t-slate-400 rounded-full animate-spin mb-4"></div>
+            <p className="text-xs font-black uppercase tracking-[0.2em] leading-relaxed text-center">Consolidando<br />Datos Globales...</p>
+        </DashboardCard>
     );
 
     if (!history || history.length === 0) return (
-        <div className="h-full bg-white rounded-3xl shadow-sm border-2 border-guinda-700/15 p-6 flex flex-col overflow-hidden items-center justify-center transition-all duration-300 ease-in-out hover:shadow-lg hover:-translate-y-0.5">
-            <Globe className="w-8 h-8 text-slate-200 mb-2" />
-            <p className="text-xs font-black text-slate-300 uppercase tracking-widest">Sin datos para el periodo</p>
-        </div>
+        <DashboardCard className="flex flex-col items-center justify-center">
+            <Globe className="w-12 h-12 text-slate-300 mb-4" />
+            <p className="text-sm font-black text-slate-300 uppercase tracking-widest">Sin datos disponibles</p>
+        </DashboardCard>
     );
 
     return (
-        <div className="h-full bg-white rounded-3xl shadow-sm border-2 border-guinda-700/15 p-6 flex flex-col overflow-hidden transition-all duration-300 ease-in-out hover:shadow-lg hover:-translate-y-0.5">
-            <div className="flex items-center justify-between mb-2">
+        <DashboardCard className="min-h-[400px]">
+            {/* Decoration */}
+            <div className="absolute bottom-0 left-0 w-80 h-80 bg-gradient-to-tr from-slate-100/50 to-transparent rounded-full blur-3xl translate-y-1/3 -translate-x-1/4 pointer-events-none" />
+
+            <div className="flex items-center justify-between mb-4 relative z-10">
                 <div>
-                    <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest flex items-center gap-2 mb-1">
+                    <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest flex items-center gap-2 mb-2">
                         <Globe className="w-4 h-4 text-guinda-700" />
                         Producción Total
                     </h3>
                     <div className="flex items-baseline gap-2">
-                        <span className="text-3xl font-black text-slate-900 leading-none tracking-tighter">
+                        <span className="text-5xl font-black text-slate-900 leading-none tracking-tighter">
                             {totalProduction.toLocaleString()}
                         </span>
-                        <span className="text-[10px] font-bold text-slate-400 uppercase">
-                            {isCurrentMonthView ? 'Este Mes' : 'Acumulado'}
-                        </span>
+                        <div className="flex flex-col">
+                            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                                Documentos
+                            </span>
+                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-tight">
+                                {isCurrentMonthView ? 'Este Mes' : 'Acumulado'}
+                            </span>
+                        </div>
                     </div>
                 </div>
 
                 <div className="relative">
-                    <select
-                        value={range}
-                        onChange={(e) => setRange(Number(e.target.value))}
-                        className="appearance-none bg-slate-50 border border-slate-200 text-[10px] font-black text-slate-600 uppercase tracking-widest rounded-xl hover:border-guinda-500 focus:ring-2 focus:ring-guinda-500/20 focus:border-guinda-600 block pl-3 pr-8 py-2 outline-none cursor-pointer transition-all shadow-sm"
-                    >
-                        <option value={1}>Mes Actual</option>
-                        <option value={2}>Últimos 2 Meses</option>
-                        <option value={3}>Últimos 3 Meses</option>
-                        <option value={6}>Últimos 6 Meses</option>
-                        <option value={12}>Último Año</option>
-                    </select>
-                    <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-slate-500">
-                        <svg className="fill-current h-3 w-3" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z" /></svg>
-                    </div>
+                    <UnifiedFilter value={range} onChange={setRange} />
                 </div>
             </div>
 
-            <div className="flex-1 w-full min-h-[200px] min-w-0 mt-4">
+            <div className="w-full h-[350px] mt-4 relative z-10">
                 <ResponsiveContainer width="100%" height="100%" minWidth={0}>
                     <BarChart
                         data={chartData}
                         margin={{ left: 0, right: 0, top: 10, bottom: 0 }}
-                        barSize={isCurrentMonthView ? 50 : undefined}
+                        barSize={isCurrentMonthView ? 60 : undefined}
                     >
-                        <CartesianGrid vertical={false} stroke="#f1f5f9" strokeDasharray="4 4" />
+                        <CartesianGrid vertical={false} stroke="#f1f5f9" strokeDasharray="3 3" />
                         <XAxis
                             dataKey="name"
                             axisLine={false}
                             tickLine={false}
-                            tick={{ fontSize: 10, fontWeight: 900, fill: '#94a3b8' }}
-                            dy={10}
+                            tick={{ fontSize: 11, fontWeight: 700, fill: '#94a3b8' }}
+                            dy={15}
                         />
                         <YAxis
                             axisLine={false}
                             tickLine={false}
-                            tick={{ fontSize: 10, fontWeight: 900, fill: '#94a3b8' }}
+                            tick={{ fontSize: 11, fontWeight: 700, fill: '#94a3b8' }}
                             width={40}
+                            allowDecimals={false} // Ensure integers
                         />
                         <Tooltip
-                            cursor={{ fill: '#f8fafc' }}
+                            cursor={{ fill: '#f8fafc', opacity: 0.5 }}
                             content={({ active, payload }) => {
                                 if (active && payload && payload.length) {
                                     const data = payload[0].payload;
                                     return (
-                                        <div className="bg-white p-3 rounded-2xl shadow-xl border border-slate-100">
-                                            <p className="text-[10px] uppercase font-black text-slate-400 mb-1">{data.fullName || data.name}</p>
-                                            <p className="text-xl font-black text-slate-800" style={{ color: data.color }}>{data.value.toLocaleString()}</p>
+                                        <div className="bg-white/90 backdrop-blur-xl p-4 rounded-2xl shadow-xl border border-white/50 ring-1 ring-slate-100/50">
+                                            <p className="text-[10px] uppercase font-black text-slate-400 mb-1 tracking-wider">{data.fullName || data.name}</p>
+                                            <p className="text-2xl font-black text-slate-800" style={{ color: data.color }}>{data.value.toLocaleString()}</p>
                                         </div>
                                     );
                                 }
                                 return null;
                             }}
                         />
-                        <Bar dataKey="value" radius={[6, 6, 6, 6]} animationDuration={1000}>
+                        <Bar dataKey="value" radius={[12, 12, 12, 12]} animationDuration={1500}>
                             {chartData.map((entry, index) => (
-                                <Cell key={`cell-${index}`} fill={entry.color} />
+                                <Cell
+                                    key={`cell-${index}`}
+                                    fill={entry.color}
+                                    className="transition-all duration-300 hover:opacity-80 cursor-pointer"
+                                />
                             ))}
                         </Bar>
                     </BarChart>
                 </ResponsiveContainer>
             </div>
-        </div>
+        </DashboardCard>
     );
 };

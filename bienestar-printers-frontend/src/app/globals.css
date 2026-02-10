@@ -23,7 +23,7 @@
 
 /* Custom Scrollbar - WebKit */
 .custom-scrollbar::-webkit-scrollbar {
-  width: 6px;
+  width: 8px; /* Slightly wider for better usability */
 }
 
 .custom-scrollbar::-webkit-scrollbar-track {
@@ -31,7 +31,7 @@
 }
 
 .custom-scrollbar::-webkit-scrollbar-thumb {
-  background-color: transparent;
+  background-color: var(--color-guinda-200); /* Lighter default state */
   border-radius: 9999px;
   border: 2px solid transparent;
   background-clip: content-box;
@@ -40,7 +40,7 @@
 
 .custom-scrollbar:hover::-webkit-scrollbar-thumb,
 .custom-scrollbar.is-scrolling::-webkit-scrollbar-thumb {
-  background-color: var(--color-guinda-600) !important;
+  background-color: var(--color-guinda-600) !important; /* Active/Hover state */
 }
 
 
@@ -48,7 +48,7 @@
 /* Custom Scrollbar - Firefox */
 .custom-scrollbar {
   scrollbar-width: thin;
-  scrollbar-color: transparent transparent;
+  scrollbar-color: var(--color-guinda-200) transparent;
   transition: scrollbar-color 0.2s ease;
 }
 

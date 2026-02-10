@@ -8,21 +8,24 @@ export async function getUnitTonerHistoryQuery(
     // Phase 0: "Toner changes" might be logged in `toner_changes` table.
     // Logic: Count rows in `toner_changes` joined with `printers` filtered by `unit_id`.
 
-    // Calculate target date
+    // 1. Generate the strict list of months we want to show
+    const monthsList: { year: number; month: number }[] = [];
     const today = new Date();
-    const targetDate = new Date(today.getFullYear(), today.getMonth() - months + 1, 1);
+    // Force UTC components to avoid timezone shifts at boundaries if server is weird
+    // But local new Date() is fine for now as long as we are consistent.
+    // We want exactly 'months' entries, ending with current month
+    for (let i = months - 1; i >= 0; i--) {
+        const d = new Date(today.getFullYear(), today.getMonth() - i, 1);
+        monthsList.push({
+            year: d.getFullYear(),
+            month: d.getMonth() + 1
+        });
+    }
 
-    // We need to query `toner_changes` linked to printers in this unit.
-    // Supabase query:
-    // SELECT count(*), year, month (extracted from changed_at)
-    // FROM toner_changes
-    // JOIN printers ON toner_changes.printer_id = printers.id
-    // WHERE printers.unit_id = unitId AND changed_at >= targetDate
 
-    // Since Supabase JS client doesn't do complex joins + aggregate easily:
-    // 1. Fetch all printers in unit (cached/light query) -> get IDs
-    // 2. Fetch all toner_changes for these IDs in range
-    // 3. Aggregate in memory
+    // Calculate target date (start of the first month in our list)
+    const firstMonth = monthsList[0];
+    const targetDate = new Date(firstMonth.year, firstMonth.month - 1, 1);
 
     // Step 1: Get Printer IDs
     const { data: printers, error: printerError } = await supabase
@@ -33,7 +36,10 @@ export async function getUnitTonerHistoryQuery(
     if (printerError) throw new Error(printerError.message);
     const printerIds = printers.map(p => p.id);
 
-    if (printerIds.length === 0) return [];
+    // If no printers, just return the empty months structure
+    if (printerIds.length === 0) {
+        return monthsList.map(m => ({ ...m, toner_count: 0 }));
+    }
 
     // Step 2: Fetch Changes
     const { data: changes, error: changesError } = await supabase
@@ -44,8 +50,8 @@ export async function getUnitTonerHistoryQuery(
 
     if (changesError) throw new Error(changesError.message);
 
-    // Step 3: Aggregate
-    const aggregated = new Map<string, { year: number; month: number; count: number }>();
+    // Step 3: Aggregate in memory
+    const aggregated = new Map<string, number>();
 
     (changes || []).forEach(change => {
         const date = new Date(change.changed_at);
@@ -53,20 +59,17 @@ export async function getUnitTonerHistoryQuery(
         const month = date.getMonth() + 1;
         const key = `${year}-${month}`;
 
-        if (!aggregated.has(key)) {
-            aggregated.set(key, { year, month, count: 0 });
-        }
-        aggregated.get(key)!.count++;
+        const current = aggregated.get(key) || 0;
+        aggregated.set(key, current + 1);
     });
 
-    return Array.from(aggregated.values())
-        .sort((a, b) => {
-            if (a.year !== b.year) return a.year - b.year;
-            return a.month - b.month;
-        })
-        .map(item => ({
+    // Step 4: Map strictly to our months list
+    return monthsList.map(item => {
+        const key = `${item.year}-${item.month}`;
+        return {
             year: item.year,
             month: item.month,
-            toner_count: item.count
-        }));
+            toner_count: aggregated.get(key) || 0
+        };
+    });
 }

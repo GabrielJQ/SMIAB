@@ -7,6 +7,7 @@ import { tonerService } from '@/services/tonerService';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 import { Printer, Calendar, Activity } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { DashboardCard } from '@/components/ui/DashboardCard';
 
 const MONTH_NAMES = ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"];
 // Reuse same palette for consistency
@@ -37,26 +38,26 @@ export const TonerPrinterStatsWidget = () => {
     }, [history]);
 
     if (!selectedPrinterId) return (
-        <div className="h-full bg-white rounded-3xl shadow-sm border-2 border-guinda-700/15 p-12 flex flex-col items-center justify-center text-slate-300 transition-all duration-300 ease-in-out hover:shadow-lg hover:-translate-y-0.5 min-h-[300px]">
+        <DashboardCard className="flex flex-col items-center justify-center text-slate-300 min-h-[300px] transition-all duration-300 ease-in-out hover:shadow-lg hover:-translate-y-0.5">
             <div className="w-24 h-24 bg-slate-50 rounded-full flex items-center justify-center mb-6">
                 <Printer className="w-12 h-12 opacity-20" />
             </div>
             <p className="text-xl font-bold text-slate-400">Detalle por Equipo</p>
             <p className="text-sm font-medium uppercase tracking-[0.2em] opacity-50 mt-2">Selecciona una impresora</p>
-        </div>
+        </DashboardCard>
     );
 
     if (isLoading) return (
-        <div className="h-full bg-white rounded-3xl shadow-sm border-2 border-guinda-700/15 flex items-center justify-center p-8 min-h-[300px]">
+        <DashboardCard className="flex items-center justify-center min-h-[300px]">
             <div className="flex flex-col items-center gap-2">
                 <div className="w-8 h-8 border-4 border-slate-100 border-t-guinda-700 rounded-full animate-spin"></div>
                 <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Cargando...</p>
             </div>
-        </div>
+        </DashboardCard>
     );
 
     return (
-        <div className="h-full bg-white rounded-3xl shadow-sm border-2 border-guinda-700/15 p-6 flex flex-col overflow-hidden transition-all duration-300 ease-in-out hover:shadow-lg hover:-translate-y-0.5">
+        <DashboardCard className="p-6 flex flex-col overflow-hidden transition-all duration-300 ease-in-out hover:shadow-lg hover:-translate-y-0.5">
             <div className="flex justify-between items-start mb-4">
                 <div>
                     <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest flex items-center gap-2 mb-1">
@@ -111,6 +112,7 @@ export const TonerPrinterStatsWidget = () => {
                                 tickLine={false}
                                 tick={{ fontSize: 10, fontWeight: 800, fill: '#94a3b8' }}
                                 width={30}
+                                allowDecimals={false}
                             />
                             <Tooltip
                                 cursor={{ fill: '#f8fafc' }}
@@ -143,6 +145,6 @@ export const TonerPrinterStatsWidget = () => {
                     </div>
                 )}
             </div>
-        </div>
+        </DashboardCard>
     );
 };
