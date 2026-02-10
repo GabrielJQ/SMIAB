@@ -4,6 +4,7 @@ import { SupabaseAuthGuard } from '../../auth/guards/supabase-auth.guard';
 import { CurrentUser } from '../../auth/decorators/current-user.decorator';
 import { TonersService } from './toners.service';
 import { TonerHistoryDto } from './dto/toner-history.dto';
+import { UserJwtPayload } from '../../auth/interfaces/user-jwt.interface';
 
 @ApiTags('Toners')
 @Controller('toners')
@@ -16,7 +17,7 @@ export class TonersController {
     @ApiOkResponse({ description: 'Historial de unidad', type: [TonerHistoryDto] })
     @Get('unit/history')
     async getUnitHistory(
-        @CurrentUser('internal') user: any,
+        @CurrentUser('internal') user: UserJwtPayload,
         @Query('months') months?: string,
     ) {
         if (!user?.areaId) throw new ForbiddenException('User has no area assigned');
@@ -30,7 +31,7 @@ export class TonersController {
     @ApiOkResponse({ description: 'Historial de impresora', type: [TonerHistoryDto] })
     @Get('printer/:id/history')
     async getPrinterHistory(
-        @CurrentUser('internal') user: any,
+        @CurrentUser('internal') user: UserJwtPayload,
         @Param('id') id: string,
         @Query('months') months?: string,
     ) {

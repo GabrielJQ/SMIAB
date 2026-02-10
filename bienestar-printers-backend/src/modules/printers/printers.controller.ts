@@ -7,6 +7,7 @@ import { PrinterSummaryDto } from './dto/printer-summary.dto';
 import { PrinterHistoryDto } from './dto/printer-history.dto';
 import { PrinterYearlySummaryDto } from './dto/printer-yearly-summary.dto';
 import { PrinterComparisonDto } from './dto/printer-comparison.dto';
+import { UserJwtPayload } from '../../auth/interfaces/user-jwt.interface';
 
 @ApiTags('Printers')
 @Controller('printers')
@@ -23,7 +24,7 @@ export class PrintersController {
   @ApiOkResponse({ description: 'Historial de unidad', type: [PrinterComparisonDto] })
   @Get('unit/history')
   async getUnitHistory(
-    @CurrentUser('internal') user: any,
+    @CurrentUser('internal') user: UserJwtPayload,
     @Query('months') months?: string,
   ) {
     if (!user?.areaId) throw new ForbiddenException('User has no area assigned');
@@ -41,7 +42,7 @@ export class PrintersController {
   @ApiOkResponse({ description: 'Historial mensual', type: [PrinterHistoryDto] })
   @Get(':id/history')
   async getHistory(
-    @CurrentUser('internal') user: any,
+    @CurrentUser('internal') user: UserJwtPayload,
     @Param('id') id: string,
     @Query('startYear') startYear?: string,
     @Query('startMonth') startMonth?: string,
@@ -64,7 +65,7 @@ export class PrintersController {
   @ApiOkResponse({ description: 'Resumen anual', type: PrinterYearlySummaryDto })
   @Get(':id/summary/:year')
   async getYearlySummary(
-    @CurrentUser('internal') user: any,
+    @CurrentUser('internal') user: UserJwtPayload,
     @Param('id') id: string,
     @Param('year', ParseIntPipe) year: number,
   ) {
@@ -79,7 +80,7 @@ export class PrintersController {
   @ApiOkResponse({ description: 'Comparación mensual', type: [PrinterComparisonDto] })
   @Get(':id/compare')
   async getComparison(
-    @CurrentUser('internal') user: any,
+    @CurrentUser('internal') user: UserJwtPayload,
     @Param('id') id: string,
     @Query('months') months?: string,
   ) {
@@ -98,7 +99,7 @@ export class PrintersController {
   @ApiOperation({ summary: 'Obtener listado completo de impresoras de la unidad' })
   @ApiOkResponse({ description: 'Listado de impresoras de la unidad', type: [PrinterSummaryDto] })
   @Get('unit')
-  async getByUnit(@CurrentUser('internal') user: any) {
+  async getByUnit(@CurrentUser('internal') user: UserJwtPayload) {
     if (!user?.areaId) {
       throw new ForbiddenException('User has no area assigned');
     }
@@ -108,7 +109,7 @@ export class PrintersController {
   @ApiOperation({ summary: 'Obtener listado de impresoras del área del usuario' })
   @ApiOkResponse({ description: 'Listado de impresoras del área', type: [PrinterSummaryDto] })
   @Get()
-  async getAll(@CurrentUser('internal') user: any) {
+  async getAll(@CurrentUser('internal') user: UserJwtPayload) {
     if (!user?.areaId) {
       throw new ForbiddenException('User has no area assigned');
     }
@@ -120,7 +121,7 @@ export class PrintersController {
   @ApiOkResponse({ description: 'Detalle de la impresora', type: PrinterSummaryDto })
   @Get(':id')
   async getOne(
-    @CurrentUser('internal') user: any,
+    @CurrentUser('internal') user: UserJwtPayload,
     @Param('id') id: string,
   ) {
     if (!user?.areaId) {
