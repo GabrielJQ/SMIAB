@@ -83,7 +83,7 @@ export const TonerUnitStatsWidget: React.FC<TonerUnitStatsWidgetProps> = ({ comp
                     <ResponsiveContainer width="100%" height="100%">
                         <BarChart
                             data={chartData}
-                            margin={{ left: 0, right: 0, top: 10, bottom: 0 }}
+                            margin={{ left: 0, right: 0, top: 10, bottom: 20 }}
                             barSize={compact ? 30 : 60}
                         >
                             <defs>

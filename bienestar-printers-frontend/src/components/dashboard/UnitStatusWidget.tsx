@@ -46,26 +46,26 @@ export const UnitStatusWidget = () => {
                 </span>
             </div>
 
-            <div className="grid grid-cols-3 gap-6 mt-8 relative z-10">
-                <div className="bg-white/60 backdrop-blur-sm border border-slate-200/60 p-6 rounded-2xl text-center shadow-sm transition-transform hover:scale-105">
-                    <div className="text-4xl font-black text-slate-800 leading-none mb-2">{stats.total}</div>
-                    <div className="text-[9px] text-slate-400 uppercase font-black tracking-[0.2em]">Total</div>
+            <div className="flex-1 grid grid-cols-3 gap-4 mt-6 mb-6 relative z-10 min-h-[140px]">
+                <div className="bg-white/60 backdrop-blur-sm border border-slate-200/60 p-4 rounded-2xl text-center shadow-sm transition-transform hover:scale-105 flex flex-col justify-center items-center h-full group">
+                    <div className="text-5xl font-black text-slate-800 leading-none mb-2 group-hover:scale-110 transition-transform duration-300">{stats.total}</div>
+                    <div className="text-[10px] text-slate-400 uppercase font-black tracking-[0.2em]">Total</div>
                 </div>
-                <div className="bg-emerald-50/50 border border-emerald-100/50 p-6 rounded-2xl text-center shadow-sm transition-transform hover:scale-105">
-                    <div className="text-4xl font-black text-emerald-600 leading-none mb-2">{stats.online}</div>
-                    <div className="text-[9px] text-emerald-600/70 uppercase font-black tracking-[0.2em] flex items-center justify-center gap-1">
+                <div className="bg-emerald-50/50 border border-emerald-100/50 p-4 rounded-2xl text-center shadow-sm transition-transform hover:scale-105 flex flex-col justify-center items-center h-full group">
+                    <div className="text-5xl font-black text-emerald-600 leading-none mb-2 group-hover:scale-110 transition-transform duration-300">{stats.online}</div>
+                    <div className="text-[10px] text-emerald-600/70 uppercase font-black tracking-[0.2em] flex items-center justify-center gap-1">
                         Online
                     </div>
                 </div>
-                <div className="bg-red-50/50 border border-red-100/50 p-6 rounded-2xl text-center shadow-sm transition-transform hover:scale-105">
-                    <div className="text-4xl font-black text-red-600 leading-none mb-2">{stats.offline}</div>
-                    <div className="text-[9px] text-red-600/70 uppercase font-black tracking-[0.2em] flex items-center justify-center gap-1">
+                <div className="bg-red-50/50 border border-red-100/50 p-4 rounded-2xl text-center shadow-sm transition-transform hover:scale-105 flex flex-col justify-center items-center h-full group">
+                    <div className="text-5xl font-black text-red-600 leading-none mb-2 group-hover:scale-110 transition-transform duration-300">{stats.offline}</div>
+                    <div className="text-[10px] text-red-600/70 uppercase font-black tracking-[0.2em] flex items-center justify-center gap-1">
                         Offline
                     </div>
                 </div>
             </div>
 
-            <p className="mt-8 text-[10px] text-slate-400/80 text-center font-bold uppercase tracking-widest relative z-10">
+            <p className="text-[10px] text-slate-400/80 text-center font-bold uppercase tracking-widest relative z-10 mt-auto">
                 Monitoreo en tiempo real &bull; Unidad de Bienestar
             </p>
         </DashboardCard>

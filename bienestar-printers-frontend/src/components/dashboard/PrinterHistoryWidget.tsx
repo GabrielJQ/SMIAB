@@ -138,7 +138,7 @@ export const PrinterHistoryWidget = () => {
                 <ResponsiveContainer width="100%" height="100%" minWidth={0}>
                     <BarChart
                         data={chartData}
-                        margin={{ left: 0, right: 0, top: 10, bottom: 0 }}
+                        margin={{ left: 0, right: 0, top: 10, bottom: 20 }}
                         barSize={isCurrentMonthView ? 60 : undefined}
                     >
                         <defs>

@@ -120,7 +120,7 @@ export const GeneralStatsWidget = () => {
                 <ResponsiveContainer width="100%" height="100%" minWidth={0}>
                     <BarChart
                         data={chartData}
-                        margin={{ left: 0, right: 0, top: 10, bottom: 0 }}
+                        margin={{ left: 0, right: 0, top: 10, bottom: 20 }}
                         barSize={isCurrentMonthView ? 60 : undefined}
                     >
                         <CartesianGrid vertical={false} stroke="#f1f5f9" strokeDasharray="3 3" />
