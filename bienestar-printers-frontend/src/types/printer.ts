@@ -9,13 +9,7 @@ export interface PrinterSummary {
     createdAt: string;
 }
 
-export interface PrinterStats {
-    id: string;
-    name: string;
-    area: string | null;
-    printerStats: number | null;
-    scanStats: number | null;
-}
+
 
 export interface PrinterComparison {
     year: number;

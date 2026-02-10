@@ -4,10 +4,11 @@ import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { api } from '@/services/api';
 import { PrinterComparison } from '@/types/printer';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 import { Globe } from 'lucide-react';
 import { DashboardCard } from '@/components/ui/DashboardCard';
 import { UnifiedFilter } from '@/components/dashboard/UnifiedFilter';
+import { BaseBarChart } from '@/components/ui/charts/BaseBarChart';
+import { CHART_COLORS, MONTH_NAMES } from '@/lib/constants';
 
 const fetchUnitHistory = async (months: number): Promise<PrinterComparison[]> => {
     // Uses the unit history endpoint which returns [ { year, month, printVolume }, ... ]
@@ -15,10 +16,7 @@ const fetchUnitHistory = async (months: number): Promise<PrinterComparison[]> =>
     return data;
 };
 
-const MONTH_NAMES = ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"];
 
-// --- COLORS ---
-const COLORS = ['#7B1E34', '#0f172a', '#475569', '#cbd5e1', '#94a3b8', '#b91c1c', '#ea580c', '#d97706', '#65a30d', '#059669', '#0891b2', '#2563eb'];
 
 interface ChartData {
     name: string;
@@ -63,7 +61,7 @@ export const GeneralStatsWidget = () => {
                 fullName: `${MONTH_NAMES[item.month - 1]} ${item.year}`,
                 value: item.print_total,
                 // Cycle through palette
-                color: COLORS[index % COLORS.length]
+                color: CHART_COLORS[index % CHART_COLORS.length]
             }));
 
             // For historical range, usually sum of range is most impressive or useful
@@ -117,53 +115,23 @@ export const GeneralStatsWidget = () => {
             </div>
 
             <div className="w-full h-[350px] mt-4 relative z-10">
-                <ResponsiveContainer width="100%" height="100%" minWidth={0}>
-                    <BarChart
-                        data={chartData}
-                        margin={{ left: 0, right: 0, top: 10, bottom: 20 }}
-                        barSize={isCurrentMonthView ? 60 : undefined}
-                    >
-                        <CartesianGrid vertical={false} stroke="#f1f5f9" strokeDasharray="3 3" />
-                        <XAxis
-                            dataKey="name"
-                            axisLine={false}
-                            tickLine={false}
-                            tick={{ fontSize: 11, fontWeight: 700, fill: '#94a3b8' }}
-                            dy={15}
-                        />
-                        <YAxis
-                            axisLine={false}
-                            tickLine={false}
-                            tick={{ fontSize: 11, fontWeight: 700, fill: '#94a3b8' }}
-                            width={40}
-                            allowDecimals={false} // Ensure integers
-                        />
-                        <Tooltip
-                            cursor={{ fill: '#f8fafc', opacity: 0.5 }}
-                            content={({ active, payload }) => {
-                                if (active && payload && payload.length) {
-                                    const data = payload[0].payload;
-                                    return (
-                                        <div className="bg-white/90 backdrop-blur-xl p-4 rounded-2xl shadow-xl border border-white/50 ring-1 ring-slate-100/50">
-                                            <p className="text-[10px] uppercase font-black text-slate-400 mb-1 tracking-wider">{data.fullName || data.name}</p>
-                                            <p className="text-2xl font-black text-slate-800" style={{ color: data.color }}>{data.value.toLocaleString()}</p>
-                                        </div>
-                                    );
-                                }
-                                return null;
-                            }}
-                        />
-                        <Bar dataKey="value" radius={[12, 12, 12, 12]} animationDuration={1500}>
-                            {chartData.map((entry, index) => (
-                                <Cell
-                                    key={`cell-${index}`}
-                                    fill={entry.color}
-                                    className="transition-all duration-300 hover:opacity-80 cursor-pointer"
-                                />
-                            ))}
-                        </Bar>
-                    </BarChart>
-                </ResponsiveContainer>
+                <BaseBarChart
+                    data={chartData}
+                    dataKey="value"
+                    barSize={isCurrentMonthView ? 60 : undefined}
+                    tooltipContent={({ active, payload }) => {
+                        if (active && payload && payload.length) {
+                            const data = payload[0].payload;
+                            return (
+                                <div className="bg-white/90 backdrop-blur-xl p-4 rounded-2xl shadow-xl border border-white/50 ring-1 ring-slate-100/50">
+                                    <p className="text-[10px] uppercase font-black text-slate-400 mb-1 tracking-wider">{data.fullName || data.name}</p>
+                                    <p className="text-2xl font-black text-slate-800" style={{ color: data.color }}>{data.value.toLocaleString()}</p>
+                                </div>
+                            );
+                        }
+                        return null;
+                    }}
+                />
             </div>
         </DashboardCard>
     );

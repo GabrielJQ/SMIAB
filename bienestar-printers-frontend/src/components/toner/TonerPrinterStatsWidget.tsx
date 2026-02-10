@@ -4,15 +4,12 @@ import React, { useState } from 'react';
 import { useDashboardStore } from '@/store/useDashboardStore';
 import { useQuery } from '@tanstack/react-query';
 import { tonerService } from '@/services/tonerService';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 import { Printer, Calendar, Activity } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { UnifiedFilter } from '@/components/dashboard/UnifiedFilter';
 import { DashboardCard } from '@/components/ui/DashboardCard';
-
-const MONTH_NAMES = ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"];
-// Reuse same palette for consistency
-const COLORS = ['#7B1E34', '#0f172a', '#475569', '#cbd5e1', '#94a3b8', '#b91c1c', '#ea580c', '#d97706', '#65a30d', '#059669', '#0891b2', '#2563eb'];
+import { BaseBarChart } from '@/components/ui/charts/BaseBarChart';
+import { CHART_COLORS, MONTH_NAMES } from '@/lib/constants';
 
 export const TonerPrinterStatsWidget = () => {
     const { selectedPrinterId, selectedPrinter } = useDashboardStore();
@@ -30,7 +27,7 @@ export const TonerPrinterStatsWidget = () => {
             name: `${MONTH_NAMES[item.month - 1]}`,
             fullName: `${MONTH_NAMES[item.month - 1]} ${item.year}`,
             value: item.toner_count,
-            color: COLORS[index % COLORS.length]
+            color: CHART_COLORS[index % CHART_COLORS.length]
         }));
     }, [history]);
 
@@ -84,61 +81,32 @@ export const TonerPrinterStatsWidget = () => {
 
             <div className="flex-1 w-full min-h-[0] min-w-0 mt-4 relative z-10">
                 {chartData.length > 0 ? (
-                    <ResponsiveContainer width="100%" height="100%">
-                        <BarChart
-                            data={chartData}
-                            margin={{ left: 0, right: 0, top: 10, bottom: 20 }}
-                            barSize={50}
-                        >
-                            <defs>
-                                <linearGradient id="barGradientPrinter" x1="0" y1="0" x2="0" y2="1">
-                                    <stop offset="0%" stopColor="#7B1E34" stopOpacity={1} />
-                                    <stop offset="100%" stopColor="#7B1E34" stopOpacity={0.6} />
-                                </linearGradient>
-                            </defs>
-                            <CartesianGrid vertical={false} stroke="#f1f5f9" strokeDasharray="3 3" />
-                            <XAxis
-                                dataKey="name"
-                                axisLine={false}
-                                tickLine={false}
-                                tick={{ fontSize: 11, fontWeight: 700, fill: '#94a3b8' }}
-                                dy={15}
-                            />
-                            <YAxis
-                                axisLine={false}
-                                tickLine={false}
-                                tick={{ fontSize: 11, fontWeight: 700, fill: '#94a3b8' }}
-                                width={30}
-                                allowDecimals={false}
-                            />
-                            <Tooltip
-                                cursor={{ fill: '#f8fafc', opacity: 0.5 }}
-                                content={({ active, payload }) => {
-                                    if (active && payload && payload.length) {
-                                        const data = payload[0].payload;
-                                        return (
-                                            <div className="bg-white/90 backdrop-blur-xl p-4 rounded-2xl shadow-xl border border-white/50 ring-1 ring-slate-100/50">
-                                                <p className="text-[10px] uppercase font-black text-slate-400 mb-1 tracking-wider">{data.fullName}</p>
-                                                <p className="text-2xl font-black text-slate-800 flex items-baseline gap-1" style={{ color: data.color }}>
-                                                    {data.value} <span className="text-[10px] text-slate-400 font-bold uppercase">Uds.</span>
-                                                </p>
-                                            </div>
-                                        );
-                                    }
-                                    return null;
-                                }}
-                            />
-                            <Bar dataKey="value" radius={[12, 12, 12, 12]} animationDuration={1500}>
-                                {chartData.map((entry, index) => (
-                                    <Cell
-                                        key={`cell-${index}`}
-                                        fill={entry.color}
-                                        className="transition-all duration-300 hover:opacity-80 cursor-pointer"
-                                    />
-                                ))}
-                            </Bar>
-                        </BarChart>
-                    </ResponsiveContainer>
+                    <BaseBarChart
+                        data={chartData}
+                        dataKey="value"
+                        barSize={50}
+                        tooltipContent={({ active, payload }) => {
+                            if (active && payload && payload.length) {
+                                const data = payload[0].payload;
+                                return (
+                                    <div className="bg-white/90 backdrop-blur-xl p-4 rounded-2xl shadow-xl border border-white/50 ring-1 ring-slate-100/50">
+                                        <p className="text-[10px] uppercase font-black text-slate-400 mb-1 tracking-wider">{data.fullName}</p>
+                                        <p className="text-2xl font-black text-slate-800 flex items-baseline gap-1" style={{ color: data.color }}>
+                                            {data.value} <span className="text-[10px] text-slate-400 font-bold uppercase">Uds.</span>
+                                        </p>
+                                    </div>
+                                );
+                            }
+                            return null;
+                        }}
+                    >
+                        <defs>
+                            <linearGradient id="barGradientPrinter" x1="0" y1="0" x2="0" y2="1">
+                                <stop offset="0%" stopColor="#7B1E34" stopOpacity={1} />
+                                <stop offset="100%" stopColor="#7B1E34" stopOpacity={0.6} />
+                            </linearGradient>
+                        </defs>
+                    </BaseBarChart>
                 ) : (
                     <div className="h-full flex flex-col items-center justify-center opacity-50">
                         <Activity className="w-8 h-8 text-slate-300 mb-2" />
