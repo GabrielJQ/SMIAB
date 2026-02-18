@@ -1,6 +1,13 @@
 export interface Printer {
-  id: string;
+  assetId: string;
   namePrinter: string;
-  areaId: string;
-  printerStatus: boolean;
+  departmentId: string;
+  unitId: string;
+  regionId: string;
+  printerStatus: string;
+  tonerLvl: number;
+  kitMttnceLvl: number;
+  uniImgLvl: number;
+  totalPagesPrinted: number;
+  lastReadAt: string;
 }

@@ -1,7 +1,6 @@
 export interface PrinterMonthlyStats {
     id: string;
-    printer_id: string;
-    unit_id: string;
+    asset_id: string;
     year: number;
     month: number;
     print_only_delta: number;
@@ -9,5 +8,4 @@ export interface PrinterMonthlyStats {
     print_total_delta: number;
 
     created_at: string;
-    updated_at: string;
 }

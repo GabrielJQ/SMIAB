@@ -5,7 +5,6 @@ import { SupabaseService } from '../../integrations/supabase/supabase.service';
 import { getPrintersByAreaQuery } from './queries/get-printers-by-area.query';
 import { getPrinterByIdQuery } from './queries/get-printer-by-id.query';
 import { getPrintersByUnitQuery } from './queries/get-printers-by-unit.query';
-import { getUnitByAreaQuery } from './queries/get-unit-by-area.query';
 import { PrinterSummaryDto } from './dto/printer-summary.dto';
 
 // New Stats Queries / DTOs
@@ -34,28 +33,24 @@ export class PrintersService {
     return rows.map(row => new PrinterSummaryDto(row));
   }
 
-  async getPrintersByUnit(userAreaId: string) {
+  async getPrintersByUnit(userUnitId: string) {
+    if (!userUnitId) throw new ForbiddenException('User has no unit assigned');
     const supabase = this.supabaseService.getAdminClient();
-    const unitId = await getUnitByAreaQuery(supabase, userAreaId);
-    if (!unitId) throw new ForbiddenException('User area has no unit assigned');
 
-    const rows = await getPrintersByUnitQuery(supabase, unitId);
+    const rows = await getPrintersByUnitQuery(supabase, parseInt(userUnitId));
     if (!rows) return [];
     return rows.map(row => new PrinterSummaryDto(row));
   }
 
-  async getPrinterById(printerId: string, userAreaId: string) {
+  async getPrinterById(printerId: string, userUnitId: string) {
+    if (!userUnitId) throw new ForbiddenException('User has no unit assigned');
     const supabase = this.supabaseService.getAdminClient();
     const row = await getPrinterByIdQuery(supabase, printerId);
     if (!row) return null;
 
-    const userUnitId = await getUnitByAreaQuery(supabase, userAreaId);
-    if (!userUnitId) throw new ForbiddenException('User area has no unit assigned');
+    const printerUnitId = row.unit_id;
 
-    const area = Array.isArray(row.areas) ? row.areas[0] : row.areas;
-    const printerUnitId = area?.unit_id;
-
-    if (printerUnitId !== userUnitId) {
+    if (printerUnitId?.toString() !== userUnitId) {
       throw new ForbiddenException('Access to printer denied (Different Unit)');
     }
     return new PrinterSummaryDto(row);
@@ -65,17 +60,16 @@ export class PrintersService {
   //  NEW STATISTICS METHODS
   // ==========================================
 
-  private async validatePrinterAccess(printerId: string, userAreaId: string) {
+  private async validatePrinterAccess(printerId: string, userUnitId: string) {
+    if (!userUnitId) throw new ForbiddenException('User has no unit assigned');
     const supabase = this.supabaseService.getAdminClient();
     // Reusing getPrinterByIdQuery to check ownership
     const row = await getPrinterByIdQuery(supabase, printerId);
     if (!row) throw new BadRequestException('Printer not found');
 
-    const userUnitId = await getUnitByAreaQuery(supabase, userAreaId);
-    const area = Array.isArray(row.areas) ? row.areas[0] : row.areas;
-    const printerUnitId = area?.unit_id;
+    const printerUnitId = row.unit_id;
 
-    if (!userUnitId || printerUnitId !== userUnitId) {
+    if (!userUnitId || printerUnitId?.toString() !== userUnitId) {
       throw new ForbiddenException('Access to printer denied (Different Unit)');
     }
     return { printerId, userUnitId };
@@ -115,13 +109,12 @@ export class PrintersService {
     return rows.map(row => new PrinterComparisonDto(row));
   }
 
-  async getUnitHistory(userAreaId: string, months: number) {
+  async getUnitHistory(userUnitId: string, months: number) {
+    if (!userUnitId) throw new ForbiddenException('User has no unit assigned');
     const supabase = this.supabaseService.getAdminClient();
-    const unitId = await getUnitByAreaQuery(supabase, userAreaId);
-    if (!unitId) throw new ForbiddenException('User area has no unit assigned');
 
     // Reuse query logic
-    const rows = await getUnitHistoryQuery(supabase, unitId, months);
+    const rows = await getUnitHistoryQuery(supabase, userUnitId, months);
     return rows;
   }
 }

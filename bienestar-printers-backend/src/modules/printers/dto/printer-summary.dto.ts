@@ -26,17 +26,17 @@ export class PrinterSummaryDto {
   createdAt: Date;
 
   constructor(row: any) {
-    this.id = row.id;
+    this.id = row.asset_id ?? row.id;
     this.name = row.name_printer;
     this.area = row.areas?.areaname ?? null;
 
     this.isOnline = row.printer_status === 'ONLINE';
 
-    this.tonerLevel = row.toner_lvl ?? null;
-    this.kitMaintenance = row.kit_mttnce ?? null;
-    this.unitImage = row.uni_img ?? null;
+    this.tonerLevel = row.toner_lvl ?? 0;
+    this.kitMaintenance = row.kit_mttnce_lvl ?? 0;
+    this.unitImage = row.uni_img_lvl ?? 0;
 
-    this.createdAt = new Date(row.created_at);
+    this.createdAt = row.last_read_at ? new Date(row.last_read_at) : new Date();
   }
 }
 

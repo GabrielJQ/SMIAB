@@ -34,7 +34,7 @@ export class UsersService {
         supabase_user_id: payload.supabaseUserId,
         email: payload.email,
         role: 'user',
-        area_id: payload.areaId ?? null,
+        unit_id: payload.areaId ?? null, // Map legacy areaId to unit_id for now
       })
       .select()
       .single();

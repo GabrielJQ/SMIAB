@@ -20,9 +20,10 @@ export class TonersController {
         @CurrentUser('internal') user: UserJwtPayload,
         @Query('months') months?: string,
     ) {
-        if (!user?.areaId) throw new ForbiddenException('User has no area assigned');
+        const unitId = user.unitId || user.areaId;
+        if (!unitId) throw new ForbiddenException('User has no unit assigned');
         const monthsLimit = months ? parseInt(months) : 1;
-        return this.tonersService.getUnitHistory(user.areaId, monthsLimit);
+        return this.tonersService.getUnitHistory(unitId, monthsLimit);
     }
 
     @ApiOperation({ summary: 'Obtener historial de consumo de toners por impresora' })
@@ -35,8 +36,9 @@ export class TonersController {
         @Param('id') id: string,
         @Query('months') months?: string,
     ) {
-        if (!user?.areaId) throw new ForbiddenException('User has no area assigned');
+        const unitId = user.unitId || user.areaId;
+        if (!unitId) throw new ForbiddenException('User has no unit assigned');
         const monthsLimit = months ? parseInt(months) : 1;
-        return this.tonersService.getPrinterHistory(id, user.areaId, monthsLimit);
+        return this.tonersService.getPrinterHistory(id, unitId, monthsLimit);
     }
 }

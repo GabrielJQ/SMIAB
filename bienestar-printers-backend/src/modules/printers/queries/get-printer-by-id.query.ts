@@ -7,20 +7,20 @@ export async function getPrinterByIdQuery(
   const { data, error } = await supabase
     .from('printers')
     .select(`
-      id,
+      asset_id,
       name_printer,
       printer_status,
       toner_lvl,
-      kit_mttnce,
-      uni_img,
-      created_at,
-      areas (
-        id,
-        areaname,
-        unit_id
+      kit_mttnce_lvl,
+      uni_img_lvl,
+      last_read_at,
+      department_id,
+      unit_id,
+      regions (
+        regionname
       )
     `)
-    .eq('id', printerId)
+    .eq('asset_id', printerId)
     .single();
 
   if (error) {

@@ -12,8 +12,7 @@ import type { SupabaseUser } from '../types/supabase-user.type';
 @Injectable()
 export class SupabaseAuthGuard
   extends AuthGuard('supabase-jwt')
-  implements CanActivate
-{
+  implements CanActivate {
   constructor(private readonly usersService: UsersService) {
     super();
   }
@@ -42,6 +41,9 @@ export class SupabaseAuthGuard
     let internalUser =
       await this.usersService.findBySupabaseUserId(supabaseUser.sub);
 
+    console.log('[DEBUG] Supabase User Sub:', supabaseUser.sub);
+    console.log('[DEBUG] Internal User:', internalUser);
+
     // 4️⃣ Crear usuario interno si no existe
     if (!internalUser) {
       internalUser = await this.usersService.createFromSupabase({
@@ -51,7 +53,7 @@ export class SupabaseAuthGuard
     }
 
     // 5️⃣ Validar estado de negocio
-    if (internalUser.status !== 'active') {
+    if (internalUser.status && internalUser.status !== 'active') {
       throw new ForbiddenException('User inactive');
     }
 
@@ -59,7 +61,10 @@ export class SupabaseAuthGuard
     request.user = {
       supabase: supabaseUser,
       internal: internalUser,
-      areaId: internalUser.area_id,
+      areaId: internalUser.department_id || internalUser.unit_id,
+      unitId: internalUser.unit_id,
+      departmentId: internalUser.department_id,
+      regionId: internalUser.region_id,
     };
 
     return true;

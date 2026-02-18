@@ -27,25 +27,11 @@ export async function getUnitTonerHistoryQuery(
     const firstMonth = monthsList[0];
     const targetDate = new Date(firstMonth.year, firstMonth.month - 1, 1);
 
-    // Step 1: Get Printer IDs
-    const { data: printers, error: printerError } = await supabase
-        .from('printers')
-        .select('id')
-        .eq('unit_id', unitId);
-
-    if (printerError) throw new Error(printerError.message);
-    const printerIds = printers.map(p => p.id);
-
-    // If no printers, just return the empty months structure
-    if (printerIds.length === 0) {
-        return monthsList.map(m => ({ ...m, toner_count: 0 }));
-    }
-
-    // Step 2: Fetch Changes
+    // Step 1: Fetch Changes with join to printers to filter by unit
     const { data: changes, error: changesError } = await supabase
-        .from('toner_changes')
-        .select('changed_at')
-        .in('printer_id', printerIds)
+        .from('printer_toner_changes')
+        .select('changed_at, printers!inner(unit_id)')
+        .eq('printers.unit_id', unitId)
         .gte('changed_at', targetDate.toISOString());
 
     if (changesError) throw new Error(changesError.message);

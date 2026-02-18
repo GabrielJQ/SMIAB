@@ -7,9 +7,9 @@ export async function getTonerHistoryByPrinterQuery(
     params: DateRangeFilter
 ) {
     let query = supabase
-        .from('toner_changes')
+        .from('printer_toner_changes')
         .select('*')
-        .eq('printer_id', printerId);
+        .eq('asset_id', printerId);
 
     query = applyTimestampRangeFilter(query, 'changed_at', params);
 

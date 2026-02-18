@@ -10,7 +10,7 @@ export async function getPrinterComparisonQuery(
     const { data, error } = await supabase
         .from('printer_monthly_stats')
         .select('*')
-        .eq('printer_id', printerId)
+        .eq('asset_id', printerId)
         .order('year', { ascending: false })
         .order('month', { ascending: false })
         .limit(months);

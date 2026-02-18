@@ -13,7 +13,7 @@ export async function getPrinterHistoryQuery(
     let query = supabase
         .from('printer_monthly_stats')
         .select('*')
-        .eq('printer_id', params.printerId);
+        .eq('asset_id', params.printerId);
 
     // Apply shared date range logic
     query = applyDateRangeFilter(query, params);

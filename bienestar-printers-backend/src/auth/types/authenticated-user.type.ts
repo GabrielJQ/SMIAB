@@ -7,6 +7,8 @@ export interface AuthenticatedUser {
     email: string;
     role: 'admin' | 'user';
     status: 'active' | 'inactive' | 'suspended';
-    area_id: number | null ; 
+    unit_id: number | null;
+    region_id: number | null;
+    department_id: number | null;
   };
 }

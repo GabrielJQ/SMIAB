@@ -27,10 +27,11 @@ export class PrintersController {
     @CurrentUser('internal') user: UserJwtPayload,
     @Query('months') months?: string,
   ) {
-    if (!user?.areaId) throw new ForbiddenException('User has no area assigned');
+    const unitId = user.unitId || user.areaId;
+    if (!unitId) throw new ForbiddenException('User has no unit assigned');
 
     const monthsLimit = months ? parseInt(months) : 1;
-    return this.printersService.getUnitHistory(user.areaId, monthsLimit);
+    return this.printersService.getUnitHistory(unitId, monthsLimit);
   }
 
   @ApiOperation({ summary: 'Obtener historial de impresiones (Rango de Fechas)' })
@@ -100,20 +101,22 @@ export class PrintersController {
   @ApiOkResponse({ description: 'Listado de impresoras de la unidad', type: [PrinterSummaryDto] })
   @Get('unit')
   async getByUnit(@CurrentUser('internal') user: UserJwtPayload) {
-    if (!user?.areaId) {
-      throw new ForbiddenException('User has no area assigned');
+    const unitId = user.unitId || user.areaId;
+    if (!unitId) {
+      throw new ForbiddenException('User has no unit assigned');
     }
-    return this.printersService.getPrintersByUnit(user.areaId);
+    return this.printersService.getPrintersByUnit(unitId);
   }
 
   @ApiOperation({ summary: 'Obtener listado de impresoras del área del usuario' })
   @ApiOkResponse({ description: 'Listado de impresoras del área', type: [PrinterSummaryDto] })
   @Get()
   async getAll(@CurrentUser('internal') user: UserJwtPayload) {
-    if (!user?.areaId) {
+    const areaId = user.departmentId || user.areaId;
+    if (!areaId) {
       throw new ForbiddenException('User has no area assigned');
     }
-    return this.printersService.getPrintersByUserArea(user.areaId);
+    return this.printersService.getPrintersByUserArea(areaId);
   }
 
   @ApiOperation({ summary: 'Obtener detalles de una impresora por ID' })
@@ -124,10 +127,11 @@ export class PrintersController {
     @CurrentUser('internal') user: UserJwtPayload,
     @Param('id') id: string,
   ) {
-    if (!user?.areaId) {
-      throw new ForbiddenException('User has no area assigned');
+    const unitId = user.unitId || user.areaId;
+    if (!unitId) {
+      throw new ForbiddenException('User has no unit assigned');
     }
-    const printer = await this.printersService.getPrinterById(id, user.areaId);
+    const printer = await this.printersService.getPrinterById(id, unitId);
 
     if (!printer) {
       throw new NotFoundException('Printer not found');

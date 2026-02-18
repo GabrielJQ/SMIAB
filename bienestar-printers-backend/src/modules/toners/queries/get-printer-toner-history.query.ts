@@ -22,9 +22,9 @@ export async function getPrinterTonerHistoryQuery(
     const targetDate = new Date(firstMonth.year, firstMonth.month - 1, 1);
 
     const { data: changes, error } = await supabase
-        .from('toner_changes')
+        .from('printer_toner_changes')
         .select('changed_at')
-        .eq('printer_id', printerId)
+        .eq('asset_id', printerId)
         .gte('changed_at', targetDate.toISOString());
 
     if (error) throw new Error(error.message);

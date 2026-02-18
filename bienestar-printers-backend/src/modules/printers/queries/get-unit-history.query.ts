@@ -26,8 +26,8 @@ export async function getUnitHistoryQuery(
 
     let query = supabase
         .from('printer_monthly_stats')
-        .select('year, month, print_only_delta, copy_delta, print_total_delta')
-        .eq('unit_id', unitId)
+        .select('year, month, print_only_delta, copy_delta, print_total_delta, printers!inner(unit_id)')
+        .eq('printers.unit_id', unitId)
         .gte('year', targetYear);
 
     const { data, error } = await query;

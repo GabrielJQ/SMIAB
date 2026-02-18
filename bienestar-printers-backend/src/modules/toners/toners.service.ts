@@ -5,7 +5,6 @@ import { getPrinterTonerHistoryQuery } from './queries/get-printer-toner-history
 import { TonerHistoryDto } from './dto/toner-history.dto';
 
 // Reuse existing queries for Authorization steps
-import { getUnitByAreaQuery } from '../printers/queries/get-unit-by-area.query';
 import { getPrinterByIdQuery } from '../printers/queries/get-printer-by-id.query';
 
 @Injectable()
@@ -18,7 +17,8 @@ export class TonersService {
     //  AUTHORIZATION HELPERS
     // ==========================================
 
-    private async validatePrinterAccess(printerId: string, userAreaId: string) {
+    private async validatePrinterAccess(printerId: string, userUnitId: string) {
+        if (!userUnitId) throw new ForbiddenException('User has no unit assigned');
         const supabase = this.supabaseService.getAdminClient();
 
         // 1. Get Printer and its Unit
@@ -26,13 +26,12 @@ export class TonersService {
         if (!row) throw new BadRequestException('Printer not found');
 
         // 2. Get User's Unit
-        const userUnitId = await getUnitByAreaQuery(supabase, userAreaId);
+        // Already passed as arg
 
         // 3. Compare
-        const area = Array.isArray(row.areas) ? row.areas[0] : row.areas;
-        const printerUnitId = area?.unit_id;
+        const printerUnitId = row.unit_id;
 
-        if (!userUnitId || printerUnitId !== userUnitId) {
+        if (!userUnitId || printerUnitId?.toString() !== userUnitId) {
             throw new ForbiddenException('Access to printer denied (Different Unit)');
         }
         return { printerId, userUnitId };
@@ -42,13 +41,11 @@ export class TonersService {
     //  PUBLIC METHODS
     // ==========================================
 
-    async getUnitHistory(userAreaId: string, months: number): Promise<TonerHistoryDto[]> {
+    async getUnitHistory(userUnitId: string, months: number): Promise<TonerHistoryDto[]> {
+        if (!userUnitId) throw new ForbiddenException('User has no unit assigned');
         const supabase = this.supabaseService.getAdminClient();
 
-        const unitId = await getUnitByAreaQuery(supabase, userAreaId);
-        if (!unitId) throw new ForbiddenException('User area has no unit assigned');
-
-        const rows = await getUnitTonerHistoryQuery(supabase, unitId, months);
+        const rows = await getUnitTonerHistoryQuery(supabase, userUnitId, months);
 
         return rows.map(row => new TonerHistoryDto(row));
     }

@@ -9,7 +9,7 @@ export async function getPrinterYearlySummaryQuery(
     const { data, error } = await supabase
         .from('printer_monthly_stats')
         .select('*')
-        .eq('printer_id', printerId)
+        .eq('asset_id', printerId)
         .eq('year', year)
         .order('month', { ascending: true });
 

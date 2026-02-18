@@ -8,20 +8,15 @@ export async function getPrintersByUnitQuery(
   const { data, error } = await supabase
     .from('printers')
     .select(`
-      id,
+      asset_id,
       name_printer,
       printer_status,
       toner_lvl,
-      kit_mttnce,
-      uni_img,
-      created_at,
-      areas!inner (
-        id,
-        areaname,
-        unit_id
-      )
+      kit_mttnce_lvl,
+      uni_img_lvl,
+      last_read_at
     `)
-    .eq('areas.unit_id', unitId)
+    .eq('unit_id', unitId)
     .order('name_printer', { ascending: true });
 
   if (error) {

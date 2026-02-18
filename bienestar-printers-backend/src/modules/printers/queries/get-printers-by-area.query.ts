@@ -7,19 +7,15 @@ export async function getPrintersByAreaQuery(
   const { data, error } = await supabase
     .from('printers')
     .select(`
-      id,
+      asset_id,
       name_printer,
       printer_status,
       toner_lvl,
-      kit_mttnce,
-      uni_img,
-      created_at,
-      areas (
-        id,
-        areaname
-      )
+      kit_mttnce_lvl,
+      uni_img_lvl,
+      last_read_at
     `)
-    .eq('area_id', areaId)
+    .eq('department_id', areaId)
     .order('name_printer', { ascending: true });
 
   if (error) {
