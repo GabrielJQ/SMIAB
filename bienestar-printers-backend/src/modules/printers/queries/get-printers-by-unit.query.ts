@@ -14,12 +14,16 @@ export async function getPrintersByUnitQuery(
       toner_lvl,
       kit_mttnce_lvl,
       uni_img_lvl,
-      last_read_at
+      last_read_at,
+      departments (
+        areanom
+      )
     `)
     .eq('unit_id', unitId)
     .order('name_printer', { ascending: true });
 
   if (error) {
+    console.error('Error fetching printers by unit:', error);
     throw new Error(error.message);
   }
 

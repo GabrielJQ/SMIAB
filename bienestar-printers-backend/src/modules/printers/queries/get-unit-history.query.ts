@@ -33,6 +33,7 @@ export async function getUnitHistoryQuery(
     const { data, error } = await query;
 
     if (error) {
+        console.error('Error in getUnitHistoryQuery:', error);
         throw new Error(error.message);
     }
 

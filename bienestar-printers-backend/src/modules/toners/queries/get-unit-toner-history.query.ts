@@ -34,7 +34,10 @@ export async function getUnitTonerHistoryQuery(
         .eq('printers.unit_id', unitId)
         .gte('changed_at', targetDate.toISOString());
 
-    if (changesError) throw new Error(changesError.message);
+    if (changesError) {
+        console.error('Error in getUnitTonerHistoryQuery:', changesError);
+        throw new Error(changesError.message);
+    }
 
     // Step 3: Aggregate in memory
     const aggregated = new Map<string, number>();

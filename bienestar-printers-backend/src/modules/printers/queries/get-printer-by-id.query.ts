@@ -16,8 +16,11 @@ export async function getPrinterByIdQuery(
       last_read_at,
       department_id,
       unit_id,
+      departments (
+        areanom
+      ),
       regions (
-        regionname
+        regnom
       )
     `)
     .eq('asset_id', printerId)

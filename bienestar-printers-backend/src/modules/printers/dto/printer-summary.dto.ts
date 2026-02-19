@@ -28,7 +28,7 @@ export class PrinterSummaryDto {
   constructor(row: any) {
     this.id = row.asset_id ?? row.id;
     this.name = row.name_printer;
-    this.area = row.areas?.areaname ?? null;
+    this.area = row.departments?.areanom ?? row.areas?.areaname ?? null;
 
     this.isOnline = row.printer_status === 'ONLINE';
 
