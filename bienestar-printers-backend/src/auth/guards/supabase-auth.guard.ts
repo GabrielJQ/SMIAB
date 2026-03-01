@@ -41,20 +41,14 @@ export class SupabaseAuthGuard
     let internalUser =
       await this.usersService.findBySupabaseUserId(supabaseUser.sub);
 
-    console.log('[DEBUG] Supabase User Sub:', supabaseUser.sub);
-    console.log('[DEBUG] Internal User:', internalUser);
+    // 4️⃣ Ya no creamos usuarios nuevos porque este microservicio es dependiente de SAI.
+    // Omitimos el bloque de createFromSupabase() para dejar que la siguiente validación capture el Null.
 
-    // 4️⃣ Crear usuario interno si no existe
+    // 5️⃣ Validar estado de negocio (Hard delete policy)
+    // El sistema central SAI ahora usa hard deletes, por lo que si el usuario no existe o es null,
+    // significa que ya no tiene acceso.
     if (!internalUser) {
-      internalUser = await this.usersService.createFromSupabase({
-        supabaseUserId: supabaseUser.sub,
-        email: supabaseUser.email,
-      });
-    }
-
-    // 5️⃣ Validar estado de negocio
-    if (internalUser.status && internalUser.status !== 'active') {
-      throw new ForbiddenException('User inactive');
+      throw new UnauthorizedException('El usuario no existe en el sistema central SAI');
     }
 
     // 6️⃣ Normalizar request.user (contrato FINAL de tu app)

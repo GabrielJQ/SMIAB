@@ -1,4 +1,6 @@
 import { Injectable, ForbiddenException, BadRequestException } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
 import { SupabaseService } from '../../integrations/supabase/supabase.service';
 import { getUnitTonerHistoryQuery } from './queries/get-unit-toner-history.query';
 import { getPrinterTonerHistoryQuery } from './queries/get-printer-toner-history.query';
@@ -6,11 +8,14 @@ import { TonerHistoryDto } from './dto/toner-history.dto';
 
 // Reuse existing queries for Authorization steps
 import { getPrinterByIdQuery } from '../printers/queries/get-printer-by-id.query';
+import { PrinterTonerChange } from './entities/printer-toner-change.entity';
 
 @Injectable()
 export class TonersService {
     constructor(
         private readonly supabaseService: SupabaseService,
+        @InjectRepository(PrinterTonerChange)
+        private readonly printerTonerChangeRepository: Repository<PrinterTonerChange>,
     ) { }
 
     // ==========================================
@@ -43,9 +48,8 @@ export class TonersService {
 
     async getUnitHistory(userUnitId: string, months: number): Promise<TonerHistoryDto[]> {
         if (!userUnitId) throw new ForbiddenException('User has no unit assigned');
-        const supabase = this.supabaseService.getAdminClient();
 
-        const rows = await getUnitTonerHistoryQuery(supabase, userUnitId, months);
+        const rows = await getUnitTonerHistoryQuery(this.printerTonerChangeRepository, userUnitId, months);
 
         return rows.map(row => new TonerHistoryDto(row));
     }
@@ -53,8 +57,7 @@ export class TonersService {
     async getPrinterHistory(printerId: string, userAreaId: string, months: number): Promise<TonerHistoryDto[]> {
         await this.validatePrinterAccess(printerId, userAreaId);
 
-        const supabase = this.supabaseService.getAdminClient();
-        const rows = await getPrinterTonerHistoryQuery(supabase, printerId, months);
+        const rows = await getPrinterTonerHistoryQuery(this.printerTonerChangeRepository, printerId, months);
 
         return rows.map(row => new TonerHistoryDto(row));
     }

@@ -1,4 +1,6 @@
 import { Injectable, ForbiddenException, BadRequestException } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
 import { SupabaseService } from '../../integrations/supabase/supabase.service';
 
 // Basic Queries / DTOs
@@ -15,11 +17,14 @@ import { getUnitHistoryQuery } from './queries/get-unit-history.query';
 import { PrinterHistoryDto } from './dto/printer-history.dto';
 import { PrinterYearlySummaryDto } from './dto/printer-yearly-summary.dto';
 import { PrinterComparisonDto } from './dto/printer-comparison.dto';
+import { PrinterMonthlyStat } from './entities/printer-monthly-stat.entity';
 
 @Injectable()
 export class PrintersService {
   constructor(
     private readonly supabaseService: SupabaseService,
+    @InjectRepository(PrinterMonthlyStat)
+    private readonly printerMonthlyStatRepository: Repository<PrinterMonthlyStat>,
   ) { }
 
   // ==========================================
@@ -111,10 +116,9 @@ export class PrintersService {
 
   async getUnitHistory(userUnitId: string, months: number) {
     if (!userUnitId) throw new ForbiddenException('User has no unit assigned');
-    const supabase = this.supabaseService.getAdminClient();
 
-    // Reuse query logic
-    const rows = await getUnitHistoryQuery(supabase, userUnitId, months);
+    // Now using TypeORM repository instead of Supabase client
+    const rows = await getUnitHistoryQuery(this.printerMonthlyStatRepository, userUnitId, months);
     return rows;
   }
 }

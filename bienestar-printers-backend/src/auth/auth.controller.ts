@@ -1,7 +1,6 @@
 import { Controller, Get, UseGuards } from '@nestjs/common';
 
 import { SupabaseAuthGuard } from './guards/supabase-auth.guard';
-import { StatusGuard } from './guards/status.guard';
 import { CurrentUser } from './decorators/current-user.decorator';
 
 import { RolesGuard } from './guards/roles.guard';
@@ -18,17 +17,17 @@ export class AuthController {
 
   } */
 
-   @Controller('auth')
+@Controller('auth')
 export class AuthController {
-  @UseGuards(SupabaseAuthGuard, StatusGuard)
+  @UseGuards(SupabaseAuthGuard)
   @Get('me')
   me(@CurrentUser() user) {
     return user;
-  } 
+  }
 }
 
 
-  
+
 
 
 

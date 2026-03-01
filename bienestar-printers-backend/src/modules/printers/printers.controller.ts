@@ -9,9 +9,12 @@ import { PrinterYearlySummaryDto } from './dto/printer-yearly-summary.dto';
 import { PrinterComparisonDto } from './dto/printer-comparison.dto';
 import { UserJwtPayload } from '../../auth/interfaces/user-jwt.interface';
 
+import { Roles } from '../../auth/decorators/roles.decorator';
+import { RolesGuard } from '../../auth/guards/roles.guard';
+
 @ApiTags('Printers')
 @Controller('printers')
-@UseGuards(SupabaseAuthGuard)
+@UseGuards(SupabaseAuthGuard, RolesGuard)
 export class PrintersController {
   constructor(private readonly printersService: PrintersService) { }
 
@@ -119,9 +122,10 @@ export class PrintersController {
     return this.printersService.getPrintersByUserArea(areaId);
   }
 
-  @ApiOperation({ summary: 'Obtener detalles de una impresora por ID' })
+  @ApiOperation({ summary: 'Obtener detalles de una impresora por ID (Lectura Universal)' })
   @ApiParam({ name: 'id', description: 'ID de la impresora' })
   @ApiOkResponse({ description: 'Detalle de la impresora', type: PrinterSummaryDto })
+  @Roles('super_admin', 'admin', 'collaborator', 'visitor') // Accesible por todos
   @Get(':id')
   async getOne(
     @CurrentUser('internal') user: UserJwtPayload,
@@ -138,5 +142,15 @@ export class PrintersController {
     }
 
     return printer;
+  }
+
+  // EJEMPLO SOLICITADO: Ruta de escritura protegida solo para Superadmin y Admin
+  @ApiOperation({ summary: 'Actualizar configuración de impresora (Solo Admins)' })
+  @Roles('super_admin', 'admin') // Restringido
+  @Get(':id/write-example')
+  async updateMock(
+    @Param('id') id: string,
+  ) {
+    return { message: "Tienes permisos de escritura (super_admin o admin)", printerId: id };
   }
 }

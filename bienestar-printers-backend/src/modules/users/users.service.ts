@@ -1,11 +1,16 @@
 import { Injectable } from '@nestjs/common';
 import { SupabaseService } from '../../integrations/supabase/supabase.service';
 
+import { ConfigService } from '@nestjs/config';
+import { createClient } from '@supabase/supabase-js';
+
 @Injectable()
 export class UsersService {
   constructor(private readonly supabase: SupabaseService) { }
 
   async findBySupabaseUserId(supabaseUserId: string) {
+    // Es CRITICO usar getAdminClient() (Service Role Key) porque al ser administrado
+    // por SAI, no tenemos permisos RLS locales para consultar la tabla `public.users` libremente.
     const client = this.supabase.getAdminClient();
 
     const { data, error } = await client

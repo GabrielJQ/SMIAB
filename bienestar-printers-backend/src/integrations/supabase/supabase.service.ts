@@ -6,7 +6,7 @@ import { ConfigService } from '@nestjs/config';
 export class SupabaseService implements OnModuleInit {
   private adminClient: SupabaseClient;
 
-  constructor(private readonly configService: ConfigService) {}
+  constructor(private readonly configService: ConfigService) { }
 
   onModuleInit() {
     const url = this.configService.get<string>('SUPABASE_URL');
