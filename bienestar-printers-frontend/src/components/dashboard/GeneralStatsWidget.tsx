@@ -9,6 +9,16 @@ import { DashboardCard } from '@/components/ui/DashboardCard';
 import { UnifiedFilter } from '@/components/dashboard/UnifiedFilter';
 import { BaseBarChart } from '@/components/ui/charts/BaseBarChart';
 import { CHART_COLORS, MONTH_NAMES } from '@/lib/constants';
+import {
+    ComposedChart,
+    Area,
+    Line,
+    XAxis,
+    YAxis,
+    CartesianGrid,
+    Tooltip,
+    ResponsiveContainer
+} from 'recharts';
 
 const fetchUnitHistory = async (months: number): Promise<PrinterComparison[]> => {
     // Uses the unit history endpoint which returns [ { year, month, printVolume }, ... ]
@@ -16,21 +26,24 @@ const fetchUnitHistory = async (months: number): Promise<PrinterComparison[]> =>
     return data;
 };
 
-
-
 interface ChartData {
     name: string;
     value: number;
     color: string;
     fullName?: string;
+    trendValue?: number;
 }
 
 export const GeneralStatsWidget = () => {
     const [range, setRange] = useState(1); // 1 = Current Month, >1 = History
 
+    const currentYear = new Date().getFullYear();
+    const currentMonthIndex = new Date().getMonth();
+
+    // To get 12 months data unconditionally for the Chart line 
     const { data: history, isLoading } = useQuery({
-        queryKey: ['unit-history', range],
-        queryFn: () => fetchUnitHistory(range),
+        queryKey: ['unit-history', range === 1 ? 1 : 12],
+        queryFn: () => fetchUnitHistory(range === 1 ? 1 : 12),
     });
 
     // --- VIEW LOGIC ---
@@ -55,17 +68,30 @@ export const GeneralStatsWidget = () => {
             ];
             totalProduction = total;
         } else {
-            // VIEW 2: HISTORICAL UNIT STATS (1 BAR PER MONTH)
-            chartData = history.map((item, index) => ({
-                name: `${MONTH_NAMES[item.month - 1]}`,
-                fullName: `${MONTH_NAMES[item.month - 1]} ${item.year}`,
-                value: item.print_total,
-                // Cycle through palette
-                color: CHART_COLORS[index % CHART_COLORS.length]
-            }));
+            // VIEW 2: HISTORICAL UNIT STATS (12 MONTHS COMPOSED CHART)
+            const yearData = history.filter(d => d.year === currentYear);
 
-            // For historical range, usually sum of range is most impressive or useful
-            totalProduction = history.reduce((acc, curr) => acc + curr.print_total, 0);
+            // Generate strict 12-month array
+            chartData = Array.from({ length: 12 }, (_, index) => {
+                const iterMonth = index + 1;
+                const dbRecord = yearData.find(d => d.month === iterMonth);
+                const value = dbRecord ? (dbRecord.print_total ?? 0) : 0;
+
+                return {
+                    name: `${MONTH_NAMES[index]}`,
+                    fullName: `${MONTH_NAMES[index]} ${currentYear}`,
+                    value: value,
+                    trendValue: value > 0 ? value + (value * 0.05) : 0, // Visual trend line slightly above
+                    color: CHART_COLORS[index % CHART_COLORS.length]
+                };
+            });
+
+            // For historical range, cap at current month to avoid future months looking like drops
+            const startIndex = Math.max(0, currentMonthIndex - range + 1);
+            const slicedHistory = chartData.slice(startIndex, currentMonthIndex + 1);
+            totalProduction = slicedHistory.reduce((acc, curr) => acc + curr.value, 0);
+
+            // Always render 12 months on the graph, but text stats only reflect range
         }
     }
 
@@ -100,7 +126,7 @@ export const GeneralStatsWidget = () => {
                         </span>
                         <div className="flex flex-col">
                             <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
-                                Documentos
+                                Documentos Totales
                             </span>
                             <span className="text-[10px] font-bold text-slate-400 uppercase tracking-tight">
                                 {isCurrentMonthView ? 'Este Mes' : 'Acumulado'}
@@ -115,23 +141,84 @@ export const GeneralStatsWidget = () => {
             </div>
 
             <div className="w-full h-[350px] mt-4 relative z-10">
-                <BaseBarChart
-                    data={chartData}
-                    dataKey="value"
-                    barSize={isCurrentMonthView ? 60 : undefined}
-                    tooltipContent={({ active, payload }) => {
-                        if (active && payload && payload.length) {
-                            const data = payload[0].payload;
-                            return (
-                                <div className="bg-white/90 backdrop-blur-xl p-4 rounded-2xl shadow-xl border border-white/50 ring-1 ring-slate-100/50">
-                                    <p className="text-[10px] uppercase font-black text-slate-400 mb-1 tracking-wider">{data.fullName || data.name}</p>
-                                    <p className="text-2xl font-black text-slate-800" style={{ color: data.color }}>{data.value.toLocaleString()}</p>
-                                </div>
-                            );
-                        }
-                        return null;
-                    }}
-                />
+                {isCurrentMonthView ? (
+                    <BaseBarChart
+                        data={chartData}
+                        dataKey="value"
+                        barSize={60}
+                        tooltipContent={({ active, payload }) => {
+                            if (active && payload && payload.length) {
+                                const data = payload[0].payload;
+                                return (
+                                    <div className="bg-white/90 backdrop-blur-xl p-4 rounded-2xl shadow-xl border border-white/50 ring-1 ring-slate-100/50">
+                                        <p className="text-[10px] uppercase font-black text-slate-400 mb-1 tracking-wider">{data.fullName || data.name}</p>
+                                        <p className="text-2xl font-black text-slate-800" style={{ color: data.color }}>{data.value.toLocaleString()}</p>
+                                    </div>
+                                );
+                            }
+                            return null;
+                        }}
+                    />
+                ) : (
+                    <ResponsiveContainer width="100%" height="100%">
+                        <ComposedChart
+                            data={chartData}
+                            margin={{ top: 20, right: 10, left: -20, bottom: 0 }}
+                        >
+                            <defs>
+                                <linearGradient id="colorValue" x1="0" y1="0" x2="0" y2="1">
+                                    <stop offset="5%" stopColor="#7B1E34" stopOpacity={0.3} />
+                                    <stop offset="95%" stopColor="#7B1E34" stopOpacity={0} />
+                                </linearGradient>
+                            </defs>
+                            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                            <XAxis
+                                dataKey="name"
+                                axisLine={false}
+                                tickLine={false}
+                                tick={{ fill: '#94a3b8', fontSize: 10, fontWeight: 700 }}
+                                dy={10}
+                            />
+                            <YAxis
+                                axisLine={false}
+                                tickLine={false}
+                                tick={{ fill: '#94a3b8', fontSize: 10, fontWeight: 700 }}
+                                tickFormatter={(value) => `${(value / 1000).toFixed(0)}k`}
+                            />
+                            <Tooltip
+                                cursor={{ stroke: '#cbd5e1', strokeWidth: 1, strokeDasharray: '4 4' }}
+                                content={({ active, payload }) => {
+                                    if (active && payload && payload.length) {
+                                        const data = payload[0].payload;
+                                        return (
+                                            <div className="bg-white/90 backdrop-blur-xl p-4 rounded-2xl shadow-xl border border-white/50 ring-1 ring-slate-100/50">
+                                                <p className="text-[10px] uppercase font-black text-slate-400 mb-1 tracking-wider">{data.fullName}</p>
+                                                <p className="text-2xl font-black text-guinda-700">{data.value.toLocaleString()}</p>
+                                            </div>
+                                        );
+                                    }
+                                    return null;
+                                }}
+                            />
+                            <Area
+                                type="monotone"
+                                dataKey="value"
+                                stroke="none"
+                                fillOpacity={1}
+                                fill="url(#colorValue)"
+                                activeDot={false}
+                            />
+                            <Line
+                                type="monotone"
+                                dataKey="trendValue"
+                                stroke="#7B1E34"
+                                strokeWidth={3}
+                                dot={{ fill: '#fff', stroke: '#7B1E34', strokeWidth: 2, r: 4 }}
+                                activeDot={{ r: 6, fill: '#7B1E34', stroke: '#fff', strokeWidth: 2 }}
+                            />
+                        </ComposedChart>
+                    </ResponsiveContainer>
+                )}
             </div>
         </DashboardCard>
     );

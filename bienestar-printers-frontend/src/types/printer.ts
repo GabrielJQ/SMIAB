@@ -19,6 +19,13 @@ export interface PrinterComparison {
     print_total: number;
 }
 
+export interface PrinterChartData {
+    year: number;
+    month: number;
+    totalImpressions: number;
+    tonerChanges: number;
+}
+
 
 export interface UnitStats {
     totalPrinters: number;

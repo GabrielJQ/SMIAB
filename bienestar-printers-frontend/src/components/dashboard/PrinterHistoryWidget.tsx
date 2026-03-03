@@ -2,32 +2,19 @@
 
 import React, { useState } from 'react';
 import { useDashboardStore } from '@/store/useDashboardStore';
-import { useQuery } from '@tanstack/react-query';
-import { api } from '@/services/api';
-import { PrinterComparison } from '@/types/printer';
+import { usePrinterMonthlyStats } from '@/hooks/usePrinterMonthlyStats';
 import { Activity } from 'lucide-react';
 import { DashboardCard } from '@/components/ui/DashboardCard';
 import { UnifiedFilter } from '@/components/dashboard/UnifiedFilter';
 import { BaseBarChart } from '@/components/ui/charts/BaseBarChart';
 import { CHART_COLORS, MONTH_NAMES } from '@/lib/constants';
 
-const fetchPrinterHistory = async (id: string, months: number): Promise<PrinterComparison[]> => {
-    // Uses the comparison endpoint which returns [ { year, month, printVolume }, ... ] (sorted cronologically)
-    const { data } = await api.get(`/printers/${id}/compare`, { params: { months } });
-    return data;
-};
-
-
-
 export const PrinterHistoryWidget = () => {
     const { selectedPrinterId, selectedPrinter } = useDashboardStore();
     const [range, setRange] = useState(1); // 1 = Current Month, >1 = History
 
-    const { data: history, isLoading, isError } = useQuery({
-        queryKey: ['printer-history', selectedPrinterId, range],
-        queryFn: () => fetchPrinterHistory(selectedPrinterId!, range),
-        enabled: !!selectedPrinterId,
-    });
+    const currentYear = new Date().getFullYear();
+    const { data: history = [], isLoading, isError } = usePrinterMonthlyStats(selectedPrinterId, currentYear);
 
     if (!selectedPrinterId) return (
         <DashboardCard className="flex flex-col items-center justify-center text-slate-300">
@@ -55,35 +42,38 @@ export const PrinterHistoryWidget = () => {
     );
 
     // --- VIEW LOGIC ---
-
     const isCurrentMonthView = range === 1;
     let chartData = [];
     let totalProduction = 0;
 
-    if (isCurrentMonthView) {
-        // VIEW 1: CURRENT MONTH (3 BARS: Prints, Copies, Total)
-        const currentStats = history[history.length - 1]; // Last item is most recent
+    const currentMonthIndex = new Date().getMonth(); // 0-indexed (Jan = 0)
+    const currentMonthNumber = currentMonthIndex + 1; // 1-indexed
 
-        const prints = currentStats?.print_only ?? 0;
-        const copies = currentStats?.copies ?? 0;
-        const total = currentStats?.print_total ?? 0;
+    if (isCurrentMonthView) {
+        // VIEW 1: CURRENT MONTH
+        const currentStats = history.find(h => h.month === currentMonthNumber);
+        const prints = currentStats?.totalImpressions ?? 0;
+        const total = currentStats?.totalImpressions ?? 0;
+        const toners = currentStats?.tonerChanges ?? 0;
 
         chartData = [
-            { name: 'IMPRESIONES', value: prints, color: '#7B1E34' },
-            { name: 'COPIAS', value: copies, color: '#94a3b8' },
-            { name: 'TOTAL', value: total, color: '#0f172a' },
+            { name: 'IMPRESIONES TOTALES', value: total, color: '#7B1E34' },
+            { name: 'CAMBIOS TÓNER', value: toners, color: '#94a3b8' },
         ];
         totalProduction = total;
     } else {
         // VIEW 2: HISTORICAL (1 BAR PER MONTH)
-        chartData = history.map((item, index) => ({
+        // Show up to 'range' months, ending in current month.
+        const startIndex = Math.max(0, currentMonthIndex - range + 1);
+        const slicedHistory = history.slice(startIndex, currentMonthIndex + 1);
+
+        chartData = slicedHistory.map((item, index) => ({
             name: `${MONTH_NAMES[item.month - 1]}`,
             fullName: `${MONTH_NAMES[item.month - 1]} ${item.year}`,
-            value: item.print_total, // Use Total from DB
-            // Cycle through palette
+            value: item.totalImpressions, // Use Total from DB
             color: CHART_COLORS[index % CHART_COLORS.length]
         }));
-        totalProduction = history.reduce((acc, curr) => acc + curr.print_total, 0);
+        totalProduction = slicedHistory.reduce((acc, curr) => acc + curr.totalImpressions, 0);
     }
 
     return (

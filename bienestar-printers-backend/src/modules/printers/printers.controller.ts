@@ -1,4 +1,4 @@
-import { Controller, Get, UseGuards, ForbiddenException, Param, Query, ParseIntPipe, NotFoundException } from '@nestjs/common';
+import { Controller, Get, Post, Body, Param, Put, Delete, Patch, UseGuards, Query, DefaultValuePipe, ParseIntPipe, Req, ForbiddenException, NotFoundException } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiParam, ApiOkResponse, ApiQuery } from '@nestjs/swagger';
 import { SupabaseAuthGuard } from '../../auth/guards/supabase-auth.guard';
 import { PrintersService } from './printers.service';
@@ -37,6 +37,45 @@ export class PrintersController {
     return this.printersService.getUnitHistory(unitId, monthsLimit);
   }
 
+  @ApiOperation({ summary: 'Obtener el estado operativo de la unidad (Total, Online, Offline)' })
+  @ApiOkResponse({ description: 'Estado Operativo' })
+  @Get('unit/status')
+  async getOperationalStatus(@CurrentUser('internal') user: UserJwtPayload) {
+    const userUnitId = user.unitId || user.areaId;
+    if (!userUnitId) throw new ForbiddenException('User has no unit assigned');
+    return this.printersService.getOperationalStatus(userUnitId);
+  }
+
+  @ApiOperation({ summary: 'Obtener Consumo Global de Tóner de la unidad (12 meses por defecto)' })
+  @ApiQuery({ name: 'months', required: false, type: Number, description: 'Cantidad de meses a pedir (default: 12)' })
+  @ApiOkResponse({ description: 'Estadísticas de tóner' })
+  @Get('unit/toner-stats')
+  async getUnitTonerStats(
+    @CurrentUser('internal') user: UserJwtPayload,
+    @Query('months') months?: string,
+  ) {
+    const userUnitId = user.unitId || user.areaId;
+    if (!userUnitId) throw new ForbiddenException('User has no unit assigned');
+
+    const monthsLimit = months ? parseInt(months) : 12;
+    return this.printersService.getUnitTonerStats(userUnitId, monthsLimit);
+  }
+
+  @ApiOperation({ summary: 'Obtener listado completo de impresoras de la unidad' })
+  @ApiOkResponse({ description: 'Listado de impresoras de la unidad', type: [PrinterSummaryDto] })
+  @Get('unit')
+  async getByUnit(@CurrentUser('internal') user: UserJwtPayload) {
+    const unitId = user.unitId || user.areaId;
+    if (!unitId) {
+      throw new ForbiddenException('User has no unit assigned');
+    }
+    return this.printersService.getPrintersByUnit(unitId);
+  }
+
+  // ==========================================
+  //  DYNAMIC ID ENDPOINTS
+  // ==========================================
+
   @ApiOperation({ summary: 'Obtener historial de impresiones (Rango de Fechas)' })
   @ApiParam({ name: 'id', description: 'ID de la impresora' })
   @ApiQuery({ name: 'startYear', required: false, type: Number })
@@ -61,6 +100,18 @@ export class PrintersController {
       endYear: endYear ? parseInt(endYear) : undefined,
       endMonth: endMonth ? parseInt(endMonth) : undefined,
     });
+  }
+
+  @ApiOperation({ summary: 'Obtener Estadísticas Mensuales (Impresiones vs Tóner)' })
+  @ApiParam({ name: 'id', description: 'ID de la impresora' })
+  @ApiOkResponse({ description: 'Datos agrupados para gráficas (Recharts)' })
+  @Get(':id/monthly-stats')
+  async getMonthlyStats(
+    @CurrentUser('internal') user: UserJwtPayload,
+    @Param('id') id: string,
+  ) {
+    if (!user?.areaId) throw new ForbiddenException('User has no area assigned');
+    return this.printersService.getMonthlyStats(id, user.areaId);
   }
 
   @ApiOperation({ summary: 'Obtener resumen anual de impresora' })
@@ -100,16 +151,7 @@ export class PrintersController {
   //  BASIC ENDPOINTS
   // ==========================================
 
-  @ApiOperation({ summary: 'Obtener listado completo de impresoras de la unidad' })
-  @ApiOkResponse({ description: 'Listado de impresoras de la unidad', type: [PrinterSummaryDto] })
-  @Get('unit')
-  async getByUnit(@CurrentUser('internal') user: UserJwtPayload) {
-    const unitId = user.unitId || user.areaId;
-    if (!unitId) {
-      throw new ForbiddenException('User has no unit assigned');
-    }
-    return this.printersService.getPrintersByUnit(unitId);
-  }
+
 
   @ApiOperation({ summary: 'Obtener listado de impresoras del área del usuario' })
   @ApiOkResponse({ description: 'Listado de impresoras del área', type: [PrinterSummaryDto] })
@@ -144,13 +186,4 @@ export class PrintersController {
     return printer;
   }
 
-  // EJEMPLO SOLICITADO: Ruta de escritura protegida solo para Superadmin y Admin
-  @ApiOperation({ summary: 'Actualizar configuración de impresora (Solo Admins)' })
-  @Roles('super_admin', 'admin') // Restringido
-  @Get(':id/write-example')
-  async updateMock(
-    @Param('id') id: string,
-  ) {
-    return { message: "Tienes permisos de escritura (super_admin o admin)", printerId: id };
-  }
 }

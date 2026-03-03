@@ -15,6 +15,7 @@ interface BaseBarChartProps {
     showYAxis?: boolean;
     tooltipContent?: (props: any) => React.ReactNode;
     children?: React.ReactNode; // For defs, additional lines, etc.
+    radius?: number | [number, number, number, number];
 }
 
 export const BaseBarChart: React.FC<BaseBarChartProps> = ({
@@ -27,10 +28,11 @@ export const BaseBarChart: React.FC<BaseBarChartProps> = ({
     showXAxis = true,
     showYAxis = true,
     tooltipContent,
-    children
+    children,
+    radius,
 }) => {
     return (
-        <ResponsiveContainer width="100%" height={height as any}>
+        <ResponsiveContainer width="100%" height={height as any} minWidth={1} minHeight={1}>
             <BarChart
                 data={data}
                 margin={{ left: 0, right: 0, top: 10, bottom: 20 }}
@@ -67,7 +69,7 @@ export const BaseBarChart: React.FC<BaseBarChartProps> = ({
 
                 <Bar
                     dataKey={dataKey}
-                    radius={CHART_DEFAULTS.barRadius}
+                    radius={radius !== undefined ? radius : CHART_DEFAULTS.barRadius}
                     animationDuration={CHART_DEFAULTS.animationDuration}
                 >
                     {data.map((entry, index) => (

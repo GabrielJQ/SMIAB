@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { tonerService } from '@/services/tonerService';
+import { useUnitTonerStats } from '@/hooks/useUnitTonerStats';
 import { Droplet, TrendingUp } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { DashboardCard } from '@/components/ui/DashboardCard';
@@ -15,25 +15,21 @@ interface TonerUnitStatsWidgetProps {
 }
 
 export const TonerUnitStatsWidget: React.FC<TonerUnitStatsWidgetProps> = ({ compact = false }) => {
-    const [range, setRange] = useState(1);
-
-    const { data: history, isLoading } = useQuery({
-        queryKey: ['toner-unit-history', range],
-        queryFn: () => tonerService.getUnitHistory(range),
-    });
+    const [range, setRange] = useState(12);
+    const { data: history, isLoading } = useUnitTonerStats(range);
 
     const chartData = React.useMemo(() => {
         if (!history) return [];
         return history.map((item, index) => ({
-            name: `${MONTH_NAMES[item.month - 1]}`,
+            name: `${MONTH_NAMES[item.month - 1].substring(0, 3)}`,
             fullName: `${MONTH_NAMES[item.month - 1]} ${item.year}`,
-            value: item.toner_count,
+            value: item.changes,
             color: CHART_COLORS[index % CHART_COLORS.length]
         }));
     }, [history]);
 
     const totalConsumed = React.useMemo(() => {
-        return history?.reduce((acc, curr) => acc + curr.toner_count, 0) || 0;
+        return history?.reduce((acc, curr) => acc + curr.changes, 0) || 0;
     }, [history]);
 
     if (isLoading) return (
@@ -82,6 +78,7 @@ export const TonerUnitStatsWidget: React.FC<TonerUnitStatsWidgetProps> = ({ comp
                         data={chartData}
                         dataKey="value"
                         barSize={compact ? 30 : 60}
+                        radius={[4, 4, 0, 0]}
                         tooltipContent={({ active, payload }) => {
                             if (active && payload && payload.length) {
                                 const data = payload[0].payload;

@@ -1,5 +1,5 @@
 import { Entity, Column, PrimaryColumn, OneToMany } from 'typeorm';
-import { PrinterMonthlyStat } from './printer-monthly-stat.entity';
+import { PrinterMonthlyStat } from '../entities/printer-monthly-stat.entity';
 import { PrinterTonerChange } from '../../toners/entities/printer-toner-change.entity';
 
 @Entity('printers')
@@ -15,6 +15,9 @@ export class Printer {
 
     @Column({ name: 'unit_id', type: 'varchar', nullable: true })
     unitId: string;
+
+    @Column({ name: 'last_read_at', type: 'timestamp', nullable: true })
+    lastReadAt: Date;
 
     // Relations
     @OneToMany(() => PrinterMonthlyStat, (stat: PrinterMonthlyStat) => stat.printer)
