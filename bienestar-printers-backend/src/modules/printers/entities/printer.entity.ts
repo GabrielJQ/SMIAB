@@ -4,20 +4,53 @@ import { PrinterTonerChange } from '../../toners/entities/printer-toner-change.e
 
 @Entity('printers')
 export class Printer {
-    @PrimaryColumn({ name: 'id', type: 'uuid' }) // Assuming UUID, adjust if it's string/varchar
-    id: string;
-
-    @Column({ name: 'asset_id', type: 'varchar', nullable: true })
+    @PrimaryColumn({ name: 'asset_id', type: 'bigint' })
     assetId: string;
+
+    @Column({ name: 'ip_printer', type: 'inet', nullable: false })
+    ipPrinter: string;
 
     @Column({ name: 'name_printer', type: 'varchar', nullable: true })
     namePrinter: string;
 
-    @Column({ name: 'unit_id', type: 'varchar', nullable: true })
+    @Column({ name: 'department_id', type: 'bigint', nullable: true })
+    departmentId: string;
+
+    @Column({ name: 'unit_id', type: 'bigint', nullable: true })
     unitId: string;
+
+    @Column({ name: 'region_id', type: 'bigint', nullable: true })
+    regionId: string;
+
+    @Column({ name: 'printer_status', type: 'varchar', default: 'UNKNOWN' })
+    printerStatus: string;
+
+    @Column({ name: 'toner_lvl', type: 'int', default: 0 })
+    tonerLvl: number;
+
+    @Column({ name: 'total_pages_printed', type: 'bigint', default: 0 })
+    totalPagesPrinted: string;
+
+    @Column({ name: 'print_only_pages', type: 'bigint', default: 0 })
+    printOnlyPages: string;
+
+    @Column({ name: 'copy_pages', type: 'bigint', default: 0 })
+    copyPages: string;
 
     @Column({ name: 'last_read_at', type: 'timestamp', nullable: true })
     lastReadAt: Date;
+
+    @Column({ name: 'kit_mttnce_lvl', type: 'int', default: 0 })
+    kitMttnceLvl: number;
+
+    @Column({ name: 'uni_img_lvl', type: 'int', default: 0 })
+    uniImgLvl: number;
+
+    @Column({ name: 'created_at', type: 'timestamp', nullable: true })
+    createdAt: Date;
+
+    @Column({ name: 'updated_at', type: 'timestamp', nullable: true })
+    updatedAt: Date;
 
     // Relations
     @OneToMany(() => PrinterMonthlyStat, (stat: PrinterMonthlyStat) => stat.printer)

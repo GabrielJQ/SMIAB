@@ -3,10 +3,10 @@ import { Printer } from './printer.entity';
 
 @Entity('printer_monthly_stats')
 export class PrinterMonthlyStat {
-    @PrimaryGeneratedColumn('increment')
-    id: number;
+    @PrimaryGeneratedColumn('increment', { type: 'bigint' })
+    id: string;
 
-    @Column({ name: 'asset_id', type: 'varchar' }) // Might be used as FK, but we join on id or asset_id? Supabase query did .eq('printers.unit_id', unitId) so it implies a FK to `printers` table.
+    @Column({ name: 'asset_id', type: 'bigint' })
     assetId: string;
 
     @Column({ type: 'int' })
@@ -15,14 +15,29 @@ export class PrinterMonthlyStat {
     @Column({ type: 'int' })
     month: number;
 
-    @Column({ name: 'print_only_delta', type: 'int', default: 0 })
-    printOnlyDelta: number;
+    @Column({ name: 'print_total_delta', type: 'bigint', default: 0 })
+    printTotalDelta: string;
 
-    @Column({ name: 'copy_delta', type: 'int', default: 0 })
-    copyDelta: number;
+    @Column({ name: 'copy_delta', type: 'bigint', default: 0 })
+    copyDelta: string;
 
-    @Column({ name: 'print_total_delta', type: 'int', default: 0 })
-    printTotalDelta: number;
+    @Column({ name: 'print_only_delta', type: 'bigint', default: 0 })
+    printOnlyDelta: string;
+
+    @Column({ name: 'print_total_reading', type: 'bigint', default: 0 })
+    printTotalReading: string;
+
+    @Column({ name: 'print_only_reading', type: 'bigint', default: 0 })
+    printOnlyReading: string;
+
+    @Column({ name: 'copy_reading', type: 'bigint', default: 0 })
+    copyReading: string;
+
+    @Column({ name: 'updated_at', type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
+    updatedAt: Date;
+
+    @Column({ name: 'created_at', type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
+    createdAt: Date;
 
     // Many-to-One relationship to Printer
     // In your supabase queries, it joins printer_monthly_stats -> printers!inner(unit_id).

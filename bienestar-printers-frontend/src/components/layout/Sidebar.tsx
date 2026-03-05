@@ -25,10 +25,10 @@ export const Sidebar: React.FC = () => {
     const filteredPrinters = React.useMemo(() => {
         if (!printers) return [];
         return printers
-            .filter(p => p.name.toLowerCase().includes(searchQuery.toLowerCase()))
+            .filter(p => (p.name || '').toLowerCase().includes(searchQuery.toLowerCase()))
             .sort((a, b) => {
                 if (a.isOnline === b.isOnline) {
-                    return a.name.localeCompare(b.name);
+                    return (a.name || '').localeCompare(b.name || '');
                 }
                 return a.isOnline ? -1 : 1;
             });
@@ -180,7 +180,7 @@ export const Sidebar: React.FC = () => {
                                             "text-sm font-semibold truncate",
                                             selectedPrinterId === printer.id ? "text-guinda-900" : "text-slate-600"
                                         )}>
-                                            {printer.name}
+                                            {printer.name || `Impresora ${printer.id}`}
                                         </div>
                                         <div className="text-[9px] uppercase font-bold text-slate-400 tracking-wider truncate">
                                             {printer.area || 'Sin área'}
