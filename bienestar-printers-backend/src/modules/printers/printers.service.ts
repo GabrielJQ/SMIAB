@@ -1,6 +1,6 @@
 import { Injectable, ForbiddenException, BadRequestException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, MoreThanOrEqual } from 'typeorm';
 import { SupabaseService } from '../../integrations/supabase/supabase.service';
 
 // Basic Queries / DTOs
@@ -20,6 +20,7 @@ import { PrinterComparisonDto } from './dto/printer-comparison.dto';
 import { PrinterMonthlyStat } from './entities/printer-monthly-stat.entity';
 import { Printer } from './entities/printer.entity';
 import { PrinterTonerChange } from '../toners/entities/printer-toner-change.entity';
+import { PrinterStatusLog } from './entities/printer-status-log.entity';
 
 @Injectable()
 export class PrintersService {
@@ -29,6 +30,8 @@ export class PrintersService {
     private readonly printerRepository: Repository<Printer>,
     @InjectRepository(PrinterMonthlyStat)
     private readonly printerMonthlyStatRepository: Repository<PrinterMonthlyStat>,
+    @InjectRepository(PrinterStatusLog)
+    private readonly printerStatusLogRepository: Repository<PrinterStatusLog>,
   ) { }
 
   // ==========================================
@@ -72,8 +75,8 @@ export class PrintersService {
   async getOperationalStatus(userUnitId: string) {
     if (!userUnitId) throw new ForbiddenException('User has no unit assigned');
 
-    // Define "online" threshold: seen in the last 10 minutes
-    const tenMinutesAgo = new Date(Date.now() - 10 * 60 * 1000);
+    // Define "online" threshold: seen in the last 20 minutes (since sweep is every 15m)
+    const twentyMinutesAgo = new Date(Date.now() - 20 * 60 * 1000);
 
     const totalCount = await this.printerRepository.count({
       where: { unitId: userUnitId }
@@ -82,7 +85,7 @@ export class PrintersService {
     // Instead of fighting createQueryBuilder mapping, we execute a raw filtered count
     const onlineCount = await this.printerRepository.createQueryBuilder("p")
       .where("p.unit_id = :unitId", { unitId: userUnitId })
-      .andWhere("p.last_read_at >= :ago", { ago: tenMinutesAgo })
+      .andWhere("p.last_read_at >= :ago", { ago: twentyMinutesAgo })
       .getCount();
 
     return {
@@ -211,6 +214,29 @@ export class PrintersService {
       year: Number(row.year),
       month: Number(row.month),
       changes: Number(row.changes || 0),
+    }));
+  }
+
+  async getTonerHistory(printerId: string, userAreaId: string) {
+    await this.validatePrinterAccess(printerId, userAreaId);
+
+    const now = new Date();
+    const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+
+    const logs = await this.printerStatusLogRepository.find({
+      where: {
+        printerId: printerId,
+        recordedAt: MoreThanOrEqual(thirtyDaysAgo)
+      },
+      order: {
+        recordedAt: 'ASC'
+      }
+    });
+
+    return logs.map(log => ({
+      date: log.recordedAt.toISOString().split('T')[0], // YYYY-MM-DD
+      time: log.recordedAt.toISOString().split('T')[1].substring(0, 5), // HH:mm
+      tonerLevel: log.tonerLevel
     }));
   }
 }

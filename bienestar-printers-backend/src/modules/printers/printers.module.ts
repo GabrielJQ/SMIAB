@@ -6,10 +6,12 @@ import { UsersModule } from '../users/users.module';
 import { SupabaseModule } from "../../integrations/supabase/supabase.module";
 import { Printer } from './entities/printer.entity';
 import { PrinterMonthlyStat } from './entities/printer-monthly-stat.entity';
+import { Alert } from './entities/alert.entity';
+import { PrinterStatusLog } from './entities/printer-status-log.entity';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([Printer, PrinterMonthlyStat]),
+    TypeOrmModule.forFeature([Printer, PrinterMonthlyStat, Alert, PrinterStatusLog]),
     UsersModule,
     SupabaseModule
   ],

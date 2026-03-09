@@ -6,7 +6,7 @@ import { api } from '@/services/api';
 import { PrinterSummary } from '@/types/printer';
 import { useDashboardStore } from '@/store/useDashboardStore';
 import { cn } from '@/lib/utils';
-import { Search, Activity, LayoutDashboard, X } from 'lucide-react';
+import { Search, Activity, LayoutDashboard, X, AlertTriangle } from 'lucide-react';
 
 const fetchPrinters = async (): Promise<PrinterSummary[]> => {
     const { data } = await api.get('/printers/unit');
@@ -176,11 +176,16 @@ export const Sidebar: React.FC = () => {
                                     )} />
 
                                     <div className="flex-1 min-w-0">
-                                        <div className={cn(
-                                            "text-sm font-semibold truncate",
-                                            selectedPrinterId === printer.id ? "text-guinda-900" : "text-slate-600"
-                                        )}>
-                                            {printer.name || `Impresora ${printer.id}`}
+                                        <div className="flex items-center gap-2">
+                                            <div className={cn(
+                                                "text-sm font-semibold truncate",
+                                                selectedPrinterId === printer.id ? "text-guinda-900" : "text-slate-600"
+                                            )}>
+                                                {printer.name || `Impresora ${printer.id}`}
+                                            </div>
+                                            {printer.tonerLevel !== null && printer.tonerLevel <= 33 && (
+                                                <AlertTriangle className="w-3.5 h-3.5 text-red-500 shrink-0 animate-pulse" />
+                                            )}
                                         </div>
                                         <div className="text-[9px] uppercase font-bold text-slate-400 tracking-wider truncate">
                                             {printer.area || 'Sin área'}

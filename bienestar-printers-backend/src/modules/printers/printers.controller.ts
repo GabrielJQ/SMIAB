@@ -145,6 +145,19 @@ export class PrintersController {
     return this.printersService.getPrinterComparison(id, user.areaId, monthsLimit);
   }
 
+  @ApiOperation({ summary: 'Obtener historial de nivel de tóner de los últimos 30 días' })
+  @ApiParam({ name: 'id', description: 'ID de la impresora' })
+  @ApiOkResponse({ description: 'Historial de tóner', type: [Object] })
+  @Get(':id/toner-history')
+  async getTonerHistory(
+    @CurrentUser('internal') user: UserJwtPayload,
+    @Param('id') id: string,
+  ) {
+    if (!user?.areaId) throw new ForbiddenException('User has no area assigned');
+
+    return this.printersService.getTonerHistory(id, user.areaId);
+  }
+
   // ==========================================
 
   // ==========================================

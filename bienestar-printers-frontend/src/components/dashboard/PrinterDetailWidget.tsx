@@ -2,8 +2,10 @@
 
 import React from 'react';
 import { useDashboardStore } from '@/store/useDashboardStore';
-import { PieChart, Pie, Cell, ResponsiveContainer } from 'recharts';
-import { Wifi, WifiOff, Calendar, Fingerprint, Droplets, Settings, Layers, Activity, Printer as PrinterIcon } from 'lucide-react';
+import { useQuery } from '@tanstack/react-query';
+import { api } from '@/services/api';
+import { PieChart, Pie, Cell, ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip } from 'recharts';
+import { Wifi, WifiOff, Calendar, Fingerprint, Droplets, Settings, Layers, Activity, Printer as PrinterIcon, AlertTriangle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { DashboardCard } from '@/components/ui/DashboardCard';
 
@@ -62,8 +64,19 @@ const DonutMetric = ({ value, label, icon: Icon }: { value: number | null, label
     );
 };
 
+const fetchTonerHistory = async (id: string) => {
+    const { data } = await api.get(`/printers/${id}/toner-history`);
+    return data;
+};
+
 export const PrinterDetailWidget = () => {
     const { selectedPrinter } = useDashboardStore();
+
+    const { data: tonerHistory, isLoading: isLoadingHistory } = useQuery({
+        queryKey: ['toner-history', selectedPrinter?.id],
+        queryFn: () => fetchTonerHistory(selectedPrinter!.id),
+        enabled: !!selectedPrinter?.id,
+    });
 
     if (!selectedPrinter) {
         return (
@@ -123,7 +136,10 @@ export const PrinterDetailWidget = () => {
             </div>
 
             {/* Metrics Grid */}
-            <div className="flex-1 relative z-10 grid grid-cols-2 md:flex md:flex-row items-center justify-evenly gap-6 md:gap-12 py-4 md:py-8">
+            <div className={cn(
+                "flex-1 relative z-10 grid grid-cols-2 md:flex md:flex-row items-center justify-evenly gap-6 md:gap-12 py-4 md:py-8 transition-all duration-500",
+                !isOnline && "grayscale opacity-80"
+            )}>
                 <DonutMetric
                     value={tonerLevel}
                     label="Nivel de Tóner"
@@ -146,6 +162,79 @@ export const PrinterDetailWidget = () => {
                     label="Unidad de Imagen"
                     icon={Layers}
                 />
+            </div>
+
+            {/* History Chart & Action Button */}
+            <div className="mt-4 relative z-10 flex flex-col md:flex-row gap-6 md:gap-8 items-start">
+                {/* Chart Area */}
+                <div className="flex-1 w-full bg-slate-50/50 rounded-2xl p-4 md:p-6 border border-slate-100">
+                    <h3 className="text-[10px] md:text-sm font-black text-slate-400 uppercase tracking-widest mb-4">
+                        Historial de Tóner (30 días)
+                    </h3>
+                    <div className="h-48 w-full">
+                        {isLoadingHistory ? (
+                            <div className="w-full h-full flex items-center justify-center">
+                                <Activity className="w-6 h-6 text-slate-300 animate-spin" />
+                            </div>
+                        ) : tonerHistory && tonerHistory.length > 0 ? (
+                            <ResponsiveContainer width="100%" height="100%">
+                                <AreaChart data={tonerHistory} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                                    <defs>
+                                        <linearGradient id="colorToner" x1="0" y1="0" x2="0" y2="1">
+                                            <stop offset="5%" stopColor="#6366f1" stopOpacity={0.3} />
+                                            <stop offset="95%" stopColor="#6366f1" stopOpacity={0} />
+                                        </linearGradient>
+                                    </defs>
+                                    <XAxis dataKey="date" tick={{ fontSize: 10, fill: '#94a3b8' }} tickLine={false} axisLine={false} minTickGap={30} />
+                                    <YAxis tick={{ fontSize: 10, fill: '#94a3b8' }} tickLine={false} axisLine={false} domain={[0, 100]} />
+                                    <Tooltip
+                                        contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
+                                        labelStyle={{ fontWeight: 'bold', color: '#475569' }}
+                                    />
+                                    <Area type="monotone" dataKey="tonerLevel" stroke="#6366f1" strokeWidth={3} fillOpacity={1} fill="url(#colorToner)" />
+                                </AreaChart>
+                            </ResponsiveContainer>
+                        ) : (
+                            <div className="w-full h-full flex items-center justify-center text-slate-400 text-xs font-medium">
+                                Sin datos históricos suficientes
+                            </div>
+                        )}
+                    </div>
+                </div>
+
+                {/* Action Area */}
+                <div className="w-full md:w-64 flex flex-col items-center justify-center p-6 bg-slate-50/50 rounded-2xl border border-slate-100 h-full min-h-[240px]">
+                    <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 text-center">
+                        Gestión de Consumibles
+                    </h3>
+                    <p className="text-xs text-slate-500 text-center mb-6 min-h-[40px]">
+                        {tonerLevel === null
+                            ? "Lectura no disponible"
+                            : tonerLevel <= 33
+                                ? "Nivel crítico. Es necesario un reemplazo de inmediato."
+                                : tonerLevel <= 60
+                                    ? "Nivel bajo. Puedes solicitar un repuesto preventivo."
+                                    : "El nivel de tóner es adecuado. No requiere acción."}
+                    </p>
+                    <button
+                        disabled={tonerLevel === null || tonerLevel > 60 || !isOnline}
+                        onClick={() => alert('Nueva Alerta de Consumible registrada (simulado)')}
+                        className={cn(
+                            "w-full py-3 px-4 rounded-xl font-bold uppercase tracking-wider text-xs transition-all flex items-center justify-center gap-2",
+                            tonerLevel !== null && tonerLevel <= 60 && isOnline
+                                ? "bg-guinda-600 text-white hover:bg-guinda-700 shadow-md hover:shadow-lg shadow-guinda-600/20"
+                                : "bg-slate-200 text-slate-400 cursor-not-allowed"
+                        )}
+                    >
+                        {tonerLevel !== null && tonerLevel <= 33 && isOnline && <AlertTriangle className="w-4 h-4" />}
+                        Solicitar Consumible
+                    </button>
+                    {!isOnline && (
+                        <span className="text-[10px] text-red-500 font-bold mt-4 text-center">
+                            Equipo fuera de línea
+                        </span>
+                    )}
+                </div>
             </div>
 
             {/* Footer / Status Bar */}

@@ -5,6 +5,8 @@ import { Repository } from 'typeorm';
 import { ConfigService } from '@nestjs/config';
 import { Printer } from '../printers/entities/printer.entity';
 import { PrinterMonthlyStat } from '../printers/entities/printer-monthly-stat.entity';
+import { Alert } from '../printers/entities/alert.entity';
+import { PrinterStatusLog } from '../printers/entities/printer-status-log.entity';
 import * as snmp from 'net-snmp';
 
 type SnmpDriver = {
@@ -59,6 +61,10 @@ export class SnmpService implements OnModuleInit {
         private readonly printerRepository: Repository<Printer>,
         @InjectRepository(PrinterMonthlyStat)
         private readonly printerMonthlyStatRepository: Repository<PrinterMonthlyStat>,
+        @InjectRepository(Alert)
+        private readonly alertRepository: Repository<Alert>,
+        @InjectRepository(PrinterStatusLog)
+        private readonly printerStatusLogRepository: Repository<PrinterStatusLog>,
         private readonly configService: ConfigService,
     ) {
         this.snmpMode = this.configService.get<string>('SNMP_MODE') || 'simulation';
@@ -209,6 +215,7 @@ export class SnmpService implements OnModuleInit {
         printer.updatedAt = new Date();
 
         await this.printerRepository.save(printer);
+        await this.processTonerTelemetry(printer.assetId, randomToner);
         this.logger.debug(`Simulated read for printer ${printer.assetId} (IP: ${printer.ipPrinter}). Status: ${randomStatus}`);
         return randomStatus === 'online';
     }
@@ -320,6 +327,7 @@ export class SnmpService implements OnModuleInit {
                 printer.updatedAt = new Date();
 
                 await this.printerRepository.save(printer);
+                await this.processTonerTelemetry(printer.assetId, printer.tonerLvl);
                 this.logger.debug(`Production read for printer ${printer.assetId} (IP: ${ip}, Driver: ${brandKey}) successful.`);
                 return true;
             } catch (error) {
@@ -365,6 +373,34 @@ export class SnmpService implements OnModuleInit {
                 }
             });
         });
+    }
+
+    private async processTonerTelemetry(printerId: string, tonerLvl: number | null) {
+        if (tonerLvl == null) return;
+
+        try {
+            const log = this.printerStatusLogRepository.create({
+                printerId,
+                tonerLevel: tonerLvl
+            });
+            await this.printerStatusLogRepository.save(log);
+
+            if (tonerLvl <= 33) {
+                const activeAlert = await this.alertRepository.findOne({
+                    where: { printerId, status: 'PENDING', type: 'TONER_LOW' }
+                });
+                if (!activeAlert) {
+                    const alert = this.alertRepository.create({
+                        printerId,
+                        type: 'TONER_LOW',
+                        status: 'PENDING'
+                    });
+                    await this.alertRepository.save(alert);
+                }
+            }
+        } catch (e) {
+            this.logger.error(`Error processing toner telemetry for ${printerId}: ${e.message}`);
+        }
     }
 
     private async processMonthlyClosing(printer: Printer, date: Date = new Date()) {

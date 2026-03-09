@@ -30,7 +30,7 @@ export class PrinterSummaryDto {
     this.name = row.name_printer;
     this.area = row.departments?.areanom ?? row.areas?.areaname ?? null;
 
-    this.isOnline = row.printer_status === 'ONLINE';
+    this.isOnline = row.printer_status?.toUpperCase() === 'ONLINE';
 
     this.tonerLevel = row.toner_lvl ?? 0;
     this.kitMaintenance = row.kit_mttnce_lvl ?? 0;
