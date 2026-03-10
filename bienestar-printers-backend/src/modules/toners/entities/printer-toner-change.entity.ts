@@ -12,6 +12,9 @@ export class PrinterTonerChange {
     @Column({ name: 'changed_at', type: 'timestamp' })
     changedAt: Date;
 
+    @Column({ name: 'detection_type', type: 'varchar', default: 'manual' })
+    detectionType: string;
+
     // Relation to printers
     @ManyToOne(() => Printer, (printer) => printer.tonerChanges)
     @JoinColumn({ name: 'asset_id', referencedColumnName: 'assetId' })

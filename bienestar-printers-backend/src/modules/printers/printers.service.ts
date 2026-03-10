@@ -32,6 +32,8 @@ export class PrintersService {
     private readonly printerMonthlyStatRepository: Repository<PrinterMonthlyStat>,
     @InjectRepository(PrinterStatusLog)
     private readonly printerStatusLogRepository: Repository<PrinterStatusLog>,
+    @InjectRepository(PrinterTonerChange)
+    private readonly tonerChangeRepository: Repository<PrinterTonerChange>,
   ) { }
 
   // ==========================================
@@ -66,6 +68,21 @@ export class PrintersService {
       throw new ForbiddenException('Access to printer denied (Different Unit)');
     }
     return new PrinterSummaryDto(row);
+  }
+
+  async registerManualTonerChange(printerId: string, userUnitId: string) {
+    if (!userUnitId) throw new ForbiddenException('User has no unit assigned');
+
+    // Ensure user has access
+    await this.getPrinterById(printerId, userUnitId);
+
+    const change = this.tonerChangeRepository.create({
+      assetId: printerId,
+      changedAt: new Date(),
+      detectionType: 'manual'
+    });
+    await this.tonerChangeRepository.save(change);
+    return { success: true, message: 'Manual toner change registered' };
   }
 
   // ==========================================

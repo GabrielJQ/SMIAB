@@ -7,6 +7,7 @@ import { Printer } from '../printers/entities/printer.entity';
 import { PrinterMonthlyStat } from '../printers/entities/printer-monthly-stat.entity';
 import { Alert } from '../printers/entities/alert.entity';
 import { PrinterStatusLog } from '../printers/entities/printer-status-log.entity';
+import { PrinterTonerChange } from '../toners/entities/printer-toner-change.entity';
 import * as snmp from 'net-snmp';
 
 type SnmpDriver = {
@@ -65,6 +66,8 @@ export class SnmpService implements OnModuleInit {
         private readonly alertRepository: Repository<Alert>,
         @InjectRepository(PrinterStatusLog)
         private readonly printerStatusLogRepository: Repository<PrinterStatusLog>,
+        @InjectRepository(PrinterTonerChange)
+        private readonly tonerChangeRepository: Repository<PrinterTonerChange>,
         private readonly configService: ConfigService,
     ) {
         this.snmpMode = this.configService.get<string>('SNMP_MODE') || 'simulation';
@@ -204,6 +207,7 @@ export class SnmpService implements OnModuleInit {
         const newPrints = currentPrintPages + addedPrints;
         const newCopies = currentCopyPages + addedCopies;
 
+        const oldToner = printer.tonerLvl;
         printer.printerStatus = randomStatus;
         printer.tonerLvl = randomToner;
         printer.kitMttnceLvl = randomKit;
@@ -213,6 +217,10 @@ export class SnmpService implements OnModuleInit {
         printer.copyPages = newCopies.toString();
         printer.lastReadAt = new Date();
         printer.updatedAt = new Date();
+
+        if (oldToner <= 40 && randomToner >= 80) {
+            await this.registerTonerChange(printer.assetId, 'auto_detected');
+        }
 
         await this.printerRepository.save(printer);
         await this.processTonerTelemetry(printer.assetId, randomToner);
@@ -318,7 +326,12 @@ export class SnmpService implements OnModuleInit {
                 printer.printOnlyPages = resPrintOnly?.toString() || printer.printOnlyPages || printer.totalPagesPrinted;
                 printer.copyPages = resCopyOnly?.toString() || printer.copyPages || '0';
 
+                const oldToner = printer.tonerLvl;
                 printer.tonerLvl = customTonerPerc;
+
+                if (printer.lastReadAt != null && oldToner <= 40 && customTonerPerc >= 80) {
+                    await this.registerTonerChange(printer.assetId, 'auto_detected');
+                }
 
                 if (typeof resKit === 'number') printer.kitMttnceLvl = resKit;
                 if (typeof resImg === 'number') printer.uniImgLvl = resImg;
@@ -400,6 +413,20 @@ export class SnmpService implements OnModuleInit {
             }
         } catch (e) {
             this.logger.error(`Error processing toner telemetry for ${printerId}: ${e.message}`);
+        }
+    }
+
+    public async registerTonerChange(assetId: string, detectionType: 'auto_detected' | 'manual' = 'auto_detected') {
+        try {
+            const change = this.tonerChangeRepository.create({
+                assetId,
+                changedAt: new Date(),
+                detectionType
+            });
+            await this.tonerChangeRepository.save(change);
+            this.logger.log(`Toner change registered for printer ${assetId} (Type: ${detectionType})`);
+        } catch (e) {
+            this.logger.error(`Error registering toner change for ${assetId}: ${e.message}`);
         }
     }
 

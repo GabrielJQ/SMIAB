@@ -8,10 +8,11 @@ import { Printer } from './entities/printer.entity';
 import { PrinterMonthlyStat } from './entities/printer-monthly-stat.entity';
 import { Alert } from './entities/alert.entity';
 import { PrinterStatusLog } from './entities/printer-status-log.entity';
+import { PrinterTonerChange } from '../toners/entities/printer-toner-change.entity';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([Printer, PrinterMonthlyStat, Alert, PrinterStatusLog]),
+    TypeOrmModule.forFeature([Printer, PrinterMonthlyStat, Alert, PrinterStatusLog, PrinterTonerChange]),
     UsersModule,
     SupabaseModule
   ],

@@ -199,4 +199,18 @@ export class PrintersController {
     return printer;
   }
 
+  @ApiOperation({ summary: 'Registrar cambio manual de tóner' })
+  @ApiParam({ name: 'id', description: 'ID de la impresora' })
+  @ApiOkResponse({ description: 'Confirmación de registro' })
+  @Post(':id/toner-change')
+  async registerManualTonerChange(
+    @CurrentUser('internal') user: UserJwtPayload,
+    @Param('id') id: string,
+  ) {
+    const unitId = user.unitId || user.areaId;
+    if (!unitId) throw new ForbiddenException('User has no unit assigned');
+
+    return this.printersService.registerManualTonerChange(id, unitId);
+  }
+
 }

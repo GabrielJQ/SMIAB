@@ -4,6 +4,7 @@ import { Repository } from 'typeorm';
 import { SupabaseService } from '../../integrations/supabase/supabase.service';
 import { getUnitTonerHistoryQuery } from './queries/get-unit-toner-history.query';
 import { getPrinterTonerHistoryQuery } from './queries/get-printer-toner-history.query';
+import { getUnitTopConsumersQuery } from './queries/get-unit-top-consumers.query';
 import { TonerHistoryDto } from './dto/toner-history.dto';
 
 // Reuse existing queries for Authorization steps
@@ -60,5 +61,10 @@ export class TonersService {
         const rows = await getPrinterTonerHistoryQuery(this.printerTonerChangeRepository, printerId, months);
 
         return rows.map(row => new TonerHistoryDto(row));
+    }
+
+    async getUnitTopConsumers(userUnitId: string) {
+        if (!userUnitId) throw new ForbiddenException('User has no unit assigned');
+        return getUnitTopConsumersQuery(this.printerTonerChangeRepository, userUnitId);
     }
 }

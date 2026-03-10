@@ -41,4 +41,15 @@ export class TonersController {
         const monthsLimit = months ? parseInt(months) : 1;
         return this.tonersService.getPrinterHistory(id, unitId, monthsLimit);
     }
+
+    @ApiOperation({ summary: 'Obtener top consumidores del mes actual para la unidad' })
+    @ApiOkResponse({ description: 'Top Consumidores' })
+    @Get('unit/top-consumers')
+    async getUnitTopConsumers(
+        @CurrentUser('internal') user: UserJwtPayload
+    ) {
+        const unitId = user.unitId || user.areaId;
+        if (!unitId) throw new ForbiddenException('User has no unit assigned');
+        return this.tonersService.getUnitTopConsumers(unitId);
+    }
 }
