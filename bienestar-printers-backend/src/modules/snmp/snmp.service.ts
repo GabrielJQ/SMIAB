@@ -17,7 +17,9 @@ type SnmpDriver = {
     tonerLevel: string;
     tonerMaxCapacity: string | null;
     maintenanceKit: string | null;
+    maintenanceKitMax: string | null;
     imageUnit: string | null;
+    imageUnitMax: string | null;
 };
 
 const SNMP_DRIVERS: Record<string, SnmpDriver> = {
@@ -28,16 +30,20 @@ const SNMP_DRIVERS: Record<string, SnmpDriver> = {
         tonerLevel: '1.3.6.1.2.1.43.11.1.1.9.1.1',
         tonerMaxCapacity: '1.3.6.1.2.1.43.11.1.1.8.1.1',
         maintenanceKit: '1.3.6.1.2.1.43.11.1.1.9.1.2',
+        maintenanceKitMax: '1.3.6.1.2.1.43.11.1.1.8.1.2',
         imageUnit: '1.3.6.1.2.1.43.11.1.1.9.1.3',
+        imageUnitMax: '1.3.6.1.2.1.43.11.1.1.8.1.3',
     },
     lexmark: {
         totalPages: '1.3.6.1.2.1.43.10.2.1.4.1.1',
         printOnly: null,
         copyOnly: null,
-        tonerLevel: '1.3.6.1.2.1.43.11.1.1.9.1.1',
-        tonerMaxCapacity: '1.3.6.1.2.1.43.11.1.1.8.1.1',
-        maintenanceKit: null,
-        imageUnit: null,
+        tonerLevel: '1.3.6.1.2.1.43.11.1.1.9.1.3',
+        tonerMaxCapacity: '1.3.6.1.2.1.43.11.1.1.8.1.3',
+        maintenanceKit: '1.3.6.1.2.1.43.11.1.1.9.1.4',
+        maintenanceKitMax: '1.3.6.1.2.1.43.11.1.1.8.1.4',
+        imageUnit: '1.3.6.1.2.1.43.11.1.1.9.1.2',
+        imageUnitMax: '1.3.6.1.2.1.43.11.1.1.8.1.2',
     },
     generic: {
         totalPages: '1.3.6.1.2.1.43.10.2.1.4.1.1',
@@ -45,8 +51,10 @@ const SNMP_DRIVERS: Record<string, SnmpDriver> = {
         copyOnly: null,
         tonerLevel: '1.3.6.1.2.1.43.11.1.1.9.1.1',
         tonerMaxCapacity: '1.3.6.1.2.1.43.11.1.1.8.1.1',
-        maintenanceKit: null,
-        imageUnit: null,
+        maintenanceKit: '1.3.6.1.2.1.43.11.1.1.9.1.2',
+        maintenanceKitMax: '1.3.6.1.2.1.43.11.1.1.8.1.2',
+        imageUnit: '1.3.6.1.2.1.43.11.1.1.9.1.3',
+        imageUnitMax: '1.3.6.1.2.1.43.11.1.1.8.1.3',
     }
 };
 
@@ -257,9 +265,46 @@ export class SnmpService implements OnModuleInit {
                     this.logger.debug(`Fallo al leer sysDescr en ${ip}, usando driver generic.`);
                 }
 
-                const driver = SNMP_DRIVERS[brandKey];
+                const driver = { ...SNMP_DRIVERS[brandKey] };
 
-                // 2. Construir lista dinámica de OIDs según el driver
+                // --- DYNAMIC DISCOVERY FOR LEXMARK ---
+                if (brandKey === 'lexmark') {
+                    try {
+                        const discoveryOids = [
+                            '1.3.6.1.2.1.43.11.1.1.6.1.1',
+                            '1.3.6.1.2.1.43.11.1.1.6.1.2',
+                            '1.3.6.1.2.1.43.11.1.1.6.1.3',
+                            '1.3.6.1.2.1.43.11.1.1.6.1.4',
+                            '1.3.6.1.2.1.43.11.1.1.6.1.5'
+                        ];
+                        const descriptions = await this.readSnmpOids(ip, discoveryOids);
+                        
+                        const normalize = (str: string) => 
+                            str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+
+                        descriptions.forEach((desc, i) => {
+                            if (!desc) return;
+                            const d = normalize(desc.toString());
+                            const idx = i + 1;
+                            
+                            if (d.includes('cartridge') || d.includes('toner') || d.includes('cartucho') || d.includes('negro') || d.includes('black') || d.includes('ner')) {
+                                driver.tonerLevel = `1.3.6.1.2.1.43.11.1.1.9.1.${idx}`;
+                                driver.tonerMaxCapacity = `1.3.6.1.2.1.43.11.1.1.8.1.${idx}`;
+                            } else if (d.includes('imaging') || d.includes('image') || d.includes('imagen') || d.includes('fotoconductor') || d.includes('unidad imagen')) {
+                                driver.imageUnit = `1.3.6.1.2.1.43.11.1.1.9.1.${idx}`;
+                                driver.imageUnitMax = `1.3.6.1.2.1.43.11.1.1.8.1.${idx}`;
+                            } else if (d.includes('maintenance') || d.includes('mantenimiento') || d.includes('mantenimient')) {
+                                driver.maintenanceKit = `1.3.6.1.2.1.43.11.1.1.9.1.${idx}`;
+                                driver.maintenanceKitMax = `1.3.6.1.2.1.43.11.1.1.8.1.${idx}`;
+                            }
+                        });
+                        this.logger.debug(`Dynamic discovery for Lexmark ${ip} complete.`);
+                    } catch (e) {
+                        this.logger.error(`Discovery failed for ${ip}: ${e.message}`);
+                    }
+                }
+
+                // 2. Construir lista dinámica de OIDs según el driver (puede estar modificado dinámicamente)
                 const oidsToRequest: string[] = [];
                 const oidMap: Record<string, number> = {};
 
@@ -288,11 +333,19 @@ export class SnmpService implements OnModuleInit {
                 if (driver.maintenanceKit) {
                     oidsToRequest.push(driver.maintenanceKit);
                     oidMap['maintenanceKit'] = idx++;
+                    if (driver.maintenanceKitMax) {
+                        oidsToRequest.push(driver.maintenanceKitMax);
+                        oidMap['maintenanceKitMax'] = idx++;
+                    }
                 }
 
                 if (driver.imageUnit) {
                     oidsToRequest.push(driver.imageUnit);
                     oidMap['imageUnit'] = idx++;
+                    if (driver.imageUnitMax) {
+                        oidsToRequest.push(driver.imageUnitMax);
+                        oidMap['imageUnitMax'] = idx++;
+                    }
                 }
 
                 // 3. Ejecutar lectura con el array filtrado
@@ -306,19 +359,32 @@ export class SnmpService implements OnModuleInit {
                 const resTonerLevel = result[oidMap['tonerLevel']];
                 const resTonerMax = driver.tonerMaxCapacity ? result[oidMap['tonerMaxCapacity']] : null;
                 const resKit = driver.maintenanceKit ? result[oidMap['maintenanceKit']] : null;
+                const resKitMax = driver.maintenanceKitMax ? result[oidMap['maintenanceKitMax']] : null;
                 const resImg = driver.imageUnit ? result[oidMap['imageUnit']] : null;
+                const resImgMax = driver.imageUnitMax ? result[oidMap['imageUnitMax']] : null;
 
-                // 5. Normalizar porcentaje de tóner
-                let customTonerPerc = 0;
-                if (resTonerMax && resTonerLevel && typeof resTonerMax === 'number' && typeof resTonerLevel === 'number' && resTonerMax > 0) {
-                    customTonerPerc = Math.floor((resTonerLevel / resTonerMax) * 100);
-                } else if (typeof resTonerLevel === 'number') {
-                    customTonerPerc = resTonerLevel;
-                }
+                // 5. Normalizar porcentajes
+                const calculatePerc = (level: any, max: any): number | null => {
+                    if (typeof level !== 'number') return null;
 
-                // Asegurar cotas 0-100
-                if (customTonerPerc < 0) customTonerPerc = 0;
-                if (customTonerPerc > 100) customTonerPerc = 100;
+                    // Manejo de valores especiales/negativos en SNMP (Lexmark suele usar -3 para "Bajo")
+                    if (level < 0) return 1; 
+
+                    if (max && typeof max === 'number' && max > 0) {
+                        let p = Math.floor((level / max) * 100);
+                        if (p < 0) p = 1;
+                        if (p > 100) p = 100;
+                        return p;
+                    } else {
+                        let p = level;
+                        // Si el valor es muy alto (ej: contador), no es un porcentaje
+                        if (p > 100) return null; 
+                        if (p < 0) p = 1;
+                        return p;
+                    }
+                };
+
+                const customTonerPerc = calculatePerc(resTonerLevel, resTonerMax) ?? 0;
 
                 // 6. Asignar al modelo
                 printer.printerStatus = 'online';
@@ -333,8 +399,11 @@ export class SnmpService implements OnModuleInit {
                     await this.registerTonerChange(printer.assetId, 'auto_detected');
                 }
 
-                if (typeof resKit === 'number') printer.kitMttnceLvl = resKit;
-                if (typeof resImg === 'number') printer.uniImgLvl = resImg;
+                const calculatedKitPerc = calculatePerc(resKit, resKitMax);
+                if (calculatedKitPerc !== null) printer.kitMttnceLvl = calculatedKitPerc;
+
+                const calculatedImgPerc = calculatePerc(resImg, resImgMax);
+                if (calculatedImgPerc !== null) printer.uniImgLvl = calculatedImgPerc;
 
                 printer.lastReadAt = new Date();
                 printer.updatedAt = new Date();
