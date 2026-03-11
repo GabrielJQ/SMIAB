@@ -102,6 +102,7 @@ export class PrintersService {
     // Instead of fighting createQueryBuilder mapping, we execute a raw filtered count
     const onlineCount = await this.printerRepository.createQueryBuilder("p")
       .where("p.unit_id = :unitId", { unitId: userUnitId })
+      .andWhere("p.printer_status = :status", { status: 'online' })
       .andWhere("p.last_read_at >= :ago", { ago: twentyMinutesAgo })
       .getCount();
 

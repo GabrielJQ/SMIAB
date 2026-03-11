@@ -63,3 +63,6 @@ pids
 *.pid.lock
 .temp
 .tmp
+
+#--- MDs ---
+GEMINI.md
