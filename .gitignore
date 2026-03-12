@@ -66,3 +66,7 @@ pids
 
 #--- MDs ---
 GEMINI.md
+
+# --- AI Agents & Skills ---
+.agents/
+skills-lock.json
