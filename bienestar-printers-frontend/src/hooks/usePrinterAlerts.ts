@@ -8,6 +8,12 @@ export interface Alert {
     status: string; // 'PENDING' | 'RESOLVED'
     createdAt: string;
     resolvedAt?: string | null;
+    metadata?: {
+        oldLevel: number;
+        newLevel: number;
+        difference: number;
+        at: string;
+    } | null;
 }
 
 export function usePrinterAlerts(printerId: string | undefined) {

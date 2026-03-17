@@ -226,7 +226,7 @@ export class SnmpService implements OnModuleInit {
 
   private async simulateRead(printer: Printer): Promise<boolean> {
     // Generate random values
-    const statusValues = ['online', 'offline', 'UNKNOWN'];
+    const statusValues = ['online', 'offline'];
     const randomStatus =
       statusValues[Math.floor(Math.random() * statusValues.length)];
     const randomToner = Math.floor(Math.random() * 101); // 0-100
@@ -254,21 +254,22 @@ export class SnmpService implements OnModuleInit {
     printer.totalPagesPrinted = newPages.toString();
     printer.printOnlyPages = newPrints.toString();
     printer.copyPages = newCopies.toString();
+    printer.printerStatus = randomStatus;
     printer.lastReadAt = new Date();
     printer.updatedAt = new Date();
 
-    if (oldToner <= 40 && randomToner >= 98) {
+    if (oldToner <= 5 && randomToner >= 98) {
+      // Cambio NORMAL (estricto < 5%)
       await this.registerTonerChange(printer.assetId, 'auto_detected');
     } else if (randomToner >= 98 && oldToner > 5) {
-      // Cambio prematuro
+      // Cambio prematuro (Guardián)
       await this.registerPrematureChange(printer.assetId, oldToner, randomToner);
       await this.registerTonerChange(printer.assetId, 'auto_detected');
     } else if (oldToner - randomToner > 10 && randomToner !== 0) {
-      // Caída drástica sin llegar a 0 (swap por uno vacío/usado)
-      // Nota: en un entorno real se validaría contra las páginas impresas, aquí usamos heurística
+      // Caída drástica (Swap)
       await this.registerSuspiciousSwap(printer.assetId, oldToner, randomToner);
     } else if (randomToner > oldToner && randomToner < 98) {
-      // Subió mágicamente pero no es nuevo (relleno parcial)
+      // Relleno parcial (Tóner usado)
       await this.registerSuspiciousSwap(printer.assetId, oldToner, randomToner);
     }
 
@@ -477,16 +478,17 @@ export class SnmpService implements OnModuleInit {
 
         if (
           printer.lastReadAt != null &&
-          oldToner <= 40 &&
+          oldToner <= 5 &&
           customTonerPerc >= 98
         ) {
+          // Cambio NORMAL (estricto < 5%)
           await this.registerTonerChange(printer.assetId, 'auto_detected');
         } else if (
           printer.lastReadAt != null &&
           customTonerPerc >= 98 &&
           oldToner > 5
         ) {
-          // Cambio prematuro
+          // Cambio prematuro (Guardián)
           await this.registerPrematureChange(printer.assetId, oldToner, customTonerPerc);
           await this.registerTonerChange(printer.assetId, 'auto_detected');
         } else if (
@@ -494,15 +496,14 @@ export class SnmpService implements OnModuleInit {
           oldToner - customTonerPerc > 10 &&
           customTonerPerc !== 0
         ) {
-          // Intercambio por cartucho usado/vacío
-          // Nota: Una caída del 10% entre dos lecturas (ej. cada 2 hrs) es sospechosa si no imprimió miles de hojas.
+          // Intercambio por cartucho usado/vacío (Swap)
           await this.registerSuspiciousSwap(printer.assetId, oldToner, customTonerPerc);
         } else if (
           printer.lastReadAt != null &&
           customTonerPerc > oldToner &&
           customTonerPerc < 98
         ) {
-          // Relleno parcial / Intercambio por otro tóner a medio uso
+          // Relleno parcial / Tóner usado
           await this.registerSuspiciousSwap(printer.assetId, oldToner, customTonerPerc);
         }
 
@@ -576,11 +577,34 @@ export class SnmpService implements OnModuleInit {
     if (tonerLvl == null) return;
 
     try {
-      const log = this.printerStatusLogRepository.create({
-        printerId,
-        tonerLevel: tonerLvl,
+      // Delta & Daily Logging Optimization
+      const lastLog = await this.printerStatusLogRepository.findOne({
+        where: { printerId },
+        order: { recordedAt: 'DESC' },
       });
-      await this.printerStatusLogRepository.save(log);
+
+      const today = new Date();
+      let shouldSave = true;
+
+      if (lastLog) {
+        const lastDate = lastLog.recordedAt;
+        const isSameDay =
+          lastDate.getFullYear() === today.getFullYear() &&
+          lastDate.getMonth() === today.getMonth() &&
+          lastDate.getDate() === today.getDate();
+
+        if (isSameDay && lastLog.tonerLevel === tonerLvl) {
+          shouldSave = false;
+        }
+      }
+
+      if (shouldSave) {
+        const log = this.printerStatusLogRepository.create({
+          printerId,
+          tonerLevel: tonerLvl,
+        });
+        await this.printerStatusLogRepository.save(log);
+      }
 
       if (tonerLvl <= 33) {
         const activeAlert = await this.alertRepository.findOne({
@@ -591,6 +615,10 @@ export class SnmpService implements OnModuleInit {
             printerId,
             type: 'TONER_LOW',
             status: 'PENDING',
+            metadata: {
+              level: tonerLvl,
+              at: new Date(),
+            },
           });
           await this.alertRepository.save(alert);
         }
@@ -617,6 +645,12 @@ export class SnmpService implements OnModuleInit {
           printerId,
           type: 'PREMATURE_CHANGE',
           status: 'PENDING',
+          metadata: {
+            oldLevel,
+            newLevel,
+            difference: newLevel - oldLevel,
+            at: new Date(),
+          },
         });
         await this.alertRepository.save(alert);
         this.logger.warn(`Alerta registrada PREMATURE_CHANGE para ${printerId}. Viejo: ${oldLevel}%, Nuevo: ${newLevel}%`);
@@ -640,6 +674,12 @@ export class SnmpService implements OnModuleInit {
           printerId,
           type: 'SUSPICIOUS_SWAP',
           status: 'PENDING',
+          metadata: {
+            oldLevel,
+            newLevel,
+            difference: newLevel - oldLevel,
+            at: new Date(),
+          },
         });
         await this.alertRepository.save(alert);
         this.logger.warn(`Alerta registrada SUSPICIOUS_SWAP para ${printerId}. Viejo: ${oldLevel}%, Nuevo: ${newLevel}%`);

@@ -29,6 +29,9 @@ export class Alert {
   @Column({ name: 'resolved_at', type: 'timestamp', nullable: true })
   resolvedAt: Date;
 
+  @Column({ type: 'jsonb', nullable: true })
+  metadata: any;
+
   @ManyToOne(() => Printer)
   @JoinColumn({ name: 'printer_id', referencedColumnName: 'assetId' })
   printer: Printer;
