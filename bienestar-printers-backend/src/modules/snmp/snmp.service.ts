@@ -257,8 +257,19 @@ export class SnmpService implements OnModuleInit {
     printer.lastReadAt = new Date();
     printer.updatedAt = new Date();
 
-    if (oldToner <= 40 && randomToner >= 80) {
+    if (oldToner <= 40 && randomToner >= 98) {
       await this.registerTonerChange(printer.assetId, 'auto_detected');
+    } else if (randomToner >= 98 && oldToner > 5) {
+      // Cambio prematuro
+      await this.registerPrematureChange(printer.assetId, oldToner, randomToner);
+      await this.registerTonerChange(printer.assetId, 'auto_detected');
+    } else if (oldToner - randomToner > 10 && randomToner !== 0) {
+      // Caída drástica sin llegar a 0 (swap por uno vacío/usado)
+      // Nota: en un entorno real se validaría contra las páginas impresas, aquí usamos heurística
+      await this.registerSuspiciousSwap(printer.assetId, oldToner, randomToner);
+    } else if (randomToner > oldToner && randomToner < 98) {
+      // Subió mágicamente pero no es nuevo (relleno parcial)
+      await this.registerSuspiciousSwap(printer.assetId, oldToner, randomToner);
     }
 
     await this.printerRepository.save(printer);
@@ -467,9 +478,32 @@ export class SnmpService implements OnModuleInit {
         if (
           printer.lastReadAt != null &&
           oldToner <= 40 &&
-          customTonerPerc >= 80
+          customTonerPerc >= 98
         ) {
           await this.registerTonerChange(printer.assetId, 'auto_detected');
+        } else if (
+          printer.lastReadAt != null &&
+          customTonerPerc >= 98 &&
+          oldToner > 5
+        ) {
+          // Cambio prematuro
+          await this.registerPrematureChange(printer.assetId, oldToner, customTonerPerc);
+          await this.registerTonerChange(printer.assetId, 'auto_detected');
+        } else if (
+          printer.lastReadAt != null &&
+          oldToner - customTonerPerc > 10 &&
+          customTonerPerc !== 0
+        ) {
+          // Intercambio por cartucho usado/vacío
+          // Nota: Una caída del 10% entre dos lecturas (ej. cada 2 hrs) es sospechosa si no imprimió miles de hojas.
+          await this.registerSuspiciousSwap(printer.assetId, oldToner, customTonerPerc);
+        } else if (
+          printer.lastReadAt != null &&
+          customTonerPerc > oldToner &&
+          customTonerPerc < 98
+        ) {
+          // Relleno parcial / Intercambio por otro tóner a medio uso
+          await this.registerSuspiciousSwap(printer.assetId, oldToner, customTonerPerc);
         }
 
         const calculatedKitPerc = calculatePerc(resKit, resKitMax);
@@ -565,6 +599,53 @@ export class SnmpService implements OnModuleInit {
       this.logger.error(
         `Error processing toner telemetry for ${printerId}: ${e.message}`,
       );
+    }
+  }
+
+  private async registerPrematureChange(
+    printerId: string,
+    oldLevel: number,
+    newLevel: number,
+  ) {
+    try {
+      // Evitar duplicar alertas PENDING del mismo tipo
+      const activeAlert = await this.alertRepository.findOne({
+        where: { printerId, status: 'PENDING', type: 'PREMATURE_CHANGE' },
+      });
+      if (!activeAlert) {
+        const alert = this.alertRepository.create({
+          printerId,
+          type: 'PREMATURE_CHANGE',
+          status: 'PENDING',
+        });
+        await this.alertRepository.save(alert);
+        this.logger.warn(`Alerta registrada PREMATURE_CHANGE para ${printerId}. Viejo: ${oldLevel}%, Nuevo: ${newLevel}%`);
+      }
+    } catch (e) {
+      this.logger.error(`Error registering premature change for ${printerId}: ${e.message}`);
+    }
+  }
+
+  private async registerSuspiciousSwap(
+    printerId: string,
+    oldLevel: number,
+    newLevel: number,
+  ) {
+    try {
+      const activeAlert = await this.alertRepository.findOne({
+        where: { printerId, status: 'PENDING', type: 'SUSPICIOUS_SWAP' },
+      });
+      if (!activeAlert) {
+        const alert = this.alertRepository.create({
+          printerId,
+          type: 'SUSPICIOUS_SWAP',
+          status: 'PENDING',
+        });
+        await this.alertRepository.save(alert);
+        this.logger.warn(`Alerta registrada SUSPICIOUS_SWAP para ${printerId}. Viejo: ${oldLevel}%, Nuevo: ${newLevel}%`);
+      }
+    } catch (e) {
+      this.logger.error(`Error registering suspicious swap for ${printerId}: ${e.message}`);
     }
   }
 

@@ -25,6 +25,7 @@ import { PrinterMonthlyStat } from './entities/printer-monthly-stat.entity';
 import { Printer } from './entities/printer.entity';
 import { PrinterTonerChange } from '../toners/entities/printer-toner-change.entity';
 import { PrinterStatusLog } from './entities/printer-status-log.entity';
+import { Alert } from './entities/alert.entity';
 
 @Injectable()
 export class PrintersService {
@@ -38,6 +39,8 @@ export class PrintersService {
     private readonly printerStatusLogRepository: Repository<PrinterStatusLog>,
     @InjectRepository(PrinterTonerChange)
     private readonly tonerChangeRepository: Repository<PrinterTonerChange>,
+    @InjectRepository(Alert)
+    private readonly alertRepository: Repository<Alert>,
   ) {}
 
   // ==========================================
@@ -292,5 +295,48 @@ export class PrintersService {
       time: log.recordedAt.toISOString().split('T')[1].substring(0, 5), // HH:mm
       tonerLevel: log.tonerLevel,
     }));
+  }
+
+  // ==========================================
+  //  ALERTS
+  // ==========================================
+
+  async getActiveAlerts(printerId: string, userUnitId: string) {
+    if (!userUnitId) throw new ForbiddenException('User has no unit assigned');
+    await this.validatePrinterAccess(printerId, userUnitId);
+
+    const alerts = await this.alertRepository.find({
+      where: {
+        printerId,
+        status: 'PENDING',
+      },
+      order: {
+        createdAt: 'DESC',
+      },
+    });
+
+    return alerts;
+  }
+
+  async resolveAlert(alertId: string, userUnitId: string) {
+    if (!userUnitId) throw new ForbiddenException('User has no unit assigned');
+
+    const alert = await this.alertRepository.findOne({
+      where: { id: alertId },
+      relations: ['printer'],
+    });
+
+    if (!alert) {
+      throw new BadRequestException('Alert not found');
+    }
+
+    // Verify user has access to the printer this alert belongs to
+    await this.validatePrinterAccess(alert.printerId, userUnitId);
+
+    alert.status = 'RESOLVED';
+    alert.resolvedAt = new Date();
+    await this.alertRepository.save(alert);
+
+    return { success: true, message: 'Alert resolved successfully' };
   }
 }

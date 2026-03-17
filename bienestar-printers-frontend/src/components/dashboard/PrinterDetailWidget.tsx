@@ -9,6 +9,7 @@ import { Wifi, WifiOff, Calendar, Droplets, Settings, Layers, Activity, Printer 
 import { cn } from '@/lib/utils';
 import { DashboardCard } from '@/components/ui/DashboardCard';
 import { toast } from 'react-hot-toast';
+import { usePrinterAlerts } from '@/hooks/usePrinterAlerts';
 
 const getSemanticColor = (value: number | null) => {
     if (value === null) return '#e2e8f0'; // Gris (Sin Datos)
@@ -74,6 +75,10 @@ export const PrinterDetailWidget = () => {
     const { selectedPrinter } = useDashboardStore();
     const [copied, setCopied] = React.useState(false);
 
+    // Alertas SNMP
+    const { data: alerts, resolveAlert, isResolving } = usePrinterAlerts(selectedPrinter?.id);
+    const hasAnomaly = alerts?.find(a => a.type === 'PREMATURE_CHANGE' || a.type === 'SUSPICIOUS_SWAP');
+
     const { data: tonerHistory, isLoading: isLoadingHistory } = useQuery({
         queryKey: ['toner-history', selectedPrinter?.id],
         queryFn: () => fetchTonerHistory(selectedPrinter!.id),
@@ -109,8 +114,52 @@ export const PrinterDetailWidget = () => {
     };
 
     return (
-        <DashboardCard className="p-8 md:p-12">
-            {/* Background Decoration */}
+        <div className="flex flex-col gap-6">
+            {/* ALERT BANNER - Anomalías de Tóner */}
+            {hasAnomaly && (
+                <div className="bg-red-50 border border-red-200 rounded-xl p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-sm relative overflow-hidden">
+                    <div className="absolute top-0 right-0 w-32 h-32 bg-red-500/10 blur-3xl -translate-y-1/2 translate-x-1/3 rounded-full pointer-events-none" />
+                    
+                    <div className="flex items-center gap-3 relative z-10 w-full sm:w-auto">
+                        <div className="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center shrink-0 border border-red-200 shadow-sm">
+                            <AlertTriangle className="w-5 h-5 text-red-600" />
+                        </div>
+                        <div>
+                            <h4 className="text-red-900 font-black text-sm uppercase tracking-wide">
+                                {hasAnomaly.type === 'PREMATURE_CHANGE' ? 'Cambio Prematuro Detectado' : 'Anomalía Detectada (Intercambio sospechoso)'}
+                            </h4>
+                            <p className="text-red-700/80 text-xs font-bold uppercase mt-0.5 tracking-wider">
+                                {hasAnomaly.type === 'PREMATURE_CHANGE' 
+                                 ? 'Se reemplazó el tóner mientras tenía una vida útil superior al 5%.' 
+                                 : 'Los niveles de tóner cayeron drásticamente o el tóner instalado no es nuevo (>98%).'}
+                            </p>
+                        </div>
+                    </div>
+                    
+                    <button
+                        onClick={async () => {
+                            try {
+                                await resolveAlert(hasAnomaly.id);
+                                toast.success('Alerta marcada como revisada');
+                            } catch (e) {
+                                toast.error('Error al resolver alerta');
+                            }
+                        }}
+                        disabled={isResolving}
+                        className="relative z-10 bg-white hover:bg-red-50 text-red-700 border border-red-200 px-4 py-2 rounded-lg text-xs font-black uppercase tracking-wider transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-sm flex items-center gap-2 w-full sm:w-auto justify-center"
+                    >
+                        {isResolving ? (
+                            <div className="w-4 h-4 border-2 border-red-300 border-t-red-600 rounded-full animate-spin" />
+                        ) : (
+                            <CheckCircle2 className="w-4 h-4" />
+                        )}
+                        Revisado
+                    </button>
+                </div>
+            )}
+
+            <DashboardCard className="p-8 md:p-12">
+                {/* Background Decoration */}
             <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-gradient-to-br from-guinda-50/50 to-transparent rounded-full blur-3xl -translate-y-1/2 translate-x-1/3 pointer-events-none" />
 
             {/* Header */}
@@ -269,5 +318,6 @@ export const PrinterDetailWidget = () => {
                 </div>
             </div>
         </DashboardCard>
+        </div>
     );
 };

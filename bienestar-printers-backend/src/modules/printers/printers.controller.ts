@@ -242,8 +242,38 @@ export class PrintersController {
   }
 
   // ==========================================
+  //  ALERTS ENDPOINTS
+  // ==========================================
+
+  @ApiOperation({ summary: 'Obtener alertas activas de la impresora' })
+  @ApiParam({ name: 'id', description: 'ID de la impresora' })
+  @ApiOkResponse({ description: 'Listado de alertas pendientes' })
+  @Get(':id/alerts')
+  async getPrinterAlerts(
+    @CurrentUser('internal') user: UserJwtPayload,
+    @Param('id') id: string,
+  ) {
+    const unitId = user.unitId || user.areaId;
+    if (!unitId) throw new ForbiddenException('User has no unit assigned');
+    return this.printersService.getActiveAlerts(id, unitId);
+  }
+
+  @ApiOperation({ summary: 'Resolver / Marcar como revisada una alerta' })
+  @ApiParam({ name: 'alertId', description: 'ID de la alerta' })
+  @ApiOkResponse({ description: 'Alerta resuelta' })
+  @Roles('super_admin', 'admin')
+  @Post('alerts/:alertId/resolve')
+  async resolveAlert(
+    @CurrentUser('internal') user: UserJwtPayload,
+    @Param('alertId') alertId: string,
+  ) {
+    const unitId = user.unitId || user.areaId;
+    if (!unitId) throw new ForbiddenException('User has no unit assigned');
+    return this.printersService.resolveAlert(alertId, unitId);
+  }
 
   // ==========================================
+
   //  BASIC ENDPOINTS
   // ==========================================
 
