@@ -7,7 +7,6 @@ export async function getPrintersByAreaQuery(
 ) {
   return printerRepository.find({
     where: { departmentId: areaId },
-    order: { namePrinter: 'ASC' }
+    order: { namePrinter: 'ASC' },
   });
 }
-

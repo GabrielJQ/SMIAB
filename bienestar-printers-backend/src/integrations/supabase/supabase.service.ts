@@ -6,12 +6,13 @@ import { ConfigService } from '@nestjs/config';
 export class SupabaseService implements OnModuleInit {
   private adminClient: SupabaseClient;
 
-  constructor(private readonly configService: ConfigService) { }
+  constructor(private readonly configService: ConfigService) {}
 
   onModuleInit() {
     const url = this.configService.get<string>('SUPABASE_URL');
-    const serviceRoleKey =
-      this.configService.get<string>('SUPABASE_SERVICE_ROLE_KEY');
+    const serviceRoleKey = this.configService.get<string>(
+      'SUPABASE_SERVICE_ROLE_KEY',
+    );
 
     if (!url || !serviceRoleKey) {
       throw new Error('Supabase environment variables missing');
@@ -29,4 +30,3 @@ export class SupabaseService implements OnModuleInit {
     return this.adminClient;
   }
 }
-

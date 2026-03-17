@@ -4,6 +4,9 @@ export class PrinterSummaryDto {
   @ApiProperty({ description: 'ID de la impresora' })
   id: string;
 
+  @ApiProperty({ description: 'Dirección IP de la impresora' })
+  ipAddress: string;
+
   @ApiProperty({ description: 'Nombre de la impresora' })
   name: string;
 
@@ -28,12 +31,21 @@ export class PrinterSummaryDto {
   constructor(row: any) {
     // Soporte híbrido: Supabase (snake_case) y TypeORM (camelCase)
     this.id = row.asset_id ?? row.assetId ?? row.id;
+    this.ipAddress = row.ip_printer ?? row.ipPrinter ?? '';
     this.name = row.name_printer ?? row.namePrinter;
-    
-    // Relaciones: Supabase usa arrays/objetos anidados, TypeORM usa entidades
-    this.area = row.departments?.areanom ?? row.department?.areanom ?? row.areas?.areaname ?? null;
 
-    const status = (row.printer_status ?? row.printerStatus ?? '').toUpperCase();
+    // Relaciones: Supabase usa arrays/objetos anidados, TypeORM usa entidades
+    this.area =
+      row.departments?.areanom ??
+      row.department?.areanom ??
+      row.areas?.areaname ??
+      null;
+
+    const status = (
+      row.printer_status ??
+      row.printerStatus ??
+      ''
+    ).toUpperCase();
     this.isOnline = status === 'ONLINE';
 
     this.tonerLevel = row.toner_lvl ?? row.tonerLvl ?? 0;
@@ -44,5 +56,3 @@ export class PrinterSummaryDto {
     this.createdAt = dateValue ? new Date(dateValue) : new Date();
   }
 }
-
-

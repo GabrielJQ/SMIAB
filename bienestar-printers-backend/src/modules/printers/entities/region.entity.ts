@@ -4,24 +4,24 @@ import { Printer } from './printer.entity';
 
 @Entity('regions')
 export class Region {
-    @PrimaryGeneratedColumn({ type: 'bigint' })
-    id: string;
+  @PrimaryGeneratedColumn({ type: 'bigint' })
+  id: string;
 
-    @Column({ unique: true })
-    regcve: number;
+  @Column({ unique: true })
+  regcve: number;
 
-    @Column({ unique: true })
-    regnom: string;
+  @Column({ unique: true })
+  regnom: string;
 
-    @Column({ name: 'created_at', type: 'timestamp', nullable: true })
-    createdAt: Date;
+  @Column({ name: 'created_at', type: 'timestamp', nullable: true })
+  createdAt: Date;
 
-    @Column({ name: 'updated_at', type: 'timestamp', nullable: true })
-    updatedAt: Date;
+  @Column({ name: 'updated_at', type: 'timestamp', nullable: true })
+  updatedAt: Date;
 
-    @OneToMany(() => Unit, (unit) => unit.region)
-    units: Unit[];
+  @OneToMany(() => Unit, (unit) => unit.region)
+  units: Unit[];
 
-    @OneToMany(() => Printer, (printer) => printer.region)
-    printers: Printer[];
+  @OneToMany(() => Printer, (printer) => printer.region)
+  printers: Printer[];
 }

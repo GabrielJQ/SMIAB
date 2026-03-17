@@ -35,4 +35,3 @@ export class SupabaseJwtStrategy extends PassportStrategy(
     return payload;
   }
 }
-

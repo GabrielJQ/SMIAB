@@ -12,7 +12,8 @@ import type { SupabaseUser } from '../types/supabase-user.type';
 @Injectable()
 export class SupabaseAuthGuard
   extends AuthGuard('supabase-jwt')
-  implements CanActivate {
+  implements CanActivate
+{
   constructor(private readonly usersService: UsersService) {
     super();
   }
@@ -38,8 +39,9 @@ export class SupabaseAuthGuard
     }
 
     // 3️⃣ Buscar usuario interno
-    let internalUser =
-      await this.usersService.findBySupabaseUserId(supabaseUser.sub);
+    const internalUser = await this.usersService.findBySupabaseUserId(
+      supabaseUser.sub,
+    );
 
     // 4️⃣ Ya no creamos usuarios nuevos porque este microservicio es dependiente de SAI.
     // Omitimos el bloque de createFromSupabase() para dejar que la siguiente validación capture el Null.
@@ -48,7 +50,9 @@ export class SupabaseAuthGuard
     // El sistema central SAI ahora usa hard deletes, por lo que si el usuario no existe o es null,
     // significa que ya no tiene acceso.
     if (!internalUser) {
-      throw new UnauthorizedException('El usuario no existe en el sistema central SAI');
+      throw new UnauthorizedException(
+        'El usuario no existe en el sistema central SAI',
+      );
     }
 
     // 6️⃣ Normalizar request.user (contrato FINAL de tu app)

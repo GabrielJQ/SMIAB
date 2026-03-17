@@ -8,6 +8,6 @@ export async function getPrinterSummaryQuery(
   return printerRepository.find({
     where: { unitId },
     relations: ['department'],
-    order: { namePrinter: 'ASC' }
+    order: { namePrinter: 'ASC' },
   });
 }

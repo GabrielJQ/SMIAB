@@ -7,7 +7,6 @@ export async function getPrinterByIdQuery(
 ) {
   return printerRepository.findOne({
     where: { assetId: printerId },
-    relations: ['department', 'region']
+    relations: ['department', 'region'],
   });
 }
-

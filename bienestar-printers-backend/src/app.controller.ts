@@ -9,10 +9,7 @@ export class AppController {
   async testSupabase() {
     const supabase = this.supabaseService.getAdminClient();
 
-    const { data, error } = await supabase
-      .from('users')
-      .select('*')
-      .limit(2);
+    const { data, error } = await supabase.from('users').select('*').limit(2);
 
     if (error) {
       return { ok: false, error };
@@ -21,6 +18,3 @@ export class AppController {
     return { ok: true, data };
   }
 }
-
-
-

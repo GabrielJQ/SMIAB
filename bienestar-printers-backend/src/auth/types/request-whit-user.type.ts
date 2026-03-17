@@ -16,4 +16,3 @@ export interface RequestWithUser extends Request {
     internal: InternalUser;
   };
 }
-

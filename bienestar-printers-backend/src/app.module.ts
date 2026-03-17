@@ -36,5 +36,4 @@ import { SnmpModule } from './modules/snmp/snmp.module';
   controllers: [AppController],
   providers: [AppService],
 })
-export class AppModule { }
-
+export class AppModule {}

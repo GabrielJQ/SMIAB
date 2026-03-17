@@ -9,14 +9,14 @@ import { AuthModule } from '../../auth/auth.module';
 import { UsersModule } from '../users/users.module';
 
 @Module({
-    imports: [
-        TypeOrmModule.forFeature([PrinterTonerChange, Printer]),
-        SupabaseModule,
-        AuthModule,
-        UsersModule
-    ],
-    controllers: [TonersController],
-    providers: [TonersService],
-    exports: [TonersService],
+  imports: [
+    TypeOrmModule.forFeature([PrinterTonerChange, Printer]),
+    SupabaseModule,
+    AuthModule,
+    UsersModule,
+  ],
+  controllers: [TonersController],
+  providers: [TonersService],
+  exports: [TonersService],
 })
-export class TonersModule { }
+export class TonersModule {}

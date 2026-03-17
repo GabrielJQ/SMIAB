@@ -8,7 +8,16 @@ import { PrinterStatusLog } from '../printers/entities/printer-status-log.entity
 import { PrinterTonerChange } from '../toners/entities/printer-toner-change.entity';
 
 @Module({
-    imports: [TypeOrmModule.forFeature([Printer, PrinterMonthlyStat, Alert, PrinterStatusLog, PrinterTonerChange])],
-    providers: [SnmpService],
+  imports: [
+    TypeOrmModule.forFeature([
+      Printer,
+      PrinterMonthlyStat,
+      Alert,
+      PrinterStatusLog,
+      PrinterTonerChange,
+    ]),
+  ],
+  providers: [SnmpService],
+  exports: [SnmpService],
 })
-export class SnmpModule { }
+export class SnmpModule {}

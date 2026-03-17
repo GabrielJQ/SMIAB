@@ -3,7 +3,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { PrintersController } from './printers.controller';
 import { PrintersService } from './printers.service';
 import { UsersModule } from '../users/users.module';
-import { SupabaseModule } from "../../integrations/supabase/supabase.module";
+import { SupabaseModule } from '../../integrations/supabase/supabase.module';
 import { Printer } from './entities/printer.entity';
 import { PrinterMonthlyStat } from './entities/printer-monthly-stat.entity';
 import { Alert } from './entities/alert.entity';
@@ -12,6 +12,7 @@ import { PrinterTonerChange } from '../toners/entities/printer-toner-change.enti
 import { Unit } from './entities/unit.entity';
 import { Department } from './entities/department.entity';
 import { Region } from './entities/region.entity';
+import { SnmpModule } from '../snmp/snmp.module';
 
 @Module({
   imports: [
@@ -23,13 +24,14 @@ import { Region } from './entities/region.entity';
       PrinterTonerChange,
       Unit,
       Department,
-      Region
+      Region,
     ]),
     UsersModule,
-    SupabaseModule
+    SupabaseModule,
+    SnmpModule,
   ],
   controllers: [PrintersController],
   providers: [PrintersService],
   exports: [PrintersService],
 })
-export class PrintersModule { }
+export class PrintersModule {}

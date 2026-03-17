@@ -11,13 +11,13 @@ export type Role = 'super_admin' | 'admin' | 'collaborator' | 'visitor';
 
 @Injectable()
 export class RolesGuard implements CanActivate {
-  constructor(private reflector: Reflector) { }
+  constructor(private reflector: Reflector) {}
 
   canActivate(context: ExecutionContext): boolean {
-    const requiredRoles = this.reflector.getAllAndOverride<Role[]>(
-      ROLES_KEY,
-      [context.getHandler(), context.getClass()],
-    );
+    const requiredRoles = this.reflector.getAllAndOverride<Role[]>(ROLES_KEY, [
+      context.getHandler(),
+      context.getClass(),
+    ]);
 
     // 🔓 Endpoint sin roles → usuario autenticado pasa
     if (!requiredRoles || requiredRoles.length === 0) {
@@ -38,5 +38,3 @@ export class RolesGuard implements CanActivate {
     return true;
   }
 }
-
-

@@ -6,7 +6,7 @@ import { createClient } from '@supabase/supabase-js';
 
 @Injectable()
 export class UsersService {
-  constructor(private readonly supabase: SupabaseService) { }
+  constructor(private readonly supabase: SupabaseService) {}
 
   async findBySupabaseUserId(supabaseUserId: string) {
     // Es CRITICO usar getAdminClient() (Service Role Key) porque al ser administrado
@@ -51,4 +51,3 @@ export class UsersService {
     return data;
   }
 }
-

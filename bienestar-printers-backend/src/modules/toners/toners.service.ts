@@ -1,4 +1,8 @@
-import { Injectable, ForbiddenException, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  ForbiddenException,
+  BadRequestException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { SupabaseService } from '../../integrations/supabase/supabase.service';
@@ -14,59 +18,77 @@ import { Printer } from '../printers/entities/printer.entity';
 
 @Injectable()
 export class TonersService {
-    constructor(
-        private readonly supabaseService: SupabaseService,
-        @InjectRepository(PrinterTonerChange)
-        private readonly printerTonerChangeRepository: Repository<PrinterTonerChange>,
-        @InjectRepository(Printer)
-        private readonly printerRepository: Repository<Printer>,
-    ) { }
+  constructor(
+    private readonly supabaseService: SupabaseService,
+    @InjectRepository(PrinterTonerChange)
+    private readonly printerTonerChangeRepository: Repository<PrinterTonerChange>,
+    @InjectRepository(Printer)
+    private readonly printerRepository: Repository<Printer>,
+  ) {}
 
-    // ==========================================
-    //  AUTHORIZATION HELPERS
-    // ==========================================
+  // ==========================================
+  //  AUTHORIZATION HELPERS
+  // ==========================================
 
-    private async validatePrinterAccess(printerId: string, userUnitId: string) {
-        if (!userUnitId) throw new ForbiddenException('User has no unit assigned');
+  private async validatePrinterAccess(printerId: string, userUnitId: string) {
+    if (!userUnitId) throw new ForbiddenException('User has no unit assigned');
 
-        // 1. Get Printer and its Unit using the refactored TypeORM query
-        const row = await getPrinterByIdQuery(this.printerRepository, printerId);
-        if (!row) throw new BadRequestException('Printer not found');
+    // 1. Get Printer and its Unit using the refactored TypeORM query
+    const row = await getPrinterByIdQuery(this.printerRepository, printerId);
+    if (!row) throw new BadRequestException('Printer not found');
 
-        // 2. Get User's Unit
-        // Already passed as arg
+    // 2. Get User's Unit
+    // Already passed as arg
 
-        // 3. Compare (Using camelCase correctly)
-        const printerUnitId = row.unitId;
+    // 3. Compare (Using camelCase correctly)
+    const printerUnitId = row.unitId;
 
-        if (!userUnitId || printerUnitId?.toString() !== userUnitId) {
-            throw new ForbiddenException('Access to printer denied (Different Unit)');
-        }
-        return { printerId, userUnitId };
+    if (!userUnitId || printerUnitId?.toString() !== userUnitId) {
+      throw new ForbiddenException('Access to printer denied (Different Unit)');
     }
+    return { printerId, userUnitId };
+  }
 
-    // ==========================================
-    //  PUBLIC METHODS
-    // ==========================================
+  // ==========================================
+  //  PUBLIC METHODS
+  // ==========================================
 
-    async getUnitHistory(userUnitId: string, months: number): Promise<TonerHistoryDto[]> {
-        if (!userUnitId) throw new ForbiddenException('User has no unit assigned');
+  async getUnitHistory(
+    userUnitId: string,
+    months: number,
+  ): Promise<TonerHistoryDto[]> {
+    if (!userUnitId) throw new ForbiddenException('User has no unit assigned');
 
-        const rows = await getUnitTonerHistoryQuery(this.printerTonerChangeRepository, userUnitId, months);
+    const rows = await getUnitTonerHistoryQuery(
+      this.printerTonerChangeRepository,
+      userUnitId,
+      months,
+    );
 
-        return rows.map(row => new TonerHistoryDto(row));
-    }
+    return rows.map((row) => new TonerHistoryDto(row));
+  }
 
-    async getPrinterHistory(printerId: string, userAreaId: string, months: number): Promise<TonerHistoryDto[]> {
-        await this.validatePrinterAccess(printerId, userAreaId);
+  async getPrinterHistory(
+    printerId: string,
+    userAreaId: string,
+    months: number,
+  ): Promise<TonerHistoryDto[]> {
+    await this.validatePrinterAccess(printerId, userAreaId);
 
-        const rows = await getPrinterTonerHistoryQuery(this.printerTonerChangeRepository, printerId, months);
+    const rows = await getPrinterTonerHistoryQuery(
+      this.printerTonerChangeRepository,
+      printerId,
+      months,
+    );
 
-        return rows.map(row => new TonerHistoryDto(row));
-    }
+    return rows.map((row) => new TonerHistoryDto(row));
+  }
 
-    async getUnitTopConsumers(userUnitId: string) {
-        if (!userUnitId) throw new ForbiddenException('User has no unit assigned');
-        return getUnitTopConsumersQuery(this.printerTonerChangeRepository, userUnitId);
-    }
+  async getUnitTopConsumers(userUnitId: string) {
+    if (!userUnitId) throw new ForbiddenException('User has no unit assigned');
+    return getUnitTopConsumersQuery(
+      this.printerTonerChangeRepository,
+      userUnitId,
+    );
+  }
 }

@@ -1,5 +1,28 @@
-import { Controller, Get, Post, Body, Param, Put, Delete, Patch, UseGuards, Query, DefaultValuePipe, ParseIntPipe, Req, ForbiddenException, NotFoundException } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiParam, ApiOkResponse, ApiQuery } from '@nestjs/swagger';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Param,
+  Put,
+  Delete,
+  Patch,
+  UseGuards,
+  Query,
+  DefaultValuePipe,
+  ParseIntPipe,
+  Req,
+  ForbiddenException,
+  NotFoundException,
+} from '@nestjs/common';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiResponse,
+  ApiParam,
+  ApiOkResponse,
+  ApiQuery,
+} from '@nestjs/swagger';
 import { SupabaseAuthGuard } from '../../auth/guards/supabase-auth.guard';
 import { PrintersService } from './printers.service';
 import { CurrentUser } from '../../auth/decorators/current-user.decorator';
@@ -12,19 +35,34 @@ import { UserJwtPayload } from '../../auth/interfaces/user-jwt.interface';
 import { Roles } from '../../auth/decorators/roles.decorator';
 import { RolesGuard } from '../../auth/guards/roles.guard';
 
+import { SnmpService } from '../snmp/snmp.service';
+
 @ApiTags('Printers')
 @Controller('printers')
 @UseGuards(SupabaseAuthGuard, RolesGuard)
 export class PrintersController {
-  constructor(private readonly printersService: PrintersService) { }
+  constructor(
+    private readonly printersService: PrintersService,
+    private readonly snmpService: SnmpService,
+  ) {}
 
   // ==========================================
   //  STATISTICS ENDPOINTS
   // ==========================================
 
-  @ApiOperation({ summary: 'Obtener historial de impresiones de la unidad (Agregado)' })
-  @ApiQuery({ name: 'months', required: false, type: Number, description: 'Cantidad de meses a comparar (default: 1)' })
-  @ApiOkResponse({ description: 'Historial de unidad', type: [PrinterComparisonDto] })
+  @ApiOperation({
+    summary: 'Obtener historial de impresiones de la unidad (Agregado)',
+  })
+  @ApiQuery({
+    name: 'months',
+    required: false,
+    type: Number,
+    description: 'Cantidad de meses a comparar (default: 1)',
+  })
+  @ApiOkResponse({
+    description: 'Historial de unidad',
+    type: [PrinterComparisonDto],
+  })
   @Get('unit/history')
   async getUnitHistory(
     @CurrentUser('internal') user: UserJwtPayload,
@@ -37,7 +75,10 @@ export class PrintersController {
     return this.printersService.getUnitHistory(unitId, monthsLimit);
   }
 
-  @ApiOperation({ summary: 'Obtener el estado operativo de la unidad (Total, Online, Offline)' })
+  @ApiOperation({
+    summary:
+      'Obtener el estado operativo de la unidad (Total, Online, Offline)',
+  })
   @ApiOkResponse({ description: 'Estado Operativo' })
   @Get('unit/status')
   async getOperationalStatus(@CurrentUser('internal') user: UserJwtPayload) {
@@ -46,8 +87,16 @@ export class PrintersController {
     return this.printersService.getOperationalStatus(userUnitId);
   }
 
-  @ApiOperation({ summary: 'Obtener Consumo Global de Tóner de la unidad (12 meses por defecto)' })
-  @ApiQuery({ name: 'months', required: false, type: Number, description: 'Cantidad de meses a pedir (default: 12)' })
+  @ApiOperation({
+    summary:
+      'Obtener Consumo Global de Tóner de la unidad (12 meses por defecto)',
+  })
+  @ApiQuery({
+    name: 'months',
+    required: false,
+    type: Number,
+    description: 'Cantidad de meses a pedir (default: 12)',
+  })
   @ApiOkResponse({ description: 'Estadísticas de tóner' })
   @Get('unit/toner-stats')
   async getUnitTonerStats(
@@ -61,8 +110,13 @@ export class PrintersController {
     return this.printersService.getUnitTonerStats(userUnitId, monthsLimit);
   }
 
-  @ApiOperation({ summary: 'Obtener listado completo de impresoras de la unidad' })
-  @ApiOkResponse({ description: 'Listado de impresoras de la unidad', type: [PrinterSummaryDto] })
+  @ApiOperation({
+    summary: 'Obtener listado completo de impresoras de la unidad',
+  })
+  @ApiOkResponse({
+    description: 'Listado de impresoras de la unidad',
+    type: [PrinterSummaryDto],
+  })
   @Get('unit')
   async getByUnit(@CurrentUser('internal') user: UserJwtPayload) {
     const unitId = user.unitId || user.areaId;
@@ -76,13 +130,18 @@ export class PrintersController {
   //  DYNAMIC ID ENDPOINTS
   // ==========================================
 
-  @ApiOperation({ summary: 'Obtener historial de impresiones (Rango de Fechas)' })
+  @ApiOperation({
+    summary: 'Obtener historial de impresiones (Rango de Fechas)',
+  })
   @ApiParam({ name: 'id', description: 'ID de la impresora' })
   @ApiQuery({ name: 'startYear', required: false, type: Number })
   @ApiQuery({ name: 'startMonth', required: false, type: Number })
   @ApiQuery({ name: 'endYear', required: false, type: Number })
   @ApiQuery({ name: 'endMonth', required: false, type: Number })
-  @ApiOkResponse({ description: 'Historial mensual', type: [PrinterHistoryDto] })
+  @ApiOkResponse({
+    description: 'Historial mensual',
+    type: [PrinterHistoryDto],
+  })
   @Get(':id/history')
   async getHistory(
     @CurrentUser('internal') user: UserJwtPayload,
@@ -92,7 +151,8 @@ export class PrintersController {
     @Query('endYear') endYear?: string,
     @Query('endMonth') endMonth?: string,
   ) {
-    if (!user?.areaId) throw new ForbiddenException('User has no area assigned');
+    if (!user?.areaId)
+      throw new ForbiddenException('User has no area assigned');
 
     return this.printersService.getPrinterHistory(id, user.areaId, {
       startYear: startYear ? parseInt(startYear) : undefined,
@@ -102,7 +162,9 @@ export class PrintersController {
     });
   }
 
-  @ApiOperation({ summary: 'Obtener Estadísticas Mensuales (Impresiones vs Tóner)' })
+  @ApiOperation({
+    summary: 'Obtener Estadísticas Mensuales (Impresiones vs Tóner)',
+  })
   @ApiParam({ name: 'id', description: 'ID de la impresora' })
   @ApiOkResponse({ description: 'Datos agrupados para gráficas (Recharts)' })
   @Get(':id/monthly-stats')
@@ -110,42 +172,62 @@ export class PrintersController {
     @CurrentUser('internal') user: UserJwtPayload,
     @Param('id') id: string,
   ) {
-    if (!user?.areaId) throw new ForbiddenException('User has no area assigned');
+    if (!user?.areaId)
+      throw new ForbiddenException('User has no area assigned');
     return this.printersService.getMonthlyStats(id, user.areaId);
   }
 
   @ApiOperation({ summary: 'Obtener resumen anual de impresora' })
   @ApiParam({ name: 'id', description: 'ID de la impresora' })
   @ApiParam({ name: 'year', description: 'Año a consultar' })
-  @ApiOkResponse({ description: 'Resumen anual', type: PrinterYearlySummaryDto })
+  @ApiOkResponse({
+    description: 'Resumen anual',
+    type: PrinterYearlySummaryDto,
+  })
   @Get(':id/summary/:year')
   async getYearlySummary(
     @CurrentUser('internal') user: UserJwtPayload,
     @Param('id') id: string,
     @Param('year', ParseIntPipe) year: number,
   ) {
-    if (!user?.areaId) throw new ForbiddenException('User has no area assigned');
+    if (!user?.areaId)
+      throw new ForbiddenException('User has no area assigned');
 
     return this.printersService.getPrinterYearlySummary(id, user.areaId, year);
   }
 
   @ApiOperation({ summary: 'Comparar últimos N meses' })
   @ApiParam({ name: 'id', description: 'ID de la impresora' })
-  @ApiQuery({ name: 'months', required: false, type: Number, description: 'Cantidad de meses a comparar (default: 3)' })
-  @ApiOkResponse({ description: 'Comparación mensual', type: [PrinterComparisonDto] })
+  @ApiQuery({
+    name: 'months',
+    required: false,
+    type: Number,
+    description: 'Cantidad de meses a comparar (default: 3)',
+  })
+  @ApiOkResponse({
+    description: 'Comparación mensual',
+    type: [PrinterComparisonDto],
+  })
   @Get(':id/compare')
   async getComparison(
     @CurrentUser('internal') user: UserJwtPayload,
     @Param('id') id: string,
     @Query('months') months?: string,
   ) {
-    if (!user?.areaId) throw new ForbiddenException('User has no area assigned');
+    if (!user?.areaId)
+      throw new ForbiddenException('User has no area assigned');
 
     const monthsLimit = months ? parseInt(months) : 3;
-    return this.printersService.getPrinterComparison(id, user.areaId, monthsLimit);
+    return this.printersService.getPrinterComparison(
+      id,
+      user.areaId,
+      monthsLimit,
+    );
   }
 
-  @ApiOperation({ summary: 'Obtener historial de nivel de tóner de los últimos 30 días' })
+  @ApiOperation({
+    summary: 'Obtener historial de nivel de tóner de los últimos 30 días',
+  })
   @ApiParam({ name: 'id', description: 'ID de la impresora' })
   @ApiOkResponse({ description: 'Historial de tóner', type: [Object] })
   @Get(':id/toner-history')
@@ -153,7 +235,8 @@ export class PrintersController {
     @CurrentUser('internal') user: UserJwtPayload,
     @Param('id') id: string,
   ) {
-    if (!user?.areaId) throw new ForbiddenException('User has no area assigned');
+    if (!user?.areaId)
+      throw new ForbiddenException('User has no area assigned');
 
     return this.printersService.getTonerHistory(id, user.areaId);
   }
@@ -164,10 +247,13 @@ export class PrintersController {
   //  BASIC ENDPOINTS
   // ==========================================
 
-
-
-  @ApiOperation({ summary: 'Obtener listado de impresoras del área del usuario' })
-  @ApiOkResponse({ description: 'Listado de impresoras del área', type: [PrinterSummaryDto] })
+  @ApiOperation({
+    summary: 'Obtener listado de impresoras del área del usuario',
+  })
+  @ApiOkResponse({
+    description: 'Listado de impresoras del área',
+    type: [PrinterSummaryDto],
+  })
   @Get()
   async getAll(@CurrentUser('internal') user: UserJwtPayload) {
     const areaId = user.departmentId || user.areaId;
@@ -177,9 +263,14 @@ export class PrintersController {
     return this.printersService.getPrintersByUserArea(areaId);
   }
 
-  @ApiOperation({ summary: 'Obtener detalles de una impresora por ID (Lectura Universal)' })
+  @ApiOperation({
+    summary: 'Obtener detalles de una impresora por ID (Lectura Universal)',
+  })
   @ApiParam({ name: 'id', description: 'ID de la impresora' })
-  @ApiOkResponse({ description: 'Detalle de la impresora', type: PrinterSummaryDto })
+  @ApiOkResponse({
+    description: 'Detalle de la impresora',
+    type: PrinterSummaryDto,
+  })
   @Roles('super_admin', 'admin', 'collaborator', 'visitor') // Accesible por todos
   @Get(':id')
   async getOne(
@@ -213,4 +304,22 @@ export class PrintersController {
     return this.printersService.registerManualTonerChange(id, unitId);
   }
 
+  @ApiOperation({ summary: 'Forzar barrido SNMP de todas las impresoras' })
+  @ApiOkResponse({ description: 'Resultado del barrido' })
+  @Roles('super_admin', 'admin')
+  @Post('sync')
+  async syncAll() {
+    return this.snmpService.forcePrinterUpdate();
+  }
+
+  @ApiOperation({
+    summary: 'Forzar actualización SNMP de una impresora específica',
+  })
+  @ApiParam({ name: 'id', description: 'ID de la impresora (assetId)' })
+  @ApiOkResponse({ description: 'Resultado de la actualización' })
+  @Roles('super_admin', 'admin', 'collaborator')
+  @Post(':id/sync')
+  async syncOne(@Param('id') id: string) {
+    return this.snmpService.forcePrinterUpdate(id);
+  }
 }

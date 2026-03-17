@@ -6,7 +6,9 @@ import { api } from '@/services/api';
 import { PrinterSummary } from '@/types/printer';
 import { useDashboardStore } from '@/store/useDashboardStore';
 import { cn } from '@/lib/utils';
-import { Search, Activity, LayoutDashboard, X, AlertTriangle } from 'lucide-react';
+import { Search, Activity, LayoutDashboard, X, AlertTriangle, RefreshCw } from 'lucide-react';
+import { toast } from 'react-hot-toast';
+import { useQueryClient } from '@tanstack/react-query';
 
 const fetchPrinters = async (): Promise<PrinterSummary[]> => {
     const { data } = await api.get('/printers/unit');
@@ -16,6 +18,8 @@ const fetchPrinters = async (): Promise<PrinterSummary[]> => {
 export const Sidebar: React.FC = () => {
     const { selectedPrinterId, setSelectedPrinter, isMobileMenuOpen, setMobileMenuOpen } = useDashboardStore();
     const [searchQuery, setSearchQuery] = useState('');
+    const [syncStatus, setSyncStatus] = useState<'idle' | 'syncing' | 'success'>('idle');
+    const queryClient = useQueryClient();
 
     const { data: printers, isLoading: loadingPrinters } = useQuery({
         queryKey: ['printers-unit'],
@@ -44,7 +48,7 @@ export const Sidebar: React.FC = () => {
     }, [printers]);
 
     const [isScrolling, setIsScrolling] = useState(false);
-    const scrollTimeoutRef = React.useRef<any>(null);
+    const scrollTimeoutRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
 
     const handleScroll = () => {
         if (!isScrolling) setIsScrolling(true);
@@ -62,6 +66,38 @@ export const Sidebar: React.FC = () => {
     const handlePrinterClick = (printer: PrinterSummary) => {
         setSelectedPrinter(printer);
         setMobileMenuOpen(false);
+    };
+
+    const handleGlobalSync = async () => {
+        if (syncStatus !== 'idle') return;
+
+        setSyncStatus('syncing');
+        const toastId = toast.loading('Sincronizando impresoras...');
+
+        try {
+            const { data } = await api.post('/printers/sync');
+            toast.success(`Sincronización completa: ${data.updated}/${data.total} actualizadas`, { id: toastId });
+
+            setSyncStatus('success');
+
+            // Refrescar lista de impresoras
+            await queryClient.invalidateQueries({ queryKey: ['printers-unit'] });
+
+            // Si hay una seleccionada, refrescar su historial también
+            if (selectedPrinterId) {
+                await queryClient.invalidateQueries({ queryKey: ['toner-history', selectedPrinterId] });
+            }
+
+            // Regresar a estado original tras 2 segundos
+            setTimeout(() => {
+                setSyncStatus('idle');
+            }, 2000);
+
+        } catch (error) {
+            console.error('Error in manual sync:', error);
+            toast.error('Error al sincronizar impresoras', { id: toastId });
+            setSyncStatus('idle');
+        }
     };
 
     if (loadingPrinters) return (
@@ -148,6 +184,7 @@ export const Sidebar: React.FC = () => {
                         </a>
                     </div>
 
+
                     <div className="px-3 py-2 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-1 bg-transparent mt-2">EQUIPOS DE IMPRESIÓN</div>
 
                     <div
@@ -210,23 +247,46 @@ export const Sidebar: React.FC = () => {
                     </div>
 
                     {/* Footer: Estadísticas Consolidadas (Physical Inventory Only) */}
-                    <div className="p-4 bg-slate-50/50 border-t border-guinda-700/10">
-                        <div className="flex items-center gap-2 mb-3">
-                            <Activity className="w-3.5 h-3.5 text-guinda-700" />
-                            <h3 className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Unidad Oaxaca</h3>
-                        </div>
-                        <div className="grid grid-cols-3 gap-2">
-                            <div className="bg-white/60 border border-slate-100 p-2 rounded-lg text-center shadow-sm">
-                                <div className="text-base font-black text-slate-700">{statsSummary.total}</div>
-                                <div className="text-[7px] text-slate-400 uppercase font-black">Equipos</div>
+                    <div className="p-4 bg-slate-50/50 border-t border-guinda-700/10 space-y-4">
+                        <button
+                            onClick={handleGlobalSync}
+                            disabled={syncStatus !== 'idle'}
+                            className={cn(
+                                "w-full py-3 px-4 rounded-xl font-black uppercase tracking-[0.15em] text-[10px] transition-all duration-500 shadow-lg flex items-center justify-center gap-3 active:scale-[0.97]",
+                                syncStatus === 'idle' && "bg-guinda-600 text-white hover:bg-guinda-700 shadow-guinda-600/20",
+                                syncStatus === 'syncing' && "bg-slate-200 text-slate-500 cursor-not-allowed shadow-none",
+                                syncStatus === 'success' && "bg-emerald-500 text-white shadow-emerald-500/20"
+                            )}
+                        >
+                            <RefreshCw className={cn(
+                                "w-4 h-4",
+                                syncStatus === 'syncing' && "animate-spin"
+                            )} />
+                            <span>
+                                {syncStatus === 'idle' && 'Actualizar Impresoras'}
+                                {syncStatus === 'syncing' && 'Actualizando...'}
+                                {syncStatus === 'success' && '¡Actualizado!'}
+                            </span>
+                        </button>
+
+                        <div>
+                            <div className="flex items-center gap-2 mb-3">
+                                <Activity className="w-3.5 h-3.5 text-guinda-700" />
+                                <h3 className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Unidad Oaxaca</h3>
                             </div>
-                            <div className="bg-white/60 border border-slate-100 p-2 rounded-lg text-center shadow-sm">
-                                <div className="text-base font-black text-emerald-600">{statsSummary.online}</div>
-                                <div className="text-[7px] text-emerald-600/70 uppercase font-black">Online</div>
-                            </div>
-                            <div className="bg-white/60 border border-slate-100 p-2 rounded-lg text-center shadow-sm">
-                                <div className="text-base font-black text-red-600">{statsSummary.offline}</div>
-                                <div className="text-[7px] text-red-600/70 uppercase font-black">Offline</div>
+                            <div className="grid grid-cols-3 gap-2">
+                                <div className="bg-white/60 border border-slate-100 p-2 rounded-lg text-center shadow-sm">
+                                    <div className="text-base font-black text-slate-700">{statsSummary.total}</div>
+                                    <div className="text-[7px] text-slate-400 uppercase font-black">Equipos</div>
+                                </div>
+                                <div className="bg-white/60 border border-slate-100 p-2 rounded-lg text-center shadow-sm">
+                                    <div className="text-base font-black text-emerald-600">{statsSummary.online}</div>
+                                    <div className="text-[7px] text-emerald-600/70 uppercase font-black">Online</div>
+                                </div>
+                                <div className="bg-white/60 border border-slate-100 p-2 rounded-lg text-center shadow-sm">
+                                    <div className="text-base font-black text-red-600">{statsSummary.offline}</div>
+                                    <div className="text-[7px] text-red-600/70 uppercase font-black">Offline</div>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -235,3 +295,4 @@ export const Sidebar: React.FC = () => {
         </>
     );
 };
+

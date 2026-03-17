@@ -1,5 +1,6 @@
 export interface PrinterSummary {
     id: string;
+    ipAddress: string;
     name: string;
     area: string | null;
     isOnline: boolean;

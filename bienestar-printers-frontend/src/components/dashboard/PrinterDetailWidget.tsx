@@ -5,9 +5,10 @@ import { useDashboardStore } from '@/store/useDashboardStore';
 import { useQuery } from '@tanstack/react-query';
 import { api } from '@/services/api';
 import { PieChart, Pie, Cell, ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip } from 'recharts';
-import { Wifi, WifiOff, Calendar, Fingerprint, Droplets, Settings, Layers, Activity, Printer as PrinterIcon, AlertTriangle } from 'lucide-react';
+import { Wifi, WifiOff, Calendar, Droplets, Settings, Layers, Activity, Printer as PrinterIcon, AlertTriangle, Copy, CheckCircle2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { DashboardCard } from '@/components/ui/DashboardCard';
+import { toast } from 'react-hot-toast';
 
 const getSemanticColor = (value: number | null) => {
     if (value === null) return '#e2e8f0'; // Gris (Sin Datos)
@@ -17,7 +18,7 @@ const getSemanticColor = (value: number | null) => {
     return '#10B981';                     // Esmeralda (Óptimo)
 };
 
-const DonutMetric = ({ value, label, icon: Icon }: { value: number | null, label: string, icon: any }) => {
+const DonutMetric = ({ value, label, icon: Icon }: { value: number | null, label: string, icon: React.ElementType }) => {
     const data = [
         { name: 'Value', value: value ?? 0 },
         { name: 'Rest', value: 100 - (value ?? 0) },
@@ -71,6 +72,7 @@ const fetchTonerHistory = async (id: string) => {
 
 export const PrinterDetailWidget = () => {
     const { selectedPrinter } = useDashboardStore();
+    const [copied, setCopied] = React.useState(false);
 
     const { data: tonerHistory, isLoading: isLoadingHistory } = useQuery({
         queryKey: ['toner-history', selectedPrinter?.id],
@@ -90,7 +92,7 @@ export const PrinterDetailWidget = () => {
         );
     }
 
-    const { isOnline, tonerLevel, kitMaintenance, unitImage: imgUnit, name, id } = selectedPrinter;
+    const { isOnline, tonerLevel, kitMaintenance, unitImage: imgUnit, name, id, ipAddress } = selectedPrinter;
 
     const updateDate = new Date().toLocaleDateString('es-MX', {
         weekday: 'long',
@@ -98,6 +100,13 @@ export const PrinterDetailWidget = () => {
         month: 'long',
         day: 'numeric'
     });
+
+    const handleCopyIp = () => {
+        if (!ipAddress) return;
+        navigator.clipboard.writeText(ipAddress);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+    };
 
     return (
         <DashboardCard className="p-8 md:p-12">
@@ -117,9 +126,19 @@ export const PrinterDetailWidget = () => {
                             {isOnline ? <Wifi className="w-3 h-3" /> : <WifiOff className="w-3 h-3" />}
                             {isOnline ? "En Línea" : "Desconectada"}
                         </div>
-                        <span className="text-[10px] font-black text-slate-300 uppercase tracking-widest bg-slate-50 px-2 py-1 md:px-3 md:py-1.5 rounded-lg border border-slate-100">
-                            ID: {id}
-                        </span>
+                        <button
+                            onClick={handleCopyIp}
+                            title="Copiar IP"
+                            className={cn(
+                                "flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest px-2 py-1 md:px-3 md:py-1.5 rounded-lg border transition-all duration-300 active:scale-95 group focus:outline-none focus:ring-2 focus:ring-slate-200 cursor-pointer",
+                                copied
+                                    ? "bg-emerald-500 text-white border-emerald-500 shadow-sm shadow-emerald-500/20"
+                                    : "bg-slate-50 text-slate-400 border-slate-100 hover:bg-slate-100 hover:text-slate-600"
+                            )}
+                        >
+                            {copied ? <CheckCircle2 className="w-3 h-3 text-white" /> : <Copy className="w-3 h-3 transition-colors group-hover:text-slate-500" />}
+                            <span>{copied ? 'COPIADO' : `IP: ${ipAddress || 'Sin IP'}`}</span>
+                        </button>
                     </div>
                     <h2 className="text-2xl md:text-5xl font-black text-slate-900 tracking-tight leading-none bg-clip-text text-transparent bg-gradient-to-r from-slate-900 to-slate-600">
                         {name}
