@@ -1,24 +1,18 @@
-import { SupabaseClient } from '@supabase/supabase-js';
-import { PrinterMonthlyStats } from '../types/printer-monthly-stats.type';
+import { Repository } from 'typeorm';
+import { PrinterMonthlyStat } from '../entities/printer-monthly-stat.entity';
 
 export async function getPrinterComparisonQuery(
-    supabase: SupabaseClient,
+    statRepository: Repository<PrinterMonthlyStat>,
     printerId: string,
     months: number,
-): Promise<PrinterMonthlyStats[]> {
-    // Obtener los últimos N meses disponibles
-    const { data, error } = await supabase
-        .from('printer_monthly_stats')
-        .select('*')
-        .eq('asset_id', printerId)
-        .order('year', { ascending: false })
-        .order('month', { ascending: false })
-        .limit(months);
+): Promise<PrinterMonthlyStat[]> {
+    // Get last N months
+    const data = await statRepository.find({
+        where: { assetId: printerId },
+        order: { year: 'DESC', month: 'DESC' },
+        take: months
+    });
 
-    if (error) {
-        throw new Error(error.message);
-    }
-
-    // Devolver ordenados cronológicamente para facilidad del frontend
-    return (data as PrinterMonthlyStats[]).reverse();
+    // Return chronologically for frontend ease
+    return data.reverse();
 }

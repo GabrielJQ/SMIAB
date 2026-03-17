@@ -26,17 +26,22 @@ export class PrinterSummaryDto {
   createdAt: Date;
 
   constructor(row: any) {
-    this.id = row.asset_id ?? row.id;
-    this.name = row.name_printer;
-    this.area = row.departments?.areanom ?? row.areas?.areaname ?? null;
+    // Soporte híbrido: Supabase (snake_case) y TypeORM (camelCase)
+    this.id = row.asset_id ?? row.assetId ?? row.id;
+    this.name = row.name_printer ?? row.namePrinter;
+    
+    // Relaciones: Supabase usa arrays/objetos anidados, TypeORM usa entidades
+    this.area = row.departments?.areanom ?? row.department?.areanom ?? row.areas?.areaname ?? null;
 
-    this.isOnline = row.printer_status?.toUpperCase() === 'ONLINE';
+    const status = (row.printer_status ?? row.printerStatus ?? '').toUpperCase();
+    this.isOnline = status === 'ONLINE';
 
-    this.tonerLevel = row.toner_lvl ?? 0;
-    this.kitMaintenance = row.kit_mttnce_lvl ?? 0;
-    this.unitImage = row.uni_img_lvl ?? 0;
+    this.tonerLevel = row.toner_lvl ?? row.tonerLvl ?? 0;
+    this.kitMaintenance = row.kit_mttnce_lvl ?? row.kitMttnceLvl ?? 0;
+    this.unitImage = row.uni_img_lvl ?? row.uniImgLvl ?? 0;
 
-    this.createdAt = row.last_read_at ? new Date(row.last_read_at) : new Date();
+    const dateValue = row.last_read_at ?? row.lastReadAt;
+    this.createdAt = dateValue ? new Date(dateValue) : new Date();
   }
 }
 

@@ -25,7 +25,7 @@ export class PrinterYearlySummaryDto {
         this.year = year;
         this.monthlyBreakdown = rows.map((r) => ({
             month: r.month,
-            printVolume: Number(r.print_delta),
+            printVolume: Number(r.print_total_delta ?? r.printTotalDelta ?? 0),
         }));
 
         this.totalPrints = this.monthlyBreakdown.reduce((sum, item) => sum + item.printVolume, 0);

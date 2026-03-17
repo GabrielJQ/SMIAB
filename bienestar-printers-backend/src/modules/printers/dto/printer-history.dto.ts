@@ -17,12 +17,12 @@ export class PrinterHistoryDto {
     @ApiProperty({ description: 'Total Mensual (KPI Oficial)' })
     print_total: number;
 
-    constructor(row: PrinterMonthlyStats) {
+    constructor(row: any) {
         this.year = row.year;
         this.month = row.month;
 
-        this.print_only = Number(row.print_only_delta) || 0;
-        this.copies = Number(row.copy_delta) || 0;
-        this.print_total = Number(row.print_total_delta) || 0;
+        this.print_only = Number(row.print_only_delta ?? row.printOnlyDelta) || 0;
+        this.copies = Number(row.copy_delta ?? row.copyDelta) || 0;
+        this.print_total = Number(row.print_total_delta ?? row.printTotalDelta) || 0;
     }
 }

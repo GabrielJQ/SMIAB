@@ -1,31 +1,38 @@
-import { SupabaseClient } from '@supabase/supabase-js';
-import { PrinterMonthlyStats } from '../types/printer-monthly-stats.type';
-import { applyDateRangeFilter, DateRangeFilter } from '../../../common/utils/supabase-query-helpers';
+import { Repository } from 'typeorm';
+import { PrinterMonthlyStat } from '../entities/printer-monthly-stat.entity';
 
-interface GetPrinterHistoryParams extends DateRangeFilter {
+interface GetPrinterHistoryParams {
     printerId: string;
+    startYear?: number;
+    startMonth?: number;
+    endYear?: number;
+    endMonth?: number;
 }
 
 export async function getPrinterHistoryQuery(
-    supabase: SupabaseClient,
+    statRepository: Repository<PrinterMonthlyStat>,
     params: GetPrinterHistoryParams,
-): Promise<PrinterMonthlyStats[]> {
-    let query = supabase
-        .from('printer_monthly_stats')
-        .select('*')
-        .eq('asset_id', params.printerId);
+): Promise<PrinterMonthlyStat[]> {
+    const query = statRepository.createQueryBuilder('stats')
+        .where('stats.asset_id = :printerId', { printerId: params.printerId });
 
-    // Apply shared date range logic
-    query = applyDateRangeFilter(query, params);
-
-    // Order by date
-    query = query.order('year', { ascending: true }).order('month', { ascending: true });
-
-    const { data, error } = await query;
-
-    if (error) {
-        throw new Error(error.message);
+    // Replicating DateRangeFilter logic with TypeORM QueryBuilder
+    if (params.startYear) {
+        query.andWhere('(stats.year > :startYear OR (stats.year = :startYear AND stats.month >= :startMonth))', {
+            startYear: params.startYear,
+            startMonth: params.startMonth || 1
+        });
     }
 
-    return data as PrinterMonthlyStats[];
+    if (params.endYear) {
+        query.andWhere('(stats.year < :endYear OR (stats.year = :endYear AND stats.month <= :endMonth))', {
+            endYear: params.endYear,
+            endMonth: params.endMonth || 12
+        });
+    }
+
+    return query
+        .orderBy('stats.year', 'ASC')
+        .addOrderBy('stats.month', 'ASC')
+        .getMany();
 }

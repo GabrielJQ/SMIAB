@@ -1,6 +1,9 @@
-import { Entity, Column, PrimaryColumn, OneToMany } from 'typeorm';
+import { Entity, Column, PrimaryColumn, OneToMany, ManyToOne, JoinColumn } from 'typeorm';
 import { PrinterMonthlyStat } from '../entities/printer-monthly-stat.entity';
 import { PrinterTonerChange } from '../../toners/entities/printer-toner-change.entity';
+import { Department } from './department.entity';
+import { Unit } from './unit.entity';
+import { Region } from './region.entity';
 
 @Entity('printers')
 export class Printer {
@@ -53,6 +56,18 @@ export class Printer {
     updatedAt: Date;
 
     // Relations
+    @ManyToOne(() => Department, (dept) => dept.printers)
+    @JoinColumn({ name: 'department_id' })
+    department: Department;
+
+    @ManyToOne(() => Unit, (unit) => unit.printers)
+    @JoinColumn({ name: 'unit_id' })
+    unit: Unit;
+
+    @ManyToOne(() => Region, (region) => region.printers)
+    @JoinColumn({ name: 'region_id' })
+    region: Region;
+
     @OneToMany(() => PrinterMonthlyStat, (stat: PrinterMonthlyStat) => stat.printer)
     monthlyStats: PrinterMonthlyStat[];
 

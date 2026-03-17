@@ -41,28 +41,26 @@ export class PrintersService {
   // ==========================================
 
   async getPrintersByUserArea(areaId: string) {
-    const supabase = this.supabaseService.getAdminClient();
-    const rows = await getPrintersByAreaQuery(supabase, areaId);
+    const rows = await getPrintersByAreaQuery(this.printerRepository, areaId);
     if (!rows) return [];
     return rows.map(row => new PrinterSummaryDto(row));
   }
 
   async getPrintersByUnit(userUnitId: string) {
     if (!userUnitId) throw new ForbiddenException('User has no unit assigned');
-    const supabase = this.supabaseService.getAdminClient();
 
-    const rows = await getPrintersByUnitQuery(supabase, parseInt(userUnitId));
+    const rows = await getPrintersByUnitQuery(this.printerRepository, userUnitId);
     if (!rows) return [];
     return rows.map(row => new PrinterSummaryDto(row));
   }
 
   async getPrinterById(printerId: string, userUnitId: string) {
     if (!userUnitId) throw new ForbiddenException('User has no unit assigned');
-    const supabase = this.supabaseService.getAdminClient();
-    const row = await getPrinterByIdQuery(supabase, printerId);
+    
+    const row = await getPrinterByIdQuery(this.printerRepository, printerId);
     if (!row) return null;
 
-    const printerUnitId = row.unit_id;
+    const printerUnitId = row.unitId;
 
     if (printerUnitId?.toString() !== userUnitId) {
       throw new ForbiddenException('Access to printer denied (Different Unit)');
@@ -119,12 +117,12 @@ export class PrintersService {
 
   private async validatePrinterAccess(printerId: string, userUnitId: string) {
     if (!userUnitId) throw new ForbiddenException('User has no unit assigned');
-    const supabase = this.supabaseService.getAdminClient();
+    
     // Reusing getPrinterByIdQuery to check ownership
-    const row = await getPrinterByIdQuery(supabase, printerId);
+    const row = await getPrinterByIdQuery(this.printerRepository, printerId);
     if (!row) throw new BadRequestException('Printer not found');
 
-    const printerUnitId = row.unit_id;
+    const printerUnitId = row.unitId;
 
     if (!userUnitId || printerUnitId?.toString() !== userUnitId) {
       throw new ForbiddenException('Access to printer denied (Different Unit)');
@@ -139,8 +137,7 @@ export class PrintersService {
   ) {
     await this.validatePrinterAccess(printerId, userAreaId);
 
-    const supabase = this.supabaseService.getAdminClient();
-    const rows = await getPrinterHistoryQuery(supabase, {
+    const rows = await getPrinterHistoryQuery(this.printerMonthlyStatRepository, {
       printerId,
       ...filters
     });
@@ -184,8 +181,7 @@ export class PrintersService {
   async getPrinterYearlySummary(printerId: string, userAreaId: string, year: number) {
     await this.validatePrinterAccess(printerId, userAreaId);
 
-    const supabase = this.supabaseService.getAdminClient();
-    const rows = await getPrinterYearlySummaryQuery(supabase, printerId, year);
+    const rows = await getPrinterYearlySummaryQuery(this.printerMonthlyStatRepository, printerId, year);
 
     return new PrinterYearlySummaryDto(year, rows);
   }
@@ -193,8 +189,7 @@ export class PrintersService {
   async getPrinterComparison(printerId: string, userAreaId: string, months: number) {
     await this.validatePrinterAccess(printerId, userAreaId);
 
-    const supabase = this.supabaseService.getAdminClient();
-    const rows = await getPrinterComparisonQuery(supabase, printerId, months);
+    const rows = await getPrinterComparisonQuery(this.printerMonthlyStatRepository, printerId, months);
 
     return rows.map(row => new PrinterComparisonDto(row));
   }

@@ -1,27 +1,13 @@
-import { SupabaseClient } from '@supabase/supabase-js';
+import { Repository } from 'typeorm';
+import { Printer } from '../entities/printer.entity';
 
 export async function getPrintersByAreaQuery(
-  supabase: SupabaseClient,
+  printerRepository: Repository<Printer>,
   areaId: string,
 ) {
-  const { data, error } = await supabase
-    .from('printers')
-    .select(`
-      asset_id,
-      name_printer,
-      printer_status,
-      toner_lvl,
-      kit_mttnce_lvl,
-      uni_img_lvl,
-      last_read_at
-    `)
-    .eq('department_id', areaId)
-    .order('name_printer', { ascending: true });
-
-  if (error) {
-    throw new Error(error.message);
-  }
-
-  return data;
+  return printerRepository.find({
+    where: { departmentId: areaId },
+    order: { namePrinter: 'ASC' }
+  });
 }
 

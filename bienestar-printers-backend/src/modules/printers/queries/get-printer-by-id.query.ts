@@ -1,38 +1,13 @@
-import { SupabaseClient } from '@supabase/supabase-js';
+import { Repository } from 'typeorm';
+import { Printer } from '../entities/printer.entity';
 
 export async function getPrinterByIdQuery(
-  supabase: SupabaseClient,
+  printerRepository: Repository<Printer>,
   printerId: string,
 ) {
-  const { data, error } = await supabase
-    .from('printers')
-    .select(`
-      asset_id,
-      name_printer,
-      printer_status,
-      toner_lvl,
-      kit_mttnce_lvl,
-      uni_img_lvl,
-      last_read_at,
-      department_id,
-      unit_id,
-      departments (
-        areanom
-      ),
-      regions (
-        regnom
-      )
-    `)
-    .eq('asset_id', printerId)
-    .single();
-
-  if (error) {
-    if (error.code === 'PGRST116') {
-      return null;
-    }
-    throw new Error(error.message);
-  }
-
-  return data;
+  return printerRepository.findOne({
+    where: { assetId: printerId },
+    relations: ['department', 'region']
+  });
 }
 

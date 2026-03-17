@@ -10,6 +10,7 @@ import { TonerHistoryDto } from './dto/toner-history.dto';
 // Reuse existing queries for Authorization steps
 import { getPrinterByIdQuery } from '../printers/queries/get-printer-by-id.query';
 import { PrinterTonerChange } from './entities/printer-toner-change.entity';
+import { Printer } from '../printers/entities/printer.entity';
 
 @Injectable()
 export class TonersService {
@@ -17,6 +18,8 @@ export class TonersService {
         private readonly supabaseService: SupabaseService,
         @InjectRepository(PrinterTonerChange)
         private readonly printerTonerChangeRepository: Repository<PrinterTonerChange>,
+        @InjectRepository(Printer)
+        private readonly printerRepository: Repository<Printer>,
     ) { }
 
     // ==========================================
@@ -25,17 +28,16 @@ export class TonersService {
 
     private async validatePrinterAccess(printerId: string, userUnitId: string) {
         if (!userUnitId) throw new ForbiddenException('User has no unit assigned');
-        const supabase = this.supabaseService.getAdminClient();
 
-        // 1. Get Printer and its Unit
-        const row = await getPrinterByIdQuery(supabase, printerId);
+        // 1. Get Printer and its Unit using the refactored TypeORM query
+        const row = await getPrinterByIdQuery(this.printerRepository, printerId);
         if (!row) throw new BadRequestException('Printer not found');
 
         // 2. Get User's Unit
         // Already passed as arg
 
-        // 3. Compare
-        const printerUnitId = row.unit_id;
+        // 3. Compare (Using camelCase correctly)
+        const printerUnitId = row.unitId;
 
         if (!userUnitId || printerUnitId?.toString() !== userUnitId) {
             throw new ForbiddenException('Access to printer denied (Different Unit)');

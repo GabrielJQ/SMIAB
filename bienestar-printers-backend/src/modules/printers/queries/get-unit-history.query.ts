@@ -19,9 +19,9 @@ export async function getUnitHistoryQuery(
         .createQueryBuilder('stats')
         .select('stats.year', 'year')
         .addSelect('stats.month', 'month')
-        .addSelect('SUM(stats.print_only_delta)', 'print_only')
-        .addSelect('SUM(stats.copy_delta)', 'copies')
-        .addSelect('SUM(stats.print_total_delta)', 'print_total')
+        .addSelect('SUM(stats.printOnlyDelta)', 'print_only')
+        .addSelect('SUM(stats.copyDelta)', 'copies')
+        .addSelect('SUM(stats.printTotalDelta)', 'print_total')
         .innerJoin('stats.printer', 'printer')
         .where('printer.unitId = :unitId', { unitId })
         .andWhere('(stats.year > :targetYear OR (stats.year = :targetYear AND stats.month >= :targetMonth))', {
