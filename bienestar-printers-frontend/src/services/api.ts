@@ -1,28 +1,74 @@
 import axios from 'axios';
 
-// ⚠️ TODO: Replace with a valid Supabase JWT for the 'bienestar-printers' project
-// This token should belong to a user with a valid area/unit assigned.
-export const AUTH_TOKEN = 'eyJhbGciOiJFUzI1NiIsImtpZCI6ImMyZjI5MGRlLTE1ZmEtNGNkMy1hYjU4LTdlZWM3MjQ4OWI0ZSIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJodHRwczovL2lhYmNxY2ptZGd2b21rdWh0bWVjLnN1cGFiYXNlLmNvL2F1dGgvdjEiLCJzdWIiOiJkMDI5NzJjYy1jMTNlLTQzNzQtYjgyNS1iZjJhZmFlYzQ3ZGMiLCJhdWQiOiJhdXRoZW50aWNhdGVkIiwiZXhwIjoxNzczMjYyMzc3LCJpYXQiOjE3NzMyNTg3NzcsImVtYWlsIjoiZmFybWVuZ29sQGFsaW1lbnRhY2lvbmJpZW5lc3Rhci5nb2IubXgiLCJwaG9uZSI6IiIsImFwcF9tZXRhZGF0YSI6eyJwcm92aWRlciI6ImVtYWlsIiwicHJvdmlkZXJzIjpbImVtYWlsIl19LCJ1c2VyX21ldGFkYXRhIjp7ImVtYWlsX3ZlcmlmaWVkIjp0cnVlLCJuYW1lIjoiRkVMSVggRk9SVElOTyBBUk1FTkdPTCBSSUNBUkRFWiIsInJvbGUiOiJhZG1pbiJ9LCJyb2xlIjoiYXV0aGVudGljYXRlZCIsImFhbCI6ImFhbDEiLCJhbXIiOlt7Im1ldGhvZCI6InBhc3N3b3JkIiwidGltZXN0YW1wIjoxNzczMjU4Nzc3fV0sInNlc3Npb25faWQiOiIyZTRlMDIzYi1kNzFjLTQ2ZmEtODAxMy04OWQxY2EyNjZlNGUiLCJpc19hbm9ueW1vdXMiOmZhbHNlfQ.hdQzNpkvgTKOUnEkPbnd6gEqdeAxACYKCRoCjP6TKZXwXLssSFrwy5fyLqhV7qpN9hl2uXdTbmz6Bj-2dM-4iQ';
+// ==========================================
+// CONFIGURACIÓN DE RUTAS
+// ==========================================
+// La IP/Puerto exacto donde tienes abierto Laravel (Asegúrate de que coincida con lo que usas en el navegador)
+const LARAVEL_URL = process.env.NEXT_PUBLIC_SAI_URL || 'http://127.0.0.1:8000';
+
+// La IP/Puerto de tu API de NestJS
+const NESTJS_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
 
 export const api = axios.create({
-    baseURL: 'http://localhost:3000', // Hardcoded for Phase 0
+    baseURL: NESTJS_URL,
     headers: {
         'Content-Type': 'application/json',
     },
 });
 
-api.interceptors.request.use((config) => {
-    if (AUTH_TOKEN) {
-        config.headers.Authorization = `Bearer ${AUTH_TOKEN}`;
+// ==========================================
+// INTERCEPTOR DE PETICIONES (EL "MAGO" DEL TOKEN)
+// ==========================================
+api.interceptors.request.use(async (config) => {
+    // 1. Buscamos si ya guardamos el token en esta pestaña
+    let token = typeof window !== 'undefined' ? sessionStorage.getItem('smiab_token') : null;
+
+    // 2. Si no lo tenemos, vamos corriendo a la "ventanilla" de Laravel a pedirlo
+    if (!token && typeof window !== 'undefined') {
+        try {
+            const response = await axios.get(`${LARAVEL_URL}/smiab/get-token`, {
+                // ESTA ES LA LLAVE MÁGICA: Le dice al navegador que envíe la cookie de sesión a Laravel
+                withCredentials: true
+            });
+
+            token = response.data.access_token;
+
+            // Lo guardamos para no tener que pedirlo en CADA petición que haga la página
+            if (token) {
+                sessionStorage.setItem('smiab_token', token);
+            }
+        } catch (error) {
+            console.error('No hay sesión en SAI o fallaron los CORS:', error);
+            // Si el usuario no está logueado en Laravel, lo regresamos a la pantalla de login del SAI
+            window.location.href = `${LARAVEL_URL}/login`;
+            return config;
+        }
     }
+
+    // 3. Inyectamos el token en la cabecera para que NestJS nos deje pasar
+    if (token) {
+        config.headers.Authorization = `Bearer ${token}`;
+    }
+
     return config;
 });
 
+// ==========================================
+// INTERCEPTOR DE RESPUESTAS (MANEJO DE ERRORES)
+// ==========================================
 api.interceptors.response.use(
     (response) => response,
     (error) => {
-        // Log error or handle global errors
         console.error('API Error:', error.response?.data || error.message);
+
+        // Si NestJS dice que el token caducó (401), borramos el token viejo y mandamos a Laravel a refrescar
+        if (error.response?.status === 401) {
+            if (typeof window !== 'undefined') {
+                sessionStorage.removeItem('smiab_token');
+                window.location.href = `${LARAVEL_URL}/login`;
+            }
+        }
+
         return Promise.reject(error);
     }
 );
