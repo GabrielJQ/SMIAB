@@ -4,36 +4,68 @@ import { PrinterTonerChange } from '../entities/printer-toner-change.entity';
 export async function getUnitTopConsumersQuery(
   tonerChangeRepository: Repository<PrinterTonerChange>,
   unitId: string,
-): Promise<
-  {
-    assetId: string;
-    printerName: string;
-    areaName: string;
-    toner_count: string;
-  }[]
-> {
+  year?: number,
+  month?: number,
+) {
   const today = new Date();
-  // Start of the current month
-  const targetDate = new Date(today.getFullYear(), today.getMonth(), 1);
+  const targetYear = year || today.getFullYear();
+  // If month is provided use it (1-12), else use current month
+  const targetMonth = month || today.getMonth() + 1;
 
-  // Group changes by printer
-  const results = await tonerChangeRepository
+  const startDate = new Date(targetYear, targetMonth - 1, 1);
+  const endDate = new Date(targetYear, targetMonth, 1);
+
+  // We use getRawMany to safely extract all fields avoiding complex entity nesting issues
+  const rawChanges = await tonerChangeRepository
     .createQueryBuilder('change')
     .select('printer.assetId', 'assetId')
     .addSelect('printer.namePrinter', 'printerName')
-    // We might not have relation to departments/areas directly loaded in this simple entity,
-    // but we'll try to fetch what we have on the printer entity.
-    // Actually, Printer entity has departmentId, unitId, areaId etc. We'll return unitId or areaName if we can.
-    // For now, let's keep it simple:
-    .addSelect('COUNT(change.id)', 'toner_count')
+    .addSelect('department.areanom', 'areaName')
+    .addSelect('change.changedAt', 'changedAt')
+    .addSelect('change.detectionType', 'detectionType')
     .innerJoin('change.printer', 'printer')
+    .leftJoin('printer.department', 'department')
     .where('printer.unitId = :unitId', { unitId })
-    .andWhere('change.changedAt >= :targetDate', { targetDate })
-    .groupBy('printer.assetId')
-    .addGroupBy('printer.namePrinter')
-    .orderBy('COUNT(change.id)', 'DESC')
-    .limit(10) // Top 10 consumers
+    .andWhere('change.changedAt >= :startDate', { startDate })
+    .andWhere('change.changedAt < :endDate', { endDate })
+    .orderBy('change.changedAt', 'DESC')
     .getRawMany();
+
+  // Group by printer
+  const grouped = new Map<
+    string,
+    {
+      assetId: string;
+      printerName: string;
+      areaName: string;
+      toner_count: number;
+      events: { date: Date; type: string }[];
+    }
+  >();
+
+  for (const row of rawChanges) {
+    const assetId = row.assetId;
+    if (!grouped.has(assetId)) {
+      grouped.set(assetId, {
+        assetId: assetId,
+        printerName: row.printerName,
+        areaName: row.areaName || 'Área no asignada',
+        toner_count: 0,
+        events: [],
+      });
+    }
+    const group = grouped.get(assetId)!;
+    group.toner_count++;
+    group.events.push({
+      date: row.changedAt,
+      type: row.detectionType,
+    });
+  }
+
+  // Sort by count DESC and take top 10
+  const results = Array.from(grouped.values())
+    .sort((a, b) => b.toner_count - a.toner_count)
+    .slice(0, 10);
 
   return results;
 }

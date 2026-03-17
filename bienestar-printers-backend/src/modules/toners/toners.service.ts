@@ -84,11 +84,13 @@ export class TonersService {
     return rows.map((row) => new TonerHistoryDto(row));
   }
 
-  async getUnitTopConsumers(userUnitId: string) {
+  async getUnitTopConsumers(userUnitId: string, year?: number, month?: number) {
     if (!userUnitId) throw new ForbiddenException('User has no unit assigned');
     return getUnitTopConsumersQuery(
       this.printerTonerChangeRepository,
       userUnitId,
+      year,
+      month
     );
   }
 }

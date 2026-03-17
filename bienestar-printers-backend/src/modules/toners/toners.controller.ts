@@ -76,13 +76,33 @@ export class TonersController {
   }
 
   @ApiOperation({
-    summary: 'Obtener top consumidores del mes actual para la unidad',
+    summary: 'Obtener top consumidores de un mes específico para la unidad',
+  })
+  @ApiQuery({
+    name: 'year',
+    required: false,
+    type: Number,
+    description: 'Año a consultar (default: actual)',
+  })
+  @ApiQuery({
+    name: 'month',
+    required: false,
+    type: Number,
+    description: 'Mes a consultar 1-12 (default: actual)',
   })
   @ApiOkResponse({ description: 'Top Consumidores' })
   @Get('unit/top-consumers')
-  async getUnitTopConsumers(@CurrentUser('internal') user: UserJwtPayload) {
+  async getUnitTopConsumers(
+    @CurrentUser('internal') user: UserJwtPayload,
+    @Query('year') year?: string,
+    @Query('month') month?: string,
+  ) {
     const unitId = user.unitId || user.areaId;
     if (!unitId) throw new ForbiddenException('User has no unit assigned');
-    return this.tonersService.getUnitTopConsumers(unitId);
+    
+    const parsedYear = year ? parseInt(year, 10) : undefined;
+    const parsedMonth = month ? parseInt(month, 10) : undefined;
+
+    return this.tonersService.getUnitTopConsumers(unitId, parsedYear, parsedMonth);
   }
 }

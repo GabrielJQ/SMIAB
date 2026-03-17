@@ -4,7 +4,7 @@ import React, { useState } from 'react';
 import { useUnitTonerStats } from '@/hooks/useUnitTonerStats';
 import { useUnitTopConsumers } from '@/hooks/useUnitTopConsumers';
 import { TonerPrinterStatsWidget } from '@/components/toner/TonerPrinterStatsWidget';
-import { Droplet, TrendingUp, Trophy, Printer as PrinterIcon } from 'lucide-react';
+import { Droplet, TrendingUp, Trophy, Printer as PrinterIcon, Calendar, ChevronDown, ChevronUp, PackageOpen } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { DashboardCard } from '@/components/ui/DashboardCard';
 import { UnifiedFilter } from '@/components/dashboard/UnifiedFilter';
@@ -13,8 +13,16 @@ import { CHART_COLORS, MONTH_NAMES } from '@/lib/constants';
 
 export const TonerManagementReport = () => {
     const [range, setRange] = useState(6); // Default 6 months for management
+    
+    // Selectores para Top Consumidores
+    const now = new Date();
+    const [selectedYear, setSelectedYear] = useState(now.getFullYear());
+    const [selectedMonth, setSelectedMonth] = useState(now.getMonth() + 1);
+    
+    const [expandedRow, setExpandedRow] = useState<string | null>(null);
+
     const { data: history, isLoading: isHistoryLoading } = useUnitTonerStats(range);
-    const { data: topConsumers, isLoading: isConsumersLoading } = useUnitTopConsumers();
+    const { data: topConsumers, isLoading: isConsumersLoading } = useUnitTopConsumers(selectedYear, selectedMonth);
 
     const chartData = React.useMemo(() => {
         if (!history) return [];
@@ -29,8 +37,8 @@ export const TonerManagementReport = () => {
     const totalConsumed = React.useMemo(() => {
         return history?.reduce((acc, curr) => acc + curr.changes, 0) || 0;
     }, [history]);
-
-    const currentMonthName = MONTH_NAMES[new Date().getMonth()];
+    
+    const yearsAvailable = Array.from({ length: 5 }, (_, i) => now.getFullYear() - i);
 
     if (isHistoryLoading || isConsumersLoading) {
         return (
@@ -108,18 +116,42 @@ export const TonerManagementReport = () => {
             {/* Bottom Row - Grid 2 Columns */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 {/* Column 1: Top Consumers Table */}
-                <DashboardCard className="relative overflow-hidden h-fit">
+                <DashboardCard className="relative overflow-hidden h-fit flex flex-col">
                     <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-bl from-amber-50/50 to-transparent rounded-full blur-3xl -translate-y-1/2 translate-x-1/3 pointer-events-none" />
 
-                    <div className="flex items-center gap-3 mb-6 relative z-10">
-                        <Trophy className="w-5 h-5 text-amber-500" />
-                        <div>
-                            <h3 className="text-sm font-black text-slate-800 uppercase tracking-widest leading-none">
-                                Top Consumidores
-                            </h3>
-                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">
-                                Equipos con más reemplazos en {currentMonthName}
-                            </p>
+                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6 relative z-10">
+                        <div className="flex items-center gap-3">
+                            <Trophy className="w-5 h-5 text-amber-500" />
+                            <div>
+                                <h3 className="text-sm font-black text-slate-800 uppercase tracking-widest leading-none">
+                                    Top Consumidores
+                                </h3>
+                                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">
+                                    Equipos con más reemplazos del mes
+                                </p>
+                            </div>
+                        </div>
+
+                        {/* Month and Year Selectors */}
+                        <div className="flex items-center gap-2">
+                            <select
+                                value={selectedMonth}
+                                onChange={(e) => setSelectedMonth(Number(e.target.value))}
+                                className="bg-slate-50 border border-slate-200 text-slate-600 text-xs rounded-lg py-1.5 px-3 font-bold uppercase tracking-wider focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 outline-none cursor-pointer hover:bg-slate-100 transition-colors"
+                            >
+                                {MONTH_NAMES.map((m, idx) => (
+                                    <option key={idx + 1} value={idx + 1}>{m}</option>
+                                ))}
+                            </select>
+                            <select
+                                value={selectedYear}
+                                onChange={(e) => setSelectedYear(Number(e.target.value))}
+                                className="bg-slate-50 border border-slate-200 text-slate-600 text-xs rounded-lg py-1.5 px-3 font-bold uppercase focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 outline-none cursor-pointer hover:bg-slate-100 transition-colors"
+                            >
+                                {yearsAvailable.map(y => (
+                                    <option key={y} value={y}>{y}</option>
+                                ))}
+                            </select>
                         </div>
                     </div>
 
@@ -133,33 +165,80 @@ export const TonerManagementReport = () => {
                             </thead>
                             <tbody className="divide-y divide-slate-50">
                                 {topConsumers && topConsumers.length > 0 ? (
-                                    topConsumers.map((consumer, index) => (
-                                        <tr key={consumer.assetId} className="group hover:bg-slate-50/50 transition-colors">
-                                            <td className="py-4">
-                                                <div className="flex items-center gap-3">
-                                                    <div className="w-10 h-10 rounded-xl bg-slate-100 border border-slate-200/60 flex items-center justify-center shrink-0">
-                                                        <PrinterIcon className="w-5 h-5 text-slate-400" />
-                                                    </div>
-                                                    <div>
-                                                        <div className="text-xs font-bold text-slate-800 uppercase tracking-wider flex items-center gap-2">
-                                                            {index < 3 && <span className={cn("text-[10px] px-1.5 py-0.5 rounded-md text-white shadow-sm", index === 0 ? "bg-amber-400" : index === 1 ? "bg-slate-300" : "bg-amber-700")}>#{index + 1}</span>}
-                                                            {consumer.printerName || `IMPRESORA-${consumer.assetId}`}
+                                    topConsumers.map((consumer, index) => {
+                                        const isExpanded = expandedRow === consumer.assetId;
+                                        // Extraer marca (Kyocera, Lexmark) de la primera palabra del nombre
+                                        const tonerBrand = consumer.printerName ? consumer.printerName.split(' ')[0] : 'Desconocida';
+
+                                        return (
+                                            <React.Fragment key={consumer.assetId}>
+                                                <tr 
+                                                    className="group hover:bg-slate-50/50 transition-colors cursor-pointer"
+                                                    onClick={() => setExpandedRow(isExpanded ? null : consumer.assetId)}
+                                                >
+                                                    <td className="py-4">
+                                                        <div className="flex items-start gap-3">
+                                                            <div className="w-10 h-10 rounded-xl bg-slate-100 border border-slate-200/60 flex flex-col items-center justify-center shrink-0 text-slate-400 group-hover:bg-amber-50 group-hover:text-amber-600 group-hover:border-amber-200 transition-colors">
+                                                                <PrinterIcon className="w-4 h-4 mb-0.5" />
+                                                                {isExpanded ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
+                                                            </div>
+                                                            <div>
+                                                                <div className="text-xs font-bold text-slate-800 uppercase tracking-wider flex items-center gap-2">
+                                                                    {index < 3 && <span className={cn("text-[10px] px-1.5 py-0.5 rounded-md text-white shadow-sm", index === 0 ? "bg-amber-400" : index === 1 ? "bg-slate-300" : "bg-amber-700")}>#{index + 1}</span>}
+                                                                    {consumer.printerName || `IMPRESORA-${consumer.assetId}`}
+                                                                </div>
+                                                                <div className="text-[10px] font-black text-slate-400 tracking-widest uppercase mt-0.5 group-hover:text-slate-500 transition-colors">
+                                                                    {consumer.areaName || 'Área no asignada'}
+                                                                </div>
+                                                            </div>
                                                         </div>
-                                                        <div className="text-[10px] font-black text-slate-400 tracking-widest uppercase mt-0.5">
-                                                            {consumer.areaName || 'Área no asignada'}
+                                                    </td>
+                                                    <td className="py-4 align-top pt-5">
+                                                        <div className="flex justify-center items-center">
+                                                            <div className="bg-guinda-50 text-guinda-700 border border-guinda-100 px-3 py-1 rounded-lg text-sm font-black tracking-tighter shadow-inner shadow-guinda-100/50">
+                                                                {consumer.toner_count}
+                                                            </div>
                                                         </div>
-                                                    </div>
-                                                </div>
-                                            </td>
-                                            <td className="py-4 align-middle">
-                                                <div className="flex justify-center items-center">
-                                                    <div className="bg-guinda-50 text-guinda-700 border border-guinda-100 px-3 py-1 rounded-lg text-sm font-black tracking-tighter">
-                                                        {consumer.toner_count}
-                                                    </div>
-                                                </div>
-                                            </td>
-                                        </tr>
-                                    ))
+                                                    </td>
+                                                </tr>
+                                                
+                                                {/* Expanded Details Form */}
+                                                {isExpanded && consumer.events && consumer.events.length > 0 && (
+                                                    <tr className="bg-slate-50/50">
+                                                        <td colSpan={2} className="px-4 pb-4 pt-1">
+                                                            <div className="pl-12">
+                                                                <h4 className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-3 flex items-center gap-2">
+                                                                    <Calendar className="w-3 h-3" /> Detalles de Reemplazo
+                                                                </h4>
+                                                                <div className="grid gap-2">
+                                                                    {consumer.events.map((ev, i) => {
+                                                                        const eventDate = new Date(ev.date);
+                                                                        return (
+                                                                            <div key={i} className="flex items-center justify-between bg-white border border-slate-100 p-2.5 rounded-lg shadow-sm">
+                                                                                <div className="flex items-center gap-3">
+                                                                                    <div className="w-6 h-6 rounded-full bg-slate-100 flex items-center justify-center">
+                                                                                        <PackageOpen className="w-3 h-3 text-slate-400" />
+                                                                                    </div>
+                                                                                    <div>
+                                                                                        <p className="text-[10px] font-bold text-slate-700">TÓNER {tonerBrand}</p>
+                                                                                        <p className="text-[9px] text-slate-400 font-bold tracking-widest uppercase">{ev.type}</p>
+                                                                                    </div>
+                                                                                </div>
+                                                                                <div className="text-right">
+                                                                                    <p className="text-[10px] font-bold text-slate-600">{eventDate.toLocaleDateString('es-MX', { day: '2-digit', month: 'short' }).toUpperCase()}</p>
+                                                                                    <p className="text-[9px] font-black text-slate-400 tracking-wider">{eventDate.toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' })}</p>
+                                                                                </div>
+                                                                            </div>
+                                                                        );
+                                                                    })}
+                                                                </div>
+                                                            </div>
+                                                        </td>
+                                                    </tr>
+                                                )}
+                                            </React.Fragment>
+                                        );
+                                    })
                                 ) : (
                                     <tr>
                                         <td colSpan={2} className="py-8 text-center text-xs font-bold text-slate-400 uppercase tracking-widest">
