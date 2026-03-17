@@ -97,14 +97,17 @@ export const PrinterDetailWidget = () => {
         );
     }
 
-    const { isOnline, tonerLevel, kitMaintenance, unitImage: imgUnit, name, id, ipAddress } = selectedPrinter;
-
-    const updateDate = new Date().toLocaleDateString('es-MX', {
+    const { isOnline, tonerLevel, kitMaintenance, unitImage: imgUnit, name, id, ipAddress, lastSyncAt } = selectedPrinter;
+    
+    // Si no hay lastSyncAt, usamos una fecha base o indicamos que no hay registros
+    const updateDate = lastSyncAt ? new Date(lastSyncAt).toLocaleDateString('es-MX', {
         weekday: 'long',
         year: 'numeric',
         month: 'long',
-        day: 'numeric'
-    });
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+    }) : "Sin sincronización exitosa";
 
     const handleCopyIp = () => {
         if (!ipAddress) return;

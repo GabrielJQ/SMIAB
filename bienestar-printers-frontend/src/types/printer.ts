@@ -8,6 +8,7 @@ export interface PrinterSummary {
     kitMaintenance: number | null;
     unitImage: number | null;
     createdAt: string;
+    lastSyncAt: string | null;
 }
 
 

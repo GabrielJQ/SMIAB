@@ -530,7 +530,6 @@ export class SnmpService implements OnModuleInit {
         );
         if (retries >= maxRetries) {
           printer.printerStatus = 'offline';
-          printer.lastReadAt = new Date();
           printer.updatedAt = new Date();
           await this.printerRepository.save(printer);
           return false;

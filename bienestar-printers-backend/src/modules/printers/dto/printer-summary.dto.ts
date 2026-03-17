@@ -28,6 +28,9 @@ export class PrinterSummaryDto {
   @ApiProperty({ description: 'Fecha de creación' })
   createdAt: Date;
 
+  @ApiProperty({ description: 'Última lectura exitosa', nullable: true })
+  lastSyncAt: Date | null;
+
   constructor(row: any) {
     // Soporte híbrido: Supabase (snake_case) y TypeORM (camelCase)
     this.id = row.asset_id ?? row.assetId ?? row.id;
@@ -52,7 +55,10 @@ export class PrinterSummaryDto {
     this.kitMaintenance = row.kit_mttnce_lvl ?? row.kitMttnceLvl ?? 0;
     this.unitImage = row.uni_img_lvl ?? row.uniImgLvl ?? 0;
 
-    const dateValue = row.last_read_at ?? row.lastReadAt;
-    this.createdAt = dateValue ? new Date(dateValue) : new Date();
+    const created = row.created_at ?? row.createdAt;
+    this.createdAt = created ? new Date(created) : new Date();
+
+    const lastSync = row.last_read_at ?? row.lastReadAt;
+    this.lastSyncAt = lastSync ? new Date(lastSync) : null;
   }
 }
