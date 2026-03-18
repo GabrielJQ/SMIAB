@@ -16,6 +16,20 @@ export const api = axios.create({
     },
 });
 
+let isRefreshing = false;
+let failedQueue: Array<{ resolve: (token: string) => void; reject: (error: any) => void }> = [];
+
+const processQueue = (error: any, token: string | null = null) => {
+    failedQueue.forEach(prom => {
+        if (error) {
+            prom.reject(error);
+        } else if (token) {
+            prom.resolve(token);
+        }
+    });
+    failedQueue = [];
+};
+
 // ==========================================
 // INTERCEPTOR DE PETICIONES (EL "MAGO" DEL TOKEN)
 // ==========================================
@@ -59,14 +73,51 @@ api.interceptors.request.use(async (config) => {
 api.interceptors.response.use(
     (response) => response,
     (error) => {
-        console.error('API Error:', error.response?.data || error.message);
+        // Si NestJS dice que el token caducó (401), intentamos refrescar usando Laravel
+        const originalRequest = error.config;
 
-        // Si NestJS dice que el token caducó (401), borramos el token viejo y mandamos a Laravel a refrescar
-        if (error.response?.status === 401) {
-            if (typeof window !== 'undefined') {
-                sessionStorage.removeItem('smiab_token');
-                window.location.href = `${LARAVEL_URL}/login`;
+        if (error.response?.status === 401 && !originalRequest._retry) {
+            if (isRefreshing) {
+                return new Promise(function(resolve, reject) {
+                    failedQueue.push({ resolve, reject });
+                }).then(token => {
+                    originalRequest.headers.Authorization = 'Bearer ' + token;
+                    return api(originalRequest);
+                }).catch(err => {
+                    return Promise.reject(err);
+                });
             }
+
+            originalRequest._retry = true;
+            isRefreshing = true;
+
+            return new Promise(async (resolve, reject) => {
+                try {
+                    const refreshResponse = await axios.post(`${LARAVEL_URL}/smiab/refresh-token`, {}, {
+                        withCredentials: true
+                    });
+
+                    const newToken = refreshResponse.data.access_token;
+                    if (typeof window !== 'undefined' && newToken) {
+                        sessionStorage.setItem('smiab_token', newToken);
+                    }
+
+                    api.defaults.headers.common['Authorization'] = 'Bearer ' + newToken;
+                    originalRequest.headers.Authorization = 'Bearer ' + newToken;
+
+                    processQueue(null, newToken);
+                    resolve(api(originalRequest));
+                } catch (refreshError) {
+                    processQueue(refreshError, null);
+                    if (typeof window !== 'undefined') {
+                        sessionStorage.removeItem('smiab_token');
+                        window.location.href = `${LARAVEL_URL}/login`;
+                    }
+                    reject(refreshError);
+                } finally {
+                    isRefreshing = false;
+                }
+            });
         }
 
         return Promise.reject(error);
