@@ -148,6 +148,7 @@ export const TonerManagementReport = () => {
                                     axisLine={false}
                                     tickLine={false}
                                     tick={{ fill: '#94a3b8', fontSize: 10, fontWeight: 700 }}
+                                    allowDecimals={false}
                                 />
                                 <Tooltip
                                     cursor={{ stroke: '#cbd5e1', strokeWidth: 1, strokeDasharray: '4 4' }}
