@@ -6,7 +6,7 @@ import { api } from '@/services/api';
 import { PrinterComparison } from '@/types/printer';
 import { Globe } from 'lucide-react';
 import { DashboardCard } from '@/components/ui/DashboardCard';
-import { UnifiedFilter } from '@/components/dashboard/UnifiedFilter';
+import { MonthYearFilter } from '@/components/dashboard/MonthYearFilter';
 import { BaseBarChart } from '@/components/ui/charts/BaseBarChart';
 import { CHART_COLORS, MONTH_NAMES } from '@/lib/constants';
 import {
@@ -20,9 +20,9 @@ import {
     ResponsiveContainer
 } from 'recharts';
 
-const fetchUnitHistory = async (months: number): Promise<PrinterComparison[]> => {
+const fetchUnitHistory = async (year: number, month: number): Promise<PrinterComparison[]> => {
     // Uses the unit history endpoint which returns [ { year, month, printVolume }, ... ]
-    const { data } = await api.get('/printers/unit/history', { params: { months } });
+    const { data } = await api.get('/printers/unit/history', { params: { year, month } });
     return data;
 };
 
@@ -35,77 +35,48 @@ interface ChartData {
 }
 
 export const GeneralStatsWidget = () => {
-    const [range, setRange] = useState(1); // 1 = Current Month, >1 = History
+    const now = new Date();
+    const [selectedYear, setSelectedYear] = useState(now.getFullYear());
+    const [selectedMonth, setSelectedMonth] = useState(now.getMonth() + 1);
 
-    const currentYear = new Date().getFullYear();
-    const currentMonthIndex = new Date().getMonth();
-
-    // To get 12 months data unconditionally for the Chart line 
     const { data: history, isLoading } = useQuery({
-        queryKey: ['unit-history', range === 1 ? 1 : 12],
-        queryFn: () => fetchUnitHistory(range === 1 ? 1 : 12),
+        queryKey: ['unit-history', selectedYear, selectedMonth],
+        queryFn: () => fetchUnitHistory(selectedYear, selectedMonth),
     });
 
     // --- VIEW LOGIC ---
 
-    const isCurrentMonthView = range === 1;
     let chartData: ChartData[] = [];
     let totalProduction = 0;
 
     if (history && history.length > 0) {
-        if (isCurrentMonthView) {
-            // VIEW 1: CURRENT MONTH UNIT STATS (3 BARS: Prints, Copies, Total)
-            const currentStats = history[history.length - 1]; // Last item is most recent
+        // VIEW 2: HISTORICAL UNIT STATS (12 MONTHS COMPOSED CHART)
+        const yearData = history.filter(d => d.year === selectedYear);
 
-            const prints = currentStats?.print_only ?? 0;
-            const copies = currentStats?.copies ?? 0;
-            const total = currentStats?.print_total ?? 0;
+        // Generate strict 12-month array
+        chartData = Array.from({ length: 12 }, (_, index) => {
+            const iterMonth = index + 1;
+            const dbRecord = yearData.find(d => d.month === iterMonth);
+            const value = dbRecord ? (dbRecord.print_total ?? 0) : 0;
 
-            chartData = [
-                { name: 'IMPRESIONES', value: prints, color: '#7B1E34' },
-                { name: 'COPIAS', value: copies, color: '#94a3b8' },
-                { name: 'TOTAL UNIT', value: total, color: '#0f172a' },
-            ];
-            totalProduction = total;
-        } else {
-            // VIEW 2: HISTORICAL UNIT STATS (12 MONTHS COMPOSED CHART)
-            const yearData = history.filter(d => d.year === currentYear);
+            return {
+                name: `${MONTH_NAMES[index]}`,
+                fullName: `${MONTH_NAMES[index]} ${selectedYear}`,
+                value: value,
+                trendValue: value > 0 ? value + (value * 0.05) : 0, // Visual trend line slightly above
+                color: CHART_COLORS[index % CHART_COLORS.length]
+            };
+        });
 
-            // Generate strict 12-month array
-            chartData = Array.from({ length: 12 }, (_, index) => {
-                const iterMonth = index + 1;
-                const dbRecord = yearData.find(d => d.month === iterMonth);
-                const value = dbRecord ? (dbRecord.print_total ?? 0) : 0;
-
-                return {
-                    name: `${MONTH_NAMES[index]}`,
-                    fullName: `${MONTH_NAMES[index]} ${currentYear}`,
-                    value: value,
-                    trendValue: value > 0 ? value + (value * 0.05) : 0, // Visual trend line slightly above
-                    color: CHART_COLORS[index % CHART_COLORS.length]
-                };
-            });
-
-            // For historical range, cap at current month to avoid future months looking like drops
-            const startIndex = Math.max(0, currentMonthIndex - range + 1);
-            const slicedHistory = chartData.slice(startIndex, currentMonthIndex + 1);
-            totalProduction = slicedHistory.reduce((acc, curr) => acc + curr.value, 0);
-
-            // Always render 12 months on the graph, but text stats only reflect range
-        }
+        // For historical range, cap at selected month
+        const slicedHistory = chartData.slice(0, selectedMonth);
+        totalProduction = slicedHistory.reduce((acc, curr) => acc + curr.value, 0);
     }
 
     if (isLoading) return (
         <DashboardCard className="flex flex-col items-center justify-center font-bold text-slate-400 italic">
             <div className="w-12 h-12 border-4 border-slate-100 border-t-slate-400 rounded-full animate-spin mb-4"></div>
             <p className="text-xs font-black uppercase tracking-[0.2em] leading-relaxed text-center">Consolidando<br />Datos Globales...</p>
-        </DashboardCard>
-    );
-
-    if (!history || history.length === 0) return (
-        <DashboardCard className="flex flex-col items-center justify-center">
-            <Globe className="w-12 h-12 text-slate-300 mb-4" />
-            <p className="text-sm font-black text-slate-300 uppercase tracking-widest">Sin datos disponibles</p>
         </DashboardCard>
     );
 
@@ -129,36 +100,28 @@ export const GeneralStatsWidget = () => {
                                 Documentos Totales
                             </span>
                             <span className="text-[10px] font-bold text-slate-400 uppercase tracking-tight">
-                                {isCurrentMonthView ? 'Este Mes' : 'Acumulado'}
+                                Acumulado del Año
                             </span>
                         </div>
                     </div>
                 </div>
 
                 <div className="relative w-full md:w-auto">
-                    <UnifiedFilter value={range} onChange={setRange} />
+                    <MonthYearFilter 
+                        month={selectedMonth}
+                        year={selectedYear}
+                        onMonthChange={setSelectedMonth}
+                        onYearChange={setSelectedYear}
+                    />
                 </div>
             </div>
 
-            <div className="w-full h-[350px] mt-4 relative z-10">
-                {isCurrentMonthView ? (
-                    <BaseBarChart
-                        data={chartData}
-                        dataKey="value"
-                        barSize={60}
-                        tooltipContent={({ active, payload }) => {
-                            if (active && payload && payload.length) {
-                                const data = payload[0].payload;
-                                return (
-                                    <div className="bg-white/90 backdrop-blur-xl p-4 rounded-2xl shadow-xl border border-white/50 ring-1 ring-slate-100/50">
-                                        <p className="text-[10px] uppercase font-black text-slate-400 mb-1 tracking-wider">{data.fullName || data.name}</p>
-                                        <p className="text-2xl font-black text-slate-800" style={{ color: data.color }}>{data.value.toLocaleString()}</p>
-                                    </div>
-                                );
-                            }
-                            return null;
-                        }}
-                    />
+            <div className="w-full h-[350px] mt-4 relative z-10 flex-1">
+                {(!history || history.length === 0) ? (
+                    <div className="h-full flex flex-col items-center justify-center opacity-50">
+                        <Globe className="w-12 h-12 text-slate-300 mb-4" />
+                        <p className="text-sm font-black text-slate-300 uppercase tracking-widest">Sin datos disponibles</p>
+                    </div>
                 ) : (
                     <ResponsiveContainer width="100%" height="100%">
                         <ComposedChart

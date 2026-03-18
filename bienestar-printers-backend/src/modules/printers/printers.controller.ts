@@ -54,10 +54,16 @@ export class PrintersController {
     summary: 'Obtener historial de impresiones de la unidad (Agregado)',
   })
   @ApiQuery({
-    name: 'months',
-    required: false,
+    name: 'year',
+    required: true,
     type: Number,
-    description: 'Cantidad de meses a comparar (default: 1)',
+    description: 'Año seleccionado',
+  })
+  @ApiQuery({
+    name: 'month',
+    required: true,
+    type: Number,
+    description: 'Mes seleccionado',
   })
   @ApiOkResponse({
     description: 'Historial de unidad',
@@ -66,13 +72,17 @@ export class PrintersController {
   @Get('unit/history')
   async getUnitHistory(
     @CurrentUser('internal') user: UserJwtPayload,
-    @Query('months') months?: string,
+    @Query('year') year: string,
+    @Query('month') month: string,
   ) {
     const unitId = user.unitId || user.areaId;
     if (!unitId) throw new ForbiddenException('User has no unit assigned');
 
-    const monthsLimit = months ? parseInt(months) : 1;
-    return this.printersService.getUnitHistory(unitId, monthsLimit);
+    return this.printersService.getUnitHistory(
+      unitId,
+      parseInt(year || new Date().getFullYear().toString()),
+      parseInt(month || (new Date().getMonth() + 1).toString()),
+    );
   }
 
   @ApiOperation({
@@ -92,22 +102,30 @@ export class PrintersController {
       'Obtener Consumo Global de Tóner de la unidad (12 meses por defecto)',
   })
   @ApiQuery({
-    name: 'months',
-    required: false,
+    name: 'year',
+    required: true,
     type: Number,
-    description: 'Cantidad de meses a pedir (default: 12)',
+  })
+  @ApiQuery({
+    name: 'month',
+    required: true,
+    type: Number,
   })
   @ApiOkResponse({ description: 'Estadísticas de tóner' })
   @Get('unit/toner-stats')
   async getUnitTonerStats(
     @CurrentUser('internal') user: UserJwtPayload,
-    @Query('months') months?: string,
+    @Query('year') year: string,
+    @Query('month') month: string,
   ) {
     const userUnitId = user.unitId || user.areaId;
     if (!userUnitId) throw new ForbiddenException('User has no unit assigned');
 
-    const monthsLimit = months ? parseInt(months) : 12;
-    return this.printersService.getUnitTonerStats(userUnitId, monthsLimit);
+    return this.printersService.getUnitTonerStats(
+      userUnitId,
+      parseInt(year || new Date().getFullYear().toString()),
+      parseInt(month || (new Date().getMonth() + 1).toString()),
+    );
   }
 
   @ApiOperation({

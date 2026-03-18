@@ -5,16 +5,17 @@ import { useDashboardStore } from '@/store/useDashboardStore';
 import { usePrinterMonthlyStats } from '@/hooks/usePrinterMonthlyStats';
 import { Activity } from 'lucide-react';
 import { DashboardCard } from '@/components/ui/DashboardCard';
-import { UnifiedFilter } from '@/components/dashboard/UnifiedFilter';
+import { MonthYearFilter } from '@/components/dashboard/MonthYearFilter';
 import { BaseBarChart } from '@/components/ui/charts/BaseBarChart';
 import { CHART_COLORS, MONTH_NAMES } from '@/lib/constants';
 
 export const PrinterHistoryWidget = () => {
     const { selectedPrinterId, selectedPrinter } = useDashboardStore();
-    const [range, setRange] = useState(1); // 1 = Current Month, >1 = History
+    const now = new Date();
+    const [selectedYear, setSelectedYear] = useState(now.getFullYear());
+    const [selectedMonth, setSelectedMonth] = useState(now.getMonth() + 1);
 
-    const currentYear = new Date().getFullYear();
-    const { data: history = [], isLoading, isError } = usePrinterMonthlyStats(selectedPrinterId, currentYear);
+    const { data: history = [], isLoading, isError } = usePrinterMonthlyStats(selectedPrinterId, selectedYear);
 
     if (!selectedPrinterId) return (
         <DashboardCard className="flex flex-col items-center justify-center text-slate-300">
@@ -35,46 +36,21 @@ export const PrinterHistoryWidget = () => {
         </DashboardCard>
     );
 
-    if (isError || !history || history.length === 0) return (
-        <DashboardCard className="flex items-center justify-center">
-            <p className="text-sm font-bold text-slate-400">Sin datos para el rango seleccionado</p>
-        </DashboardCard>
-    );
-
     // --- VIEW LOGIC ---
-    const isCurrentMonthView = range === 1;
     let chartData = [];
     let totalProduction = 0;
 
-    const currentMonthIndex = new Date().getMonth(); // 0-indexed (Jan = 0)
-    const currentMonthNumber = currentMonthIndex + 1; // 1-indexed
+    // VIEW 2: HISTORICAL (1 BAR PER MONTH)
+    // Show months of the selected year up to the selected month
+    const slicedHistory = history.slice(0, selectedMonth);
 
-    if (isCurrentMonthView) {
-        // VIEW 1: CURRENT MONTH
-        const currentStats = history.find(h => h.month === currentMonthNumber);
-        const prints = currentStats?.totalImpressions ?? 0;
-        const total = currentStats?.totalImpressions ?? 0;
-        const toners = currentStats?.tonerChanges ?? 0;
-
-        chartData = [
-            { name: 'IMPRESIONES TOTALES', value: total, color: '#7B1E34' },
-            { name: 'CAMBIOS TÓNER', value: toners, color: '#94a3b8' },
-        ];
-        totalProduction = total;
-    } else {
-        // VIEW 2: HISTORICAL (1 BAR PER MONTH)
-        // Show up to 'range' months, ending in current month.
-        const startIndex = Math.max(0, currentMonthIndex - range + 1);
-        const slicedHistory = history.slice(startIndex, currentMonthIndex + 1);
-
-        chartData = slicedHistory.map((item, index) => ({
-            name: `${MONTH_NAMES[item.month - 1]}`,
-            fullName: `${MONTH_NAMES[item.month - 1]} ${item.year}`,
-            value: item.totalImpressions, // Use Total from DB
-            color: CHART_COLORS[index % CHART_COLORS.length]
-        }));
-        totalProduction = slicedHistory.reduce((acc, curr) => acc + curr.totalImpressions, 0);
-    }
+    chartData = slicedHistory.map((item, index) => ({
+        name: `${MONTH_NAMES[item.month - 1]}`,
+        fullName: `${MONTH_NAMES[item.month - 1]} ${item.year}`,
+        value: item.totalImpressions, // Use Total from DB
+        color: CHART_COLORS[index % CHART_COLORS.length]
+    }));
+    totalProduction = slicedHistory.reduce((acc, curr) => acc + curr.totalImpressions, 0);
 
     return (
         <DashboardCard className="min-h-[400px]">
@@ -106,7 +82,7 @@ export const PrinterHistoryWidget = () => {
                                 Documentos
                             </span>
                             <span className="text-[10px] font-bold text-slate-400 uppercase">
-                                {isCurrentMonthView ? 'Este Mes' : 'Acumulado'}
+                                Acumulado del Año
                             </span>
                         </div>
                     </div>
@@ -118,37 +94,49 @@ export const PrinterHistoryWidget = () => {
                 </div>
 
                 <div className="relative w-full md:w-auto">
-                    <UnifiedFilter value={range} onChange={setRange} />
+                    <MonthYearFilter 
+                        month={selectedMonth}
+                        year={selectedYear}
+                        onMonthChange={setSelectedMonth}
+                        onYearChange={setSelectedYear}
+                    />
                 </div>
             </div>
 
-            <div className="w-full h-[300px] mt-4 relative z-10">
-                <BaseBarChart
-                    data={chartData}
-                    dataKey="value"
-                    barSize={isCurrentMonthView ? 60 : undefined}
-                    tooltipContent={({ active, payload }) => {
-                        if (active && payload && payload.length) {
-                            const data = payload[0].payload;
-                            return (
-                                <div className="bg-white/90 backdrop-blur-xl p-4 rounded-2xl shadow-xl border border-white/50 ring-1 ring-slate-100/50">
-                                    <p className="text-[10px] uppercase font-black text-slate-400 mb-1 tracking-wider">{data.fullName || data.name}</p>
-                                    <p className="text-2xl font-black text-slate-800 flex items-baseline gap-1" style={{ color: data.color }}>
-                                        {data.value.toLocaleString()} <span className="text-[10px] text-slate-400 font-bold uppercase">Uds.</span>
-                                    </p>
-                                </div>
-                            );
-                        }
-                        return null;
-                    }}
-                >
-                    <defs>
-                        <linearGradient id="barGradientGuinda" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="0%" stopColor="#7B1E34" stopOpacity={1} />
-                            <stop offset="100%" stopColor="#7B1E34" stopOpacity={0.6} />
-                        </linearGradient>
-                    </defs>
-                </BaseBarChart>
+            <div className="w-full h-[300px] mt-4 relative z-10 flex-1">
+                {(!history || history.length === 0) ? (
+                    <div className="h-full flex flex-col items-center justify-center opacity-50">
+                        <Activity className="w-12 h-12 text-slate-300 mb-4" />
+                        <p className="text-sm font-black text-slate-300 uppercase tracking-widest">Sin datos disponibles</p>
+                    </div>
+                ) : (
+                    <BaseBarChart
+                        data={chartData}
+                        dataKey="value"
+                        barSize={undefined}
+                        tooltipContent={({ active, payload }) => {
+                            if (active && payload && payload.length) {
+                                const data = payload[0].payload;
+                                return (
+                                    <div className="bg-white/90 backdrop-blur-xl p-4 rounded-2xl shadow-xl border border-white/50 ring-1 ring-slate-100/50">
+                                        <p className="text-[10px] uppercase font-black text-slate-400 mb-1 tracking-wider">{data.fullName || data.name}</p>
+                                        <p className="text-2xl font-black text-slate-800 flex items-baseline gap-1" style={{ color: data.color }}>
+                                            {data.value.toLocaleString()} <span className="text-[10px] text-slate-400 font-bold uppercase">Uds.</span>
+                                        </p>
+                                    </div>
+                                );
+                            }
+                            return null;
+                        }}
+                    >
+                        <defs>
+                            <linearGradient id="barGradientGuinda" x1="0" y1="0" x2="0" y2="1">
+                                <stop offset="0%" stopColor="#7B1E34" stopOpacity={1} />
+                                <stop offset="100%" stopColor="#7B1E34" stopOpacity={0.6} />
+                            </linearGradient>
+                        </defs>
+                    </BaseBarChart>
+                )}
             </div>
         </DashboardCard>
     );

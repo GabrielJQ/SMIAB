@@ -7,24 +7,26 @@ export interface TonerStatsDto {
     changes: number;
 }
 
-export const useUnitTonerStats = (months: number = 12) => {
+export const useUnitTonerStats = (year?: number, month?: number) => {
+    // defaults if not provided
+    const defaultYear = new Date().getFullYear();
+    const defaultMonth = new Date().getMonth() + 1;
+
+    const queryYear = year || defaultYear;
+    const queryMonth = month || defaultMonth;
+
     return useQuery({
-        queryKey: ['unit-toner-stats', months],
+        queryKey: ['unit-toner-stats', queryYear, queryMonth],
         queryFn: async () => {
-            const { data } = await api.get<TonerStatsDto[]>(`/printers/unit/toner-stats?months=${months}`);
+            const { data } = await api.get<TonerStatsDto[]>(`/printers/unit/toner-stats?year=${queryYear}&month=${queryMonth}`);
             return data;
         },
         select: (rawData) => {
-            // Generar los últimos N meses para que no haya saltos
+            // Fill an array for the selected year, from Jan (1) up to the selected month
             const result = [];
-            let currentDate = new Date();
-            for (let i = months - 1; i >= 0; i--) {
-                const targetDate = new Date(currentDate.getFullYear(), currentDate.getMonth() - i, 1);
-                const year = targetDate.getFullYear();
-                const month = targetDate.getMonth() + 1;
-
-                const dbRecord = rawData.find((d: TonerStatsDto) => d.year === year && d.month === month);
-                result.push(dbRecord || { year, month, changes: 0 });
+            for (let m = 1; m <= queryMonth; m++) {
+                const dbRecord = rawData.find((d: TonerStatsDto) => d.year === queryYear && d.month === m);
+                result.push(dbRecord || { year: queryYear, month: m, changes: 0 });
             }
             return result;
         }

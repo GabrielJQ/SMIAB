@@ -233,25 +233,21 @@ export class PrintersService {
     return rows.map((row) => new PrinterComparisonDto(row));
   }
 
-  async getUnitHistory(userUnitId: string, months: number) {
+  async getUnitHistory(userUnitId: string, year: number, month: number) {
     if (!userUnitId) throw new ForbiddenException('User has no unit assigned');
 
     // Now using TypeORM repository instead of Supabase client
     const rows = await getUnitHistoryQuery(
       this.printerMonthlyStatRepository,
       userUnitId,
-      months,
+      year,
+      month,
     );
     return rows;
   }
 
-  async getUnitTonerStats(userUnitId: string, months: number = 12) {
+  async getUnitTonerStats(userUnitId: string, year: number, month: number) {
     if (!userUnitId) throw new ForbiddenException('User has no unit assigned');
-
-    const dateAgo = new Date();
-    dateAgo.setMonth(dateAgo.getMonth() - (months - 1));
-    dateAgo.setDate(1);
-    dateAgo.setHours(0, 0, 0, 0);
 
     const rawData = await this.printerRepository.manager
       .createQueryBuilder(PrinterTonerChange, 'toner')
@@ -260,7 +256,8 @@ export class PrintersService {
       .addSelect('EXTRACT(MONTH FROM toner.changed_at)', 'month')
       .addSelect('CAST(COUNT(toner.id) AS INTEGER)', 'changes')
       .where('printer.unit_id = :unitId', { unitId: userUnitId })
-      .andWhere('toner.changed_at >= :date', { date: dateAgo })
+      .andWhere('EXTRACT(YEAR FROM toner.changed_at) = :year', { year })
+      .andWhere('EXTRACT(MONTH FROM toner.changed_at) <= :month', { month })
       .groupBy('EXTRACT(YEAR FROM toner.changed_at)')
       .addGroupBy('EXTRACT(MONTH FROM toner.changed_at)')
       .orderBy('EXTRACT(YEAR FROM toner.changed_at)', 'ASC')

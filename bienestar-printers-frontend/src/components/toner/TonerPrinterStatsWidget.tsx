@@ -6,18 +6,20 @@ import { useQuery } from '@tanstack/react-query';
 import { tonerService } from '@/services/tonerService';
 import { Printer, Calendar, Activity } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { UnifiedFilter } from '@/components/dashboard/UnifiedFilter';
+import { MonthYearFilter } from '@/components/dashboard/MonthYearFilter';
 import { DashboardCard } from '@/components/ui/DashboardCard';
 import { BaseBarChart } from '@/components/ui/charts/BaseBarChart';
 import { CHART_COLORS, MONTH_NAMES } from '@/lib/constants';
 
 export const TonerPrinterStatsWidget = () => {
     const { selectedPrinterId, selectedPrinter } = useDashboardStore();
-    const [range, setRange] = useState(1);
+    const now = new Date();
+    const [selectedYear, setSelectedYear] = useState(now.getFullYear());
+    const [selectedMonth, setSelectedMonth] = useState(now.getMonth() + 1);
 
     const { data: history, isLoading } = useQuery({
-        queryKey: ['toner-printer-history', selectedPrinterId, range],
-        queryFn: () => tonerService.getPrinterHistory(selectedPrinterId!, range),
+        queryKey: ['toner-printer-history', selectedPrinterId, selectedYear, selectedMonth],
+        queryFn: () => tonerService.getPrinterHistory(selectedPrinterId!, selectedYear, selectedMonth),
         enabled: !!selectedPrinterId,
     });
 
@@ -75,7 +77,12 @@ export const TonerPrinterStatsWidget = () => {
                 </div>
 
                 <div className="relative z-20 w-full md:w-auto">
-                    <UnifiedFilter value={range} onChange={setRange} />
+                    <MonthYearFilter 
+                        month={selectedMonth}
+                        year={selectedYear}
+                        onMonthChange={setSelectedMonth}
+                        onYearChange={setSelectedYear}
+                    />
                 </div>
             </div>
 

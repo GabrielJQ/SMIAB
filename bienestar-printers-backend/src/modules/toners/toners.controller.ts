@@ -29,10 +29,14 @@ export class TonersController {
     summary: 'Obtener historial de consumo de toners de la unidad',
   })
   @ApiQuery({
-    name: 'months',
-    required: false,
+    name: 'year',
+    required: true,
     type: Number,
-    description: 'Cantidad de meses a comparar (default: 6)',
+  })
+  @ApiQuery({
+    name: 'month',
+    required: true,
+    type: Number,
   })
   @ApiOkResponse({
     description: 'Historial de unidad',
@@ -41,12 +45,16 @@ export class TonersController {
   @Get('unit/history')
   async getUnitHistory(
     @CurrentUser('internal') user: UserJwtPayload,
-    @Query('months') months?: string,
+    @Query('year') year: string,
+    @Query('month') month: string,
   ) {
     const unitId = user.unitId || user.areaId;
     if (!unitId) throw new ForbiddenException('User has no unit assigned');
-    const monthsLimit = months ? parseInt(months) : 1;
-    return this.tonersService.getUnitHistory(unitId, monthsLimit);
+    return this.tonersService.getUnitHistory(
+      unitId,
+      parseInt(year || new Date().getFullYear().toString()),
+      parseInt(month || (new Date().getMonth() + 1).toString())
+    );
   }
 
   @ApiOperation({
@@ -54,10 +62,14 @@ export class TonersController {
   })
   @ApiParam({ name: 'id', description: 'ID de la impresora' })
   @ApiQuery({
-    name: 'months',
-    required: false,
+    name: 'year',
+    required: true,
     type: Number,
-    description: 'Cantidad de meses a comparar (default: 6)',
+  })
+  @ApiQuery({
+    name: 'month',
+    required: true,
+    type: Number,
   })
   @ApiOkResponse({
     description: 'Historial de impresora',
@@ -67,12 +79,17 @@ export class TonersController {
   async getPrinterHistory(
     @CurrentUser('internal') user: UserJwtPayload,
     @Param('id') id: string,
-    @Query('months') months?: string,
+    @Query('year') year: string,
+    @Query('month') month: string,
   ) {
     const unitId = user.unitId || user.areaId;
     if (!unitId) throw new ForbiddenException('User has no unit assigned');
-    const monthsLimit = months ? parseInt(months) : 1;
-    return this.tonersService.getPrinterHistory(id, unitId, monthsLimit);
+    return this.tonersService.getPrinterHistory(
+      id,
+      unitId,
+      parseInt(year || new Date().getFullYear().toString()),
+      parseInt(month || (new Date().getMonth() + 1).toString())
+    );
   }
 
   @ApiOperation({

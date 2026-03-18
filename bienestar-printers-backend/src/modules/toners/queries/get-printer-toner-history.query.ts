@@ -4,23 +4,14 @@ import { PrinterTonerChange } from '../entities/printer-toner-change.entity';
 export async function getPrinterTonerHistoryQuery(
   tonerChangeRepository: Repository<PrinterTonerChange>,
   printerId: string,
-  months: number,
+  year: number,
+  month: number,
 ): Promise<{ year: number; month: number; toner_count: number }[]> {
-  // 1. Generate the strict list of months we want to show
+  // 1. Generate the strict list of months we want to show (Jan to selected month)
   const monthsList: { year: number; month: number }[] = [];
-  const today = new Date();
-  // We want exactly 'months' entries, ending with current month
-  for (let i = months - 1; i >= 0; i--) {
-    const d = new Date(today.getFullYear(), today.getMonth() - i, 1);
-    monthsList.push({
-      year: d.getFullYear(),
-      month: d.getMonth() + 1,
-    });
+  for (let m = 1; m <= month; m++) {
+    monthsList.push({ year, month: m });
   }
-
-  // Calculate target date (start of the first month in our list)
-  const firstMonth = monthsList[0];
-  const targetDate = new Date(firstMonth.year, firstMonth.month - 1, 1);
 
   // Step 2: Use QueryBuilder to fetch grouped results from DB directly
   const results = await tonerChangeRepository
@@ -29,7 +20,8 @@ export async function getPrinterTonerHistoryQuery(
     .addSelect('EXTRACT(MONTH FROM change.changedAt)', 'month')
     .addSelect('COUNT(change.id)', 'toner_count')
     .where('change.assetId = :printerId', { printerId })
-    .andWhere('change.changedAt >= :targetDate', { targetDate })
+    .andWhere('EXTRACT(YEAR FROM change.changedAt) = :year', { year })
+    .andWhere('EXTRACT(MONTH FROM change.changedAt) <= :month', { month })
     .groupBy('EXTRACT(YEAR FROM change.changedAt)')
     .addGroupBy('EXTRACT(MONTH FROM change.changedAt)')
     .getRawMany();

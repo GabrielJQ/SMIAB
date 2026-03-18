@@ -6,7 +6,7 @@ import { useUnitTonerStats } from '@/hooks/useUnitTonerStats';
 import { Droplet, TrendingUp } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { DashboardCard } from '@/components/ui/DashboardCard';
-import { UnifiedFilter } from '@/components/dashboard/UnifiedFilter';
+import { MonthYearFilter } from '@/components/dashboard/MonthYearFilter';
 import { BaseBarChart } from '@/components/ui/charts/BaseBarChart';
 import { CHART_COLORS, MONTH_NAMES } from '@/lib/constants';
 
@@ -15,8 +15,10 @@ interface TonerUnitStatsWidgetProps {
 }
 
 export const TonerUnitStatsWidget: React.FC<TonerUnitStatsWidgetProps> = ({ compact = false }) => {
-    const [range, setRange] = useState(12);
-    const { data: history, isLoading } = useUnitTonerStats(range);
+    const now = new Date();
+    const [selectedYear, setSelectedYear] = useState(now.getFullYear());
+    const [selectedMonth, setSelectedMonth] = useState(now.getMonth() + 1);
+    const { data: history, isLoading } = useUnitTonerStats(selectedYear, selectedMonth);
 
     const chartData = React.useMemo(() => {
         if (!history) return [];
@@ -67,7 +69,12 @@ export const TonerUnitStatsWidget: React.FC<TonerUnitStatsWidgetProps> = ({ comp
 
                 {!compact && (
                     <div className="relative z-20 w-full md:w-auto">
-                        <UnifiedFilter value={range} onChange={setRange} />
+                        <MonthYearFilter 
+                            month={selectedMonth}
+                            year={selectedYear}
+                            onMonthChange={setSelectedMonth}
+                            onYearChange={setSelectedYear}
+                        />
                     </div>
                 )}
             </div>

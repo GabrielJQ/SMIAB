@@ -5,19 +5,9 @@ import { PrinterMonthlyStat } from '../entities/printer-monthly-stat.entity';
 export async function getUnitHistoryQuery(
   statRepository: Repository<PrinterMonthlyStat>,
   unitId: string,
-  months: number,
+  year: number,
+  month: number,
 ): Promise<PrinterComparisonDto[]> {
-  // 1. Get range cutoff (approximate)
-  // If we want "Last N Months", we need to filter by date.
-  const today = new Date();
-  const targetDate = new Date(
-    today.getFullYear(),
-    today.getMonth() - months + 1,
-    1,
-  ); // +1 because we include current month
-  const targetYear = targetDate.getFullYear();
-  const targetMonth = targetDate.getMonth() + 1; // 1-index
-
   // Use TypeORM QueryBuilder to perform SUM and GROUP BY on the database directly
   const results = await statRepository
     .createQueryBuilder('stats')
@@ -28,13 +18,8 @@ export async function getUnitHistoryQuery(
     .addSelect('SUM(stats.printTotalDelta)', 'print_total')
     .innerJoin('stats.printer', 'printer')
     .where('printer.unitId = :unitId', { unitId })
-    .andWhere(
-      '(stats.year > :targetYear OR (stats.year = :targetYear AND stats.month >= :targetMonth))',
-      {
-        targetYear,
-        targetMonth,
-      },
-    )
+    .andWhere('stats.year = :year', { year })
+    .andWhere('stats.month <= :month', { month })
     .groupBy('stats.year')
     .addGroupBy('stats.month')
     .orderBy('stats.year', 'ASC')

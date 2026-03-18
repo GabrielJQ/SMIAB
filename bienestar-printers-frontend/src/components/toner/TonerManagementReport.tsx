@@ -7,21 +7,24 @@ import { TonerPrinterStatsWidget } from '@/components/toner/TonerPrinterStatsWid
 import { Droplet, TrendingUp, Trophy, Printer as PrinterIcon, Calendar, ChevronDown, ChevronUp, PackageOpen } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { DashboardCard } from '@/components/ui/DashboardCard';
-import { UnifiedFilter } from '@/components/dashboard/UnifiedFilter';
+import { MonthYearFilter } from '@/components/dashboard/MonthYearFilter';
 import { BaseBarChart } from '@/components/ui/charts/BaseBarChart';
 import { CHART_COLORS, MONTH_NAMES } from '@/lib/constants';
 
 export const TonerManagementReport = () => {
-    const [range, setRange] = useState(6); // Default 6 months for management
-    
-    // Selectores para Top Consumidores
     const now = new Date();
+
+    // Selectors for Global Consumption
+    const [globalYear, setGlobalYear] = useState(now.getFullYear());
+    const [globalMonth, setGlobalMonth] = useState(now.getMonth() + 1);
+    
+    // Selectors for Top Consumers
     const [selectedYear, setSelectedYear] = useState(now.getFullYear());
     const [selectedMonth, setSelectedMonth] = useState(now.getMonth() + 1);
     
     const [expandedRow, setExpandedRow] = useState<string | null>(null);
 
-    const { data: history, isLoading: isHistoryLoading } = useUnitTonerStats(range);
+    const { data: history, isLoading: isHistoryLoading } = useUnitTonerStats(globalYear, globalMonth);
     const { data: topConsumers, isLoading: isConsumersLoading } = useUnitTopConsumers(selectedYear, selectedMonth);
 
     const chartData = React.useMemo(() => {
@@ -71,7 +74,12 @@ export const TonerManagementReport = () => {
                     </div>
 
                     <div className="relative z-20 w-full md:w-auto">
-                        <UnifiedFilter value={range} onChange={setRange} />
+                        <MonthYearFilter 
+                            month={globalMonth}
+                            year={globalYear}
+                            onMonthChange={setGlobalMonth}
+                            onYearChange={setGlobalYear}
+                        />
                     </div>
                 </div>
 
@@ -134,24 +142,12 @@ export const TonerManagementReport = () => {
 
                         {/* Month and Year Selectors */}
                         <div className="flex items-center gap-2">
-                            <select
-                                value={selectedMonth}
-                                onChange={(e) => setSelectedMonth(Number(e.target.value))}
-                                className="bg-slate-50 border border-slate-200 text-slate-600 text-xs rounded-lg py-1.5 px-3 font-bold uppercase tracking-wider focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 outline-none cursor-pointer hover:bg-slate-100 transition-colors"
-                            >
-                                {MONTH_NAMES.map((m, idx) => (
-                                    <option key={idx + 1} value={idx + 1}>{m}</option>
-                                ))}
-                            </select>
-                            <select
-                                value={selectedYear}
-                                onChange={(e) => setSelectedYear(Number(e.target.value))}
-                                className="bg-slate-50 border border-slate-200 text-slate-600 text-xs rounded-lg py-1.5 px-3 font-bold uppercase focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 outline-none cursor-pointer hover:bg-slate-100 transition-colors"
-                            >
-                                {yearsAvailable.map(y => (
-                                    <option key={y} value={y}>{y}</option>
-                                ))}
-                            </select>
+                            <MonthYearFilter 
+                                month={selectedMonth}
+                                year={selectedYear}
+                                onMonthChange={setSelectedMonth}
+                                onYearChange={setSelectedYear}
+                            />
                         </div>
                     </div>
 

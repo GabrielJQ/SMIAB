@@ -55,14 +55,16 @@ export class TonersService {
 
   async getUnitHistory(
     userUnitId: string,
-    months: number,
+    year: number,
+    month: number,
   ): Promise<TonerHistoryDto[]> {
     if (!userUnitId) throw new ForbiddenException('User has no unit assigned');
 
     const rows = await getUnitTonerHistoryQuery(
       this.printerTonerChangeRepository,
       userUnitId,
-      months,
+      year,
+      month,
     );
 
     return rows.map((row) => new TonerHistoryDto(row));
@@ -71,14 +73,16 @@ export class TonersService {
   async getPrinterHistory(
     printerId: string,
     userAreaId: string,
-    months: number,
+    year: number,
+    month: number,
   ): Promise<TonerHistoryDto[]> {
     await this.validatePrinterAccess(printerId, userAreaId);
 
     const rows = await getPrinterTonerHistoryQuery(
       this.printerTonerChangeRepository,
       printerId,
-      months,
+      year,
+      month,
     );
 
     return rows.map((row) => new TonerHistoryDto(row));
