@@ -176,6 +176,14 @@ export class PrintersService {
         'CAST(SUM(stats.print_total_delta) AS INTEGER)',
         'totalImpressions',
       )
+      .addSelect(
+        'CAST(SUM(stats.print_only_delta) AS INTEGER)',
+        'printOnly',
+      )
+      .addSelect(
+        'CAST(SUM(stats.copy_delta) AS INTEGER)',
+        'copies',
+      )
       .addSelect((subQuery) => {
         return subQuery
           .select('CAST(COUNT(toner.id) AS INTEGER)', 'count')
@@ -197,6 +205,8 @@ export class PrintersService {
       year: Number(row.year),
       month: Number(row.month),
       totalImpressions: Number(row.totalImpressions || 0),
+      printOnly: Number(row.printOnly || 0),
+      copies: Number(row.copies || 0),
       tonerChanges: Number(row.tonerChanges || 0),
     }));
   }
@@ -268,6 +278,31 @@ export class PrintersService {
       year: Number(row.year),
       month: Number(row.month),
       changes: Number(row.changes || 0),
+    }));
+  }
+
+  async getUnitTopPrintConsumers(userUnitId: string, year: number, month: number) {
+    if (!userUnitId) throw new ForbiddenException('User has no unit assigned');
+
+    const rawData = await this.printerMonthlyStatRepository
+      .createQueryBuilder('stats')
+      .innerJoin('stats.printer', 'printer')
+      .select('printer.assetId', 'printerId')
+      .addSelect('printer.namePrinter', 'name')
+      .addSelect('CAST(SUM(stats.print_total_delta) AS INTEGER)', 'totalImpressions')
+      .where('printer.unitId = :unitId', { unitId: userUnitId })
+      .andWhere('stats.year = :year', { year })
+      .andWhere('stats.month = :month', { month })
+      .groupBy('printer.assetId')
+      .addGroupBy('printer.namePrinter')
+      .orderBy('CAST(SUM(stats.print_total_delta) AS INTEGER)', 'DESC')
+      .limit(5)
+      .getRawMany();
+
+    return rawData.map((row) => ({
+      printerId: row.printerId,
+      name: row.name,
+      totalImpressions: Number(row.totalImpressions || 0),
     }));
   }
 

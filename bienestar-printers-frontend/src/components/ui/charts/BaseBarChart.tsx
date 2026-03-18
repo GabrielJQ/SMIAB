@@ -6,7 +6,7 @@ import { CHART_DEFAULTS } from '@/lib/constants';
 
 interface BaseBarChartProps {
     data: any[];
-    dataKey: string;
+    dataKey?: string;
     nameKey?: string;
     colorKey?: string; // If data items have specific colors
     height?: number | string;
@@ -67,19 +67,21 @@ export const BaseBarChart: React.FC<BaseBarChartProps> = ({
                     content={tooltipContent}
                 />
 
-                <Bar
-                    dataKey={dataKey}
-                    radius={radius !== undefined ? radius : CHART_DEFAULTS.barRadius}
-                    animationDuration={CHART_DEFAULTS.animationDuration}
-                >
-                    {data.map((entry, index) => (
-                        <Cell
-                            key={`cell-${index}`}
-                            fill={entry[colorKey] || '#0f172a'}
-                            className="transition-all duration-300 hover:opacity-80 cursor-pointer"
-                        />
-                    ))}
-                </Bar>
+                {dataKey && (
+                    <Bar
+                        dataKey={dataKey}
+                        radius={radius !== undefined ? radius : CHART_DEFAULTS.barRadius}
+                        animationDuration={CHART_DEFAULTS.animationDuration}
+                    >
+                        {data.map((entry, index) => (
+                            <Cell
+                                key={`cell-${index}`}
+                                fill={entry[colorKey] || '#0f172a'}
+                                className="transition-all duration-300 hover:opacity-80 cursor-pointer"
+                            />
+                        ))}
+                    </Bar>
+                )}
             </BarChart>
         </ResponsiveContainer>
     );

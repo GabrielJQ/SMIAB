@@ -8,6 +8,7 @@ import { DashboardCard } from '@/components/ui/DashboardCard';
 import { MonthYearFilter } from '@/components/dashboard/MonthYearFilter';
 import { BaseBarChart } from '@/components/ui/charts/BaseBarChart';
 import { CHART_COLORS, MONTH_NAMES } from '@/lib/constants';
+import { Bar } from 'recharts';
 
 export const PrinterHistoryWidget = () => {
     const { selectedPrinterId, selectedPrinter } = useDashboardStore();
@@ -48,6 +49,8 @@ export const PrinterHistoryWidget = () => {
         name: `${MONTH_NAMES[item.month - 1]}`,
         fullName: `${MONTH_NAMES[item.month - 1]} ${item.year}`,
         value: item.totalImpressions, // Use Total from DB
+        impresiones: item.printOnly,
+        copias: item.copies,
         color: CHART_COLORS[index % CHART_COLORS.length]
     }));
     totalProduction = slicedHistory.reduce((acc, curr) => acc + curr.totalImpressions, 0);
@@ -112,23 +115,37 @@ export const PrinterHistoryWidget = () => {
                 ) : (
                     <BaseBarChart
                         data={chartData}
-                        dataKey="value"
-                        barSize={undefined}
+                        dataKey={undefined as any}
+                        barSize={45}
                         tooltipContent={({ active, payload }) => {
                             if (active && payload && payload.length) {
                                 const data = payload[0].payload;
                                 return (
                                     <div className="bg-white/90 backdrop-blur-xl p-4 rounded-2xl shadow-xl border border-white/50 ring-1 ring-slate-100/50">
-                                        <p className="text-[10px] uppercase font-black text-slate-400 mb-1 tracking-wider">{data.fullName || data.name}</p>
-                                        <p className="text-2xl font-black text-slate-800 flex items-baseline gap-1" style={{ color: data.color }}>
-                                            {data.value.toLocaleString()} <span className="text-[10px] text-slate-400 font-bold uppercase">Uds.</span>
-                                        </p>
+                                        <p className="text-[10px] uppercase font-black text-slate-400 mb-2 tracking-wider">{data.fullName || data.name}</p>
+                                        <div className="flex flex-col gap-1">
+                                            <p className="text-2xl font-black text-slate-800 flex items-baseline gap-1">
+                                                {data.value.toLocaleString()} <span className="text-[10px] text-slate-400 font-bold uppercase">Uds. Totales</span>
+                                            </p>
+                                            <div className="flex gap-4 mt-1 border-t border-slate-100 pt-2">
+                                                <div className="flex items-center gap-1.5">
+                                                    <div className="w-2 h-2 rounded-full bg-[#881337]"></div>
+                                                    <span className="text-xs font-bold text-slate-600">Imp: {data.impresiones.toLocaleString()}</span>
+                                                </div>
+                                                <div className="flex items-center gap-1.5">
+                                                    <div className="w-2 h-2 rounded-full bg-[#cbd5e1]"></div>
+                                                    <span className="text-xs font-bold text-slate-600">Cop: {data.copias.toLocaleString()}</span>
+                                                </div>
+                                            </div>
+                                        </div>
                                     </div>
                                 );
                             }
                             return null;
                         }}
                     >
+                        <Bar dataKey="impresiones" stackId="a" fill="#881337" />
+                        <Bar dataKey="copias" stackId="a" fill="#cbd5e1" radius={[4, 4, 0, 0]} />
                         <defs>
                             <linearGradient id="barGradientGuinda" x1="0" y1="0" x2="0" y2="1">
                                 <stop offset="0%" stopColor="#7B1E34" stopOpacity={1} />

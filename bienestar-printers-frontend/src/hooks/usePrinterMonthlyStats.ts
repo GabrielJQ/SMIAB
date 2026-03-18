@@ -22,6 +22,8 @@ export const usePrinterMonthlyStats = (printerId: string | null, currentYear: nu
                     year: currentYear,
                     month: iterMonth,
                     totalImpressions: 0,
+                    printOnly: 0,
+                    copies: 0,
                     tonerChanges: 0,
                 };
             });

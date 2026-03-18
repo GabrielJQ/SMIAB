@@ -25,6 +25,8 @@ export interface PrinterChartData {
     year: number;
     month: number;
     totalImpressions: number;
+    printOnly: number;
+    copies: number;
     tonerChanges: number;
 }
 

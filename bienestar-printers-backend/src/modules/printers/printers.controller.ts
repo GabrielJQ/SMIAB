@@ -129,6 +129,27 @@ export class PrintersController {
   }
 
   @ApiOperation({
+    summary: 'Obtener top consumidores de impresión de un mes específico para la unidad',
+  })
+  @ApiQuery({ name: 'year', required: true, type: Number })
+  @ApiQuery({ name: 'month', required: true, type: Number })
+  @ApiOkResponse({ description: 'Top Impresoras por Volumen' })
+  @Get('unit/top-consumers')
+  async getUnitTopConsumers(
+    @CurrentUser('internal') user: UserJwtPayload,
+    @Query('year') year: string,
+    @Query('month') month: string,
+  ) {
+    const unitId = user.unitId || user.areaId;
+    if (!unitId) throw new ForbiddenException('User has no unit assigned');
+    return this.printersService.getUnitTopPrintConsumers(
+      unitId,
+      parseInt(year || new Date().getFullYear().toString()),
+      parseInt(month || (new Date().getMonth() + 1).toString())
+    );
+  }
+
+  @ApiOperation({
     summary: 'Obtener listado completo de impresoras de la unidad',
   })
   @ApiOkResponse({
