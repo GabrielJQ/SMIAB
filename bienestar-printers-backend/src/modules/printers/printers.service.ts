@@ -6,6 +6,7 @@ import {
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, MoreThanOrEqual } from 'typeorm';
 import { SupabaseService } from '../../integrations/supabase/supabase.service';
+import * as xlsx from 'xlsx';
 
 // Basic Queries / DTOs
 import { getPrintersByAreaQuery } from './queries/get-printers-by-area.query';
@@ -125,6 +126,440 @@ export class PrintersService {
   // ==========================================
   //  NEW STATISTICS METHODS
   // ==========================================
+
+  async processExcelHistory(buffer: Buffer, year: number, month: number) {
+    const workbook = xlsx.read(buffer, { type: 'buffer' });
+    const sheetName = workbook.SheetNames[0];
+    const sheet = workbook.Sheets[sheetName];
+
+    // Read raw 2D array for structural analysis
+    const rawData: any[][] = xlsx.utils.sheet_to_json(sheet, { header: 1 });
+
+    // 1. FIND HEADERS AND DETERMINE FORMAT
+    let ipColIndex = -1;
+    let headerRowIndex = -1;
+
+    for (let i = 0; i < Math.min(rawData.length, 10); i++) {
+      const row = rawData[i];
+      if (!row) continue;
+      const index = row.findIndex(
+        (cell) => cell?.toString().trim().toLowerCase() === 'ip',
+      );
+      if (index !== -1) {
+        ipColIndex = index;
+        headerRowIndex = i;
+        break;
+      }
+    }
+
+    if (headerRowIndex === -1) {
+      throw new BadRequestException(
+        'No se encontró la columna "ip" en las primeras filas del archivo.',
+      );
+    }
+
+    const headerRow = rawData[headerRowIndex];
+    const prevRow = headerRowIndex > 0 ? rawData[headerRowIndex - 1] : [];
+    const nextRow =
+      headerRowIndex + 1 < rawData.length ? rawData[headerRowIndex + 1] : [];
+
+    // 2. IDENTIFY MONTH GROUPS (WIDE FORMAT DETECTION)
+    let monthGroups: {
+      startCol: number;
+      month: number;
+      year: number;
+    }[] = [];
+
+    // Check for "wide" format: check current header row AND previous row for months
+    const possibleRows = [prevRow, headerRow];
+    for (const pRow of possibleRows) {
+      if (!pRow) continue;
+      for (let j = 0; j < pRow.length; j++) {
+        const cell = pRow[j];
+        if (cell !== undefined && cell !== null && cell !== '') {
+          const parsed = this.parseMonthAndYear(cell);
+          if (parsed) {
+            if (!monthGroups.some((mg) => mg.startCol === j)) {
+              monthGroups.push({
+                startCol: j,
+                month: parsed.month,
+                year: parsed.year,
+              });
+            }
+          }
+        }
+      }
+    }
+
+    // IMPORTANT: Sort groups chronologically to calculate deltas correctly between columns
+    monthGroups = monthGroups.sort((a, b) => {
+      if (a.year !== b.year) return a.year - b.year;
+      return a.month - b.month;
+    });
+
+    const results = {
+      processed: 0,
+      errors: [] as string[],
+    };
+
+    // 3. DETECT DATA START ROW
+    let dataStartRow = headerRowIndex + 1;
+    if (
+      nextRow.some(
+        (c) =>
+          c?.toString().toLowerCase().includes('impresiones') ||
+          c?.toString().toLowerCase().includes('mensual'),
+      )
+    ) {
+      dataStartRow = headerRowIndex + 2;
+    }
+
+    // 4. PROCESS ROWS
+    for (let i = dataStartRow; i < rawData.length; i++) {
+      const row = rawData[i];
+      if (!row || !row[ipColIndex]) continue;
+
+      const ip = row[ipColIndex].toString().trim();
+      if (!ip || ip.toLowerCase() === 'ip' || ip.toLowerCase() === 'total')
+        continue;
+
+      const printer = await this.printerRepository.findOne({
+        where: { ipPrinter: ip },
+      });
+
+      if (!printer) {
+        if (ip.includes('.') || ip.length > 3) {
+          results.errors.push(`IP ${ip} no encontrada en base de datos.`);
+        }
+        continue;
+      }
+
+      if (monthGroups.length > 0) {
+        // --- WIDE FORMAT CASE ---
+        // Cache for previous readings in the same row to calculate deltas between consecutive columns
+        let prevReadings: any = null;
+
+        for (const group of monthGroups) {
+          const impresiones = Number(row[group.startCol]) || 0;
+          const copia = Number(row[group.startCol + 1]) || 0;
+          const total = Number(row[group.startCol + 2]) || 0;
+          const mensual = Number(row[group.startCol + 3]) || 0;
+
+          // Only process if there's any data
+          if (total > 0 || impresiones > 0 || copia > 0 || mensual > 0) {
+            prevReadings = await this.upsertStatWithCalculations(
+              printer.assetId,
+              group.year,
+              group.month,
+              {
+                impresiones, // Meter reading
+                copia, // Meter reading
+                total, // Meter reading
+                mensual, // Manual delta (fallback if no prev reading)
+              },
+              prevReadings, // Pass cache
+            );
+            results.processed++;
+          }
+        }
+      } else {
+        // --- LONG FORMAT CASE (EXPLICIT DATE REQUIRED) ---
+        // Look for values in the current row based on flat headers
+        let rowYear: number | null = null;
+        let rowMonth: number | null = null;
+
+        // Map column names to indices for this row
+        const rowDataMap: Record<string, any> = {};
+        headerRow.forEach((h, idx) => {
+          if (h) rowDataMap[h.toString().toLowerCase()] = row[idx];
+        });
+
+        const mesVal =
+          rowDataMap['mes'] || rowDataMap['month'] || rowDataMap['pasa_mes'];
+        const anioVal = rowDataMap['año'] || rowDataMap['anio'] || rowDataMap['year'];
+
+        if (mesVal) {
+          const m = this.parseMonthName(mesVal.toString());
+          if (m) rowMonth = m;
+        }
+        if (anioVal) {
+          const y = parseInt(anioVal.toString());
+          if (!isNaN(y)) rowYear = y;
+        }
+
+        // ONLY save if year and month were explicitly found in the row
+        if (rowYear && rowMonth) {
+          const impresiones = Number(rowDataMap['impresiones']) || 0;
+          const copia = Number(rowDataMap['copia']) || 0;
+          const total = Number(rowDataMap['total']) || 0;
+          const mensual = Number(rowDataMap['mensual']) || 0;
+
+          if (mensual > 0 || total > 0 || impresiones > 0 || copia > 0) {
+            await this.upsertStat(printer.assetId, rowYear, rowMonth, {
+              impresiones,
+              copia,
+              total,
+              mensual,
+            });
+            results.processed++;
+          }
+        } else {
+          results.errors.push(
+            `Fila para IP ${ip} omitida: No se encontró Mes/Año en el archivo.`,
+          );
+        }
+      }
+    }
+
+    return results;
+  }
+
+  private async upsertStatWithCalculations(
+    assetId: string,
+    year: number,
+    month: number,
+    data: {
+      impresiones: number;
+      copia: number;
+      total: number;
+      mensual: number;
+    },
+    prevReadingsCache?: any,
+  ) {
+    // 1. Get or create current record
+    let stat = await this.printerMonthlyStatRepository.findOne({
+      where: { assetId, year, month },
+    });
+
+    if (!stat) {
+      stat = this.printerMonthlyStatRepository.create({
+        assetId,
+        year,
+        month,
+      });
+    }
+
+    // 2. Identify previous reading
+    let prev = prevReadingsCache;
+    if (!prev) {
+      let prevMonth = month - 1;
+      let prevYear = year;
+      if (prevMonth === 0) {
+        prevMonth = 12;
+        prevYear = year - 1;
+      }
+      prev = await this.printerMonthlyStatRepository.findOne({
+        where: { assetId, year: prevYear, month: prevMonth },
+      });
+    }
+
+    // 3. Calculate Deltas (Usage)
+    if (prev && Number(prev.printTotalReading) > 0) {
+      // Standard Case: Substract previous meter from current meter
+      const totalDelta = data.total - Number(prev.printTotalReading);
+      const printDelta = data.impresiones - Number(prev.printOnlyReading);
+      const copyDelta = data.copia - Number(prev.copyReading);
+
+      // Save deltas (ensure they are non-negative, or fallback to manual 'mensual' if reset)
+      const pDelta = printDelta >= 0 ? printDelta : 0;
+      const cDelta = copyDelta >= 0 ? copyDelta : 0;
+      
+      // Total should be at least the sum of components
+      const tDelta = Math.max(totalDelta >= 0 ? totalDelta : (data.mensual || 0), pDelta + cDelta);
+
+      stat.printTotalDelta = tDelta.toString();
+      stat.printOnlyDelta = pDelta.toString();
+      stat.copyDelta = cDelta.toString();
+    } else {
+      // First record/No previous: Use 'mensual' as delta if provided
+      stat.printTotalDelta = (data.mensual || 0).toString();
+      
+      // Heuristic for breakdown if only total delta provided:
+      // Proportion of current readings
+      if (data.total > 0 && data.mensual > 0) {
+        const ratioP = data.impresiones / data.total;
+        const ratioC = data.copia / data.total;
+        stat.printOnlyDelta = Math.round(data.mensual * ratioP).toString();
+        stat.copyDelta = Math.round(data.mensual * ratioC).toString();
+      } else if (data.mensual > 0) {
+        // Assume all are prints if no readings provided but delta exists
+        stat.printOnlyDelta = data.mensual.toString();
+        stat.copyDelta = '0';
+      } else {
+        stat.printOnlyDelta = '0';
+        stat.copyDelta = '0';
+      }
+    }
+
+    // 4. Update Readings (Counters)
+    stat.printTotalReading = data.total.toString();
+    stat.printOnlyReading = data.impresiones.toString();
+    stat.copyReading = data.copia.toString();
+
+    return await this.printerMonthlyStatRepository.save(stat);
+  }
+
+  private async upsertStat(
+    assetId: string,
+    year: number,
+    month: number,
+    data: {
+      impresiones: number;
+      copia: number;
+      total: number;
+      mensual: number;
+    },
+  ) {
+    // Legacy method for single-row/non-calculated uploads (if any)
+    return this.upsertStatWithCalculations(assetId, year, month, data);
+  }
+
+  private parseMonthAndYear(cell: any): { month: number; year: number } | null {
+    if (!cell) return null;
+
+    // Handle Excel Date objects (xlsx often returns them as Date objects or formatted strings)
+    if (cell instanceof Date) {
+      return {
+        month: cell.getMonth() + 1,
+        year: cell.getFullYear(),
+      };
+    }
+
+    const text = cell.toString().trim().toLowerCase();
+
+    // Flexible regex for "ene-25", "enero 2025", "ene/25", "1-2025", etc.
+    // Group 1: Month name or number
+    // Group 2: Separator
+    // Group 3: Year (2 or 4 digits)
+    const match = text.match(/^([a-zñ0-9]{1,10})[-/\s]+(\d{2,4})$/);
+
+    if (match) {
+      const monthPart = match[1];
+      const yearPart = match[2];
+
+      let month = this.parseMonthName(monthPart);
+      if (!month) {
+        const mNum = parseInt(monthPart);
+        if (!isNaN(mNum) && mNum >= 1 && mNum <= 12) month = mNum;
+      }
+
+      let year = parseInt(yearPart);
+      if (year < 100) year += 2000;
+
+      if (month && year) {
+        return { month, year };
+      }
+    }
+
+    return null;
+  }
+
+  async getExcelTemplate(year: number, userUnitId: string): Promise<Buffer> {
+    const printers = await this.printerRepository.find({
+      where: { unitId: userUnitId },
+      order: { namePrinter: 'ASC' },
+    });
+
+    const monthShortNames = [
+      'ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic',
+    ];
+
+    const yearSuffix = year.toString().slice(-2);
+
+    // Row 0: Month Headers (ene-25, etc.)
+    const row0: any[] = ['ip'];
+    // Row 1: Sub-headers (impresiones, copia, total, mensual)
+    const row1: any[] = [''];
+
+    const merges: xlsx.Range[] = [];
+
+    monthShortNames.forEach((m, i) => {
+      const monthLabel = `${m}-${yearSuffix}`;
+      row0.push(monthLabel, null, null, null);
+      row1.push('impresiones', 'copia', 'total', 'mensual');
+
+      // Merge columns for this month: from (i*4 + 1) to (i*4 + 4)
+      merges.push({
+        s: { r: 0, c: i * 4 + 1 },
+        e: { r: 0, c: i * 4 + 4 },
+      });
+    });
+
+    const data: any[][] = [row0, row1];
+
+    // Add Printer Rows
+    printers.forEach((p) => {
+      const row: any[] = [p.ipPrinter];
+      // Fill with zeros for each month
+      for (let i = 0; i < 12 * 4; i++) row.push(0);
+      data.push(row);
+    });
+
+    const ws = xlsx.utils.aoa_to_sheet(data);
+    ws['!merges'] = merges;
+
+    // Set column widths
+    ws['!cols'] = [{ wch: 15 }]; // IP column
+    for (let i = 0; i < 12 * 4; i++) {
+      ws['!cols'].push({ wch: 10 });
+    }
+
+    const wb = xlsx.utils.book_new();
+    xlsx.utils.book_append_sheet(wb, ws, `SMIAB-${year}`);
+
+    return xlsx.write(wb, { type: 'buffer', bookType: 'xlsx' });
+  }
+
+  private parseMonthName(name: string): number | null {
+    const months: Record<string, number> = {
+      enero: 1,
+      ene: 1,
+      january: 1,
+      jan: 1,
+      febrero: 2,
+      feb: 2,
+      february: 2,
+      marzo: 3,
+      mar: 3,
+      march: 3,
+      abril: 4,
+      abr: 4,
+      april: 4,
+      apr: 4,
+      mayo: 5,
+      may: 5,
+      junio: 6,
+      jun: 6,
+      june: 6,
+      julio: 7,
+      jul: 7,
+      july: 7,
+      agosto: 8,
+      ago: 8,
+      august: 8,
+      aug: 8,
+      septiembre: 9,
+      sep: 9,
+      september: 9,
+      octubre: 10,
+      oct: 10,
+      october: 10,
+      noviembre: 11,
+      nov: 11,
+      november: 11,
+      diciembre: 12,
+      dic: 12,
+      december: 12,
+      dec: 12,
+    };
+
+    const cleanName = name.trim().toLowerCase();
+    // Try direct number first
+    const num = parseInt(cleanName);
+    if (!isNaN(num) && num >= 1 && num <= 12) return num;
+
+    return months[cleanName] || null;
+  }
 
   private async validatePrinterAccess(printerId: string, userUnitId: string) {
     if (!userUnitId) throw new ForbiddenException('User has no unit assigned');
@@ -296,7 +731,6 @@ export class PrintersService {
       .groupBy('printer.assetId')
       .addGroupBy('printer.namePrinter')
       .orderBy('CAST(SUM(stats.print_total_delta) AS INTEGER)', 'DESC')
-      .limit(5)
       .getRawMany();
 
     return rawData.map((row) => ({

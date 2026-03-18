@@ -4,11 +4,12 @@ import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { api } from '@/services/api';
 import { PrinterComparison } from '@/types/printer';
-import { Globe } from 'lucide-react';
+import { Globe, FileUp, ChevronDown } from 'lucide-react';
 import { DashboardCard } from '@/components/ui/DashboardCard';
-import { MonthYearFilter } from '@/components/dashboard/MonthYearFilter';
 import { BaseBarChart } from '@/components/ui/charts/BaseBarChart';
 import { CHART_COLORS, MONTH_NAMES } from '@/lib/constants';
+import { ImportHistoryModal } from './ImportHistoryModal';
+import { useModalStore } from '@/store/useModalStore';
 import {
     ComposedChart,
     Area,
@@ -20,9 +21,9 @@ import {
     ResponsiveContainer
 } from 'recharts';
 
-const fetchUnitHistory = async (year: number, month: number): Promise<PrinterComparison[]> => {
-    // Uses the unit history endpoint which returns [ { year, month, printVolume }, ... ]
-    const { data } = await api.get('/printers/unit/history', { params: { year, month } });
+const fetchUnitHistory = async (year: number): Promise<PrinterComparison[]> => {
+    // We always request month 12 to get the full year history from the backend
+    const { data } = await api.get('/printers/unit/history', { params: { year, month: 12 } });
     return data;
 };
 
@@ -37,12 +38,15 @@ interface ChartData {
 export const GeneralStatsWidget = () => {
     const now = new Date();
     const [selectedYear, setSelectedYear] = useState(now.getFullYear());
-    const [selectedMonth, setSelectedMonth] = useState(now.getMonth() + 1);
+    const { openImportModal } = useModalStore();
 
-    const { data: history, isLoading } = useQuery({
-        queryKey: ['unit-history', selectedYear, selectedMonth],
-        queryFn: () => fetchUnitHistory(selectedYear, selectedMonth),
+    const { data: history, isLoading, refetch } = useQuery({
+        queryKey: ['unit-history', selectedYear],
+        queryFn: () => fetchUnitHistory(selectedYear),
     });
+
+    const currentYear = new Date().getFullYear();
+    const years = Array.from({ length: currentYear - 2024 + 1 }, (_, i) => 2024 + i);
 
     // --- VIEW LOGIC ---
 
@@ -50,7 +54,7 @@ export const GeneralStatsWidget = () => {
     let totalProduction = 0;
 
     if (history && history.length > 0) {
-        // VIEW 2: HISTORICAL UNIT STATS (12 MONTHS COMPOSED CHART)
+        // VIEW: HISTORICAL UNIT STATS (12 MONTHS COMPOSED CHART)
         const yearData = history.filter(d => d.year === selectedYear);
 
         // Generate strict 12-month array
@@ -68,9 +72,8 @@ export const GeneralStatsWidget = () => {
             };
         });
 
-        // For historical range, cap at selected month
-        const slicedHistory = chartData.slice(0, selectedMonth);
-        totalProduction = slicedHistory.reduce((acc, curr) => acc + curr.value, 0);
+        // Current Year Total (YTD or Full Year)
+        totalProduction = chartData.reduce((acc, curr) => acc + curr.value, 0);
     }
 
     if (isLoading) return (
@@ -106,13 +109,30 @@ export const GeneralStatsWidget = () => {
                     </div>
                 </div>
 
-                <div className="relative w-full md:w-auto">
-                    <MonthYearFilter 
-                        month={selectedMonth}
-                        year={selectedYear}
-                        onMonthChange={setSelectedMonth}
-                        onYearChange={setSelectedYear}
-                    />
+                <div className="flex items-center gap-3 relative w-full md:w-auto self-end md:self-auto">
+                    <button 
+                        onClick={() => openImportModal(() => refetch())}
+                        className="flex items-center gap-2 bg-slate-100 hover:bg-slate-200 text-slate-600 px-4 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all hover:scale-[1.02] active:scale-95 whitespace-nowrap"
+                    >
+                        <FileUp className="w-4 h-4 text-guinda-700" />
+                        Importar Historial
+                    </button>
+                    
+                    {/* Year Selector Only */}
+                    <div className="relative group">
+                        <select
+                            value={selectedYear}
+                            onChange={(e) => setSelectedYear(Number(e.target.value))}
+                            className="appearance-none cursor-pointer bg-white border-2 border-guinda-700/10 py-2.5 px-6 pr-10 rounded-xl text-[10px] font-black text-slate-600 uppercase tracking-[0.2em] shadow-sm transition-all duration-200 hover:border-guinda-700/30 hover:bg-guinda-50/30 focus:outline-none focus:ring-2 focus:ring-guinda-500/20 focus:border-guinda-500 outline-none"
+                        >
+                            {years.map((y) => (
+                                <option key={y} value={y}>{y}</option>
+                            ))}
+                        </select>
+                        <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none text-guinda-700 group-hover:text-guinda-800 transition-colors z-20">
+                            <ChevronDown className="w-4 h-4" />
+                        </div>
+                    </div>
                 </div>
             </div>
 

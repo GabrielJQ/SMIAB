@@ -11,10 +11,15 @@ import {
   Query,
   DefaultValuePipe,
   ParseIntPipe,
+  Res,
   Req,
   ForbiddenException,
   NotFoundException,
+  BadRequestException,
+  UseInterceptors,
+  UploadedFile,
 } from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
 import {
   ApiTags,
   ApiOperation,
@@ -22,6 +27,8 @@ import {
   ApiParam,
   ApiOkResponse,
   ApiQuery,
+  ApiConsumes,
+  ApiBody,
 } from '@nestjs/swagger';
 import { SupabaseAuthGuard } from '../../auth/guards/supabase-auth.guard';
 import { PrintersService } from './printers.service';
@@ -49,6 +56,68 @@ export class PrintersController {
   // ==========================================
   //  STATISTICS ENDPOINTS
   // ==========================================
+
+  @ApiOperation({ summary: 'Subida masiva de historial mensual (Excel)' })
+  @ApiConsumes('multipart/form-data')
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        file: {
+          type: 'string',
+          format: 'binary',
+        },
+        year: { type: 'string' },
+        month: { type: 'string' },
+      },
+    },
+  })
+  @Post('history/upload')
+  @UseInterceptors(FileInterceptor('file'))
+  async uploadHistory(
+    @CurrentUser('internal') user: UserJwtPayload,
+    @UploadedFile() file: Express.Multer.File,
+    @Body('year') year: string,
+    @Body('month') month: string,
+  ) {
+    if (!file) {
+      throw new BadRequestException('El archivo Excel es requerido');
+    }
+    if (!year || !month) {
+      throw new BadRequestException('El año y mes son requeridos');
+    }
+    
+    // Aunque permitimos que el usuario lo suba sin importar su unidad (o validamos internamente)
+    return this.printersService.processExcelHistory(
+      file.buffer,
+      parseInt(year),
+      parseInt(month),
+    );
+  }
+
+  @ApiOperation({ summary: 'Descargar plantilla Excel personalizada para el año' })
+  @Get('history/template/:year')
+  async downloadHistoryTemplate(
+    @CurrentUser('internal') user: UserJwtPayload,
+    @Param('year', ParseIntPipe) year: number,
+    @Res() res: any,
+  ) {
+    const unitId = user.unitId || user.areaId;
+    if (!unitId) throw new ForbiddenException('User has no unit assigned');
+
+    const buffer = await this.printersService.getExcelTemplate(year, unitId);
+
+    const fileName = `SMIAB_Plantilla_${year}.xlsx`;
+
+    res.set({
+      'Content-Type':
+        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      'Content-Disposition': `attachment; filename="${fileName}"`,
+      'Content-Length': buffer.length,
+    });
+
+    res.end(buffer);
+  }
 
   @ApiOperation({
     summary: 'Obtener historial de impresiones de la unidad (Agregado)',

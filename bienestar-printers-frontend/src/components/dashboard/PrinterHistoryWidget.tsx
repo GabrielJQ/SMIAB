@@ -3,9 +3,8 @@
 import React, { useState } from 'react';
 import { useDashboardStore } from '@/store/useDashboardStore';
 import { usePrinterMonthlyStats } from '@/hooks/usePrinterMonthlyStats';
-import { Activity } from 'lucide-react';
+import { Activity, ChevronDown } from 'lucide-react';
 import { DashboardCard } from '@/components/ui/DashboardCard';
-import { MonthYearFilter } from '@/components/dashboard/MonthYearFilter';
 import { BaseBarChart } from '@/components/ui/charts/BaseBarChart';
 import { CHART_COLORS, MONTH_NAMES } from '@/lib/constants';
 import { Bar } from 'recharts';
@@ -14,9 +13,11 @@ export const PrinterHistoryWidget = () => {
     const { selectedPrinterId, selectedPrinter } = useDashboardStore();
     const now = new Date();
     const [selectedYear, setSelectedYear] = useState(now.getFullYear());
-    const [selectedMonth, setSelectedMonth] = useState(now.getMonth() + 1);
 
     const { data: history = [], isLoading, isError } = usePrinterMonthlyStats(selectedPrinterId, selectedYear);
+
+    const currentYear = new Date().getFullYear();
+    const years = Array.from({ length: currentYear - 2024 + 1 }, (_, i) => 2024 + i);
 
     if (!selectedPrinterId) return (
         <DashboardCard className="flex flex-col items-center justify-center text-slate-300">
@@ -41,19 +42,17 @@ export const PrinterHistoryWidget = () => {
     let chartData = [];
     let totalProduction = 0;
 
-    // VIEW 2: HISTORICAL (1 BAR PER MONTH)
-    // Show months of the selected year up to the selected month
-    const slicedHistory = history.slice(0, selectedMonth);
-
-    chartData = slicedHistory.map((item, index) => ({
+    // VIEW: HISTORICAL (Full Year)
+    chartData = history.map((item, index) => ({
         name: `${MONTH_NAMES[item.month - 1]}`,
         fullName: `${MONTH_NAMES[item.month - 1]} ${item.year}`,
-        value: item.totalImpressions, // Use Total from DB
+        value: item.totalImpressions,
         impresiones: item.printOnly,
         copias: item.copies,
         color: CHART_COLORS[index % CHART_COLORS.length]
     }));
-    totalProduction = slicedHistory.reduce((acc, curr) => acc + curr.totalImpressions, 0);
+    
+    totalProduction = history.reduce((acc, curr) => acc + curr.totalImpressions, 0);
 
     return (
         <DashboardCard className="min-h-[400px]">
@@ -97,12 +96,21 @@ export const PrinterHistoryWidget = () => {
                 </div>
 
                 <div className="relative w-full md:w-auto">
-                    <MonthYearFilter 
-                        month={selectedMonth}
-                        year={selectedYear}
-                        onMonthChange={setSelectedMonth}
-                        onYearChange={setSelectedYear}
-                    />
+                    {/* Year Selector Only */}
+                    <div className="relative group">
+                        <select
+                            value={selectedYear}
+                            onChange={(e) => setSelectedYear(Number(e.target.value))}
+                            className="appearance-none cursor-pointer bg-white border-2 border-guinda-700/10 py-2.5 px-6 pr-10 rounded-xl text-[10px] font-black text-slate-600 uppercase tracking-[0.2em] shadow-sm transition-all duration-200 hover:border-guinda-700/30 hover:bg-guinda-50/30 focus:outline-none focus:ring-2 focus:ring-guinda-500/20 focus:border-guinda-500 outline-none"
+                        >
+                            {years.map((y) => (
+                                <option key={y} value={y}>{y}</option>
+                            ))}
+                        </select>
+                        <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none text-guinda-700 group-hover:text-guinda-800 transition-colors z-20">
+                            <ChevronDown className="w-4 h-4" />
+                        </div>
+                    </div>
                 </div>
             </div>
 

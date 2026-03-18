@@ -4,44 +4,68 @@ import React, { useState } from 'react';
 import { useUnitTonerStats } from '@/hooks/useUnitTonerStats';
 import { useUnitTopConsumers } from '@/hooks/useUnitTopConsumers';
 import { TonerPrinterStatsWidget } from '@/components/toner/TonerPrinterStatsWidget';
-import { Droplet, TrendingUp, Trophy, Printer as PrinterIcon, Calendar, ChevronDown, ChevronUp, PackageOpen } from 'lucide-react';
+import {
+    Droplet,
+    TrendingUp,
+    Calendar,
+    ChevronDown,
+    ChevronUp,
+    PackageOpen,
+    Package
+} from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { DashboardCard } from '@/components/ui/DashboardCard';
 import { MonthYearFilter } from '@/components/dashboard/MonthYearFilter';
-import { BaseBarChart } from '@/components/ui/charts/BaseBarChart';
 import { CHART_COLORS, MONTH_NAMES } from '@/lib/constants';
+import {
+    ComposedChart,
+    Area,
+    Line,
+    XAxis,
+    YAxis,
+    CartesianGrid,
+    Tooltip,
+    ResponsiveContainer
+} from 'recharts';
 
 export const TonerManagementReport = () => {
     const now = new Date();
 
-    // Selectors for Global Consumption
-    const [globalYear, setGlobalYear] = useState(now.getFullYear());
-    const [globalMonth, setGlobalMonth] = useState(now.getMonth() + 1);
-    
-    // Selectors for Top Consumers
+    // Unified Selectors ( matching Statistics style)
     const [selectedYear, setSelectedYear] = useState(now.getFullYear());
     const [selectedMonth, setSelectedMonth] = useState(now.getMonth() + 1);
-    
+
     const [expandedRow, setExpandedRow] = useState<string | null>(null);
 
-    const { data: history, isLoading: isHistoryLoading } = useUnitTonerStats(globalYear, globalMonth);
+    // Fetch data using unified year/month
+    const { data: history, isLoading: isHistoryLoading } = useUnitTonerStats(selectedYear, selectedMonth);
     const { data: topConsumers, isLoading: isConsumersLoading } = useUnitTopConsumers(selectedYear, selectedMonth);
 
     const chartData = React.useMemo(() => {
         if (!history) return [];
-        return history.map((item, index) => ({
-            name: `${MONTH_NAMES[item.month - 1].substring(0, 3)}`,
-            fullName: `${MONTH_NAMES[item.month - 1]} ${item.year}`,
-            value: item.changes,
-            color: CHART_COLORS[index % CHART_COLORS.length]
-        }));
-    }, [history]);
+        // Generate 12 months for the selected year
+        return Array.from({ length: 12 }, (_, index) => {
+            const iterMonth = index + 1;
+            const dbRecord = history.find(d => d.month === iterMonth && d.year === selectedYear);
+            const value = dbRecord ? dbRecord.changes : 0;
+
+            return {
+                name: `${MONTH_NAMES[index].substring(0, 3)}`,
+                fullName: `${MONTH_NAMES[index]} ${selectedYear}`,
+                value: value,
+                trendValue: value > 0 ? value + (value * 0.1) : 0, // Visual trend line
+                color: CHART_COLORS[index % CHART_COLORS.length]
+            };
+        });
+    }, [history, selectedYear]);
 
     const totalConsumed = React.useMemo(() => {
-        return history?.reduce((acc, curr) => acc + curr.changes, 0) || 0;
-    }, [history]);
-    
-    const yearsAvailable = Array.from({ length: 5 }, (_, i) => now.getFullYear() - i);
+        return chartData.reduce((acc, curr) => acc + curr.value, 0);
+    }, [chartData]);
+
+    // KPI Data for current month
+    const currentMonthCons = topConsumers?.reduce((acc, curr) => acc + Number(curr.toner_count), 0) || 0;
+    const maxCons = topConsumers && topConsumers.length > 0 ? Number(topConsumers[0].toner_count) : 0;
 
     if (isHistoryLoading || isConsumersLoading) {
         return (
@@ -52,205 +76,273 @@ export const TonerManagementReport = () => {
     }
 
     return (
-        <div className="flex flex-col gap-6">
-            {/* Global Consumption Chart - Full Width */}
-            <DashboardCard className="min-h-[400px]">
-                <div className="flex flex-col md:flex-row md:items-start justify-between mb-4 relative z-10 gap-4">
-                    <div>
-                        <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest flex items-center gap-2 mb-2">
-                            <Droplet className="w-4 h-4 text-guinda-700" />
-                            Consumo Histórico Global
-                        </h3>
-                        <div className="flex items-baseline gap-2">
-                            <span className="text-5xl font-black text-slate-900 leading-none tracking-tighter">
-                                {totalConsumed.toLocaleString()}
-                            </span>
-                            <div className="flex flex-col">
-                                <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider">
-                                    Cartuchos Reemplazados
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 min-h-full">
+            {/* Left Column (Charts) - Span 2 */}
+            <div className="lg:col-span-2 flex flex-col gap-6">
+
+                {/* Global Consumption Chart */}
+                <DashboardCard className="min-h-[400px] flex flex-col">
+                    <div className="absolute bottom-0 left-0 w-80 h-80 bg-gradient-to-tr from-slate-100/50 to-transparent rounded-full blur-3xl translate-y-1/3 -translate-x-1/4 pointer-events-none" />
+
+                    <div className="flex flex-col md:flex-row md:items-start justify-between mb-4 relative z-10 gap-4">
+                        <div>
+                            <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest flex items-center gap-2 mb-2">
+                                <Package className="w-4 h-4 text-guinda-700" />
+                                Consumo Histórico Global
+                            </h3>
+                            <div className="flex items-baseline gap-2">
+                                <span className="text-5xl font-black text-slate-900 leading-none tracking-tighter">
+                                    {totalConsumed.toLocaleString()}
                                 </span>
+                                <div className="flex flex-col">
+                                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                                        Cartuchos Totales
+                                    </span>
+                                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-tight">
+                                        Acumulado del Año
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="flex items-center gap-2 relative z-20">
+                            {/* Unified Year Selector style */}
+                            <div className="relative group">
+                                <select
+                                    value={selectedYear}
+                                    onChange={(e) => setSelectedYear(Number(e.target.value))}
+                                    className="appearance-none cursor-pointer bg-white border-2 border-guinda-700/10 py-2 px-6 pr-10 rounded-xl text-[10px] font-black text-slate-600 uppercase tracking-[0.2em] shadow-sm transition-all duration-200 hover:border-guinda-700/30 hover:bg-guinda-50/30 focus:outline-none focus:ring-2 focus:ring-guinda-500/20 focus:border-guinda-500 outline-none"
+                                >
+                                    {[2024, 2025, 2026].map(y => (
+                                        <option key={y} value={y}>{y}</option>
+                                    ))}
+                                </select>
+                                <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none text-guinda-700 group-hover:text-guinda-800 transition-colors z-20">
+                                    <ChevronDown className="w-4 h-4" />
+                                </div>
                             </div>
                         </div>
                     </div>
 
-                    <div className="relative z-20 w-full md:w-auto">
-                        <MonthYearFilter 
-                            month={globalMonth}
-                            year={globalYear}
-                            onMonthChange={setGlobalMonth}
-                            onYearChange={setGlobalYear}
-                        />
-                    </div>
-                </div>
-
-                <div className="w-full h-[300px] mt-4 relative z-10">
-                    {chartData.length > 0 ? (
-                        <BaseBarChart
-                            data={chartData}
-                            dataKey="value"
-                            barSize={60}
-                            radius={[4, 4, 0, 0]}
-                            tooltipContent={({ active, payload }) => {
-                                if (active && payload && payload.length) {
-                                    const data = payload[0].payload;
-                                    return (
-                                        <div className="bg-white/90 backdrop-blur-xl p-4 rounded-2xl shadow-xl border border-white/50 ring-1 ring-slate-100/50">
-                                            <p className="text-[10px] uppercase font-black text-slate-400 mb-1 tracking-wider">{data.fullName}</p>
-                                            <p className="text-2xl font-black text-slate-800 flex items-baseline gap-1" style={{ color: data.color }}>
-                                                {data.value} <span className="text-[10px] text-slate-400 font-bold uppercase">Uds.</span>
-                                            </p>
-                                        </div>
-                                    );
-                                }
-                                return null;
-                            }}
-                        >
-                            <defs>
-                                <linearGradient id="barGradient" x1="0" y1="0" x2="0" y2="1">
-                                    <stop offset="0%" stopColor="#7B1E34" stopOpacity={1} />
-                                    <stop offset="100%" stopColor="#7B1E34" stopOpacity={0.6} />
-                                </linearGradient>
-                            </defs>
-                        </BaseBarChart>
-                    ) : (
-                        <div className="h-full flex flex-col items-center justify-center opacity-50">
-                            <Droplet className="w-12 h-12 text-slate-300 mb-4" />
-                            <p className="text-sm font-black text-slate-300 uppercase tracking-widest">Sin datos registrados</p>
-                        </div>
-                    )}
-                </div>
-            </DashboardCard>
-
-            {/* Bottom Row - Grid 2 Columns */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                {/* Column 1: Top Consumers Table */}
-                <DashboardCard className="relative overflow-hidden h-fit flex flex-col">
-                    <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-bl from-amber-50/50 to-transparent rounded-full blur-3xl -translate-y-1/2 translate-x-1/3 pointer-events-none" />
-
-                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6 relative z-10">
-                        <div className="flex items-center gap-3">
-                            <Trophy className="w-5 h-5 text-amber-500" />
-                            <div>
-                                <h3 className="text-sm font-black text-slate-800 uppercase tracking-widest leading-none">
-                                    Top Consumidores
-                                </h3>
-                                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">
-                                    Equipos con más reemplazos del mes
-                                </p>
-                            </div>
-                        </div>
-
-                        {/* Month and Year Selectors */}
-                        <div className="flex items-center gap-2">
-                            <MonthYearFilter 
-                                month={selectedMonth}
-                                year={selectedYear}
-                                onMonthChange={setSelectedMonth}
-                                onYearChange={setSelectedYear}
-                            />
-                        </div>
-                    </div>
-
-                    <div className="relative z-10 overflow-x-auto">
-                        <table className="w-full text-left">
-                            <thead>
-                                <tr className="border-b border-slate-100">
-                                    <th className="pb-3 text-[10px] font-black tracking-widest text-slate-400 uppercase">Equipo / Ubicación</th>
-                                    <th className="pb-3 text-[10px] font-black tracking-widest text-slate-400 uppercase text-center w-32">Reemplazos</th>
-                                </tr>
-                            </thead>
-                            <tbody className="divide-y divide-slate-50">
-                                {topConsumers && topConsumers.length > 0 ? (
-                                    topConsumers.map((consumer, index) => {
-                                        const isExpanded = expandedRow === consumer.assetId;
-                                        // Extraer marca (Kyocera, Lexmark) de la primera palabra del nombre
-                                        const tonerBrand = consumer.printerName ? consumer.printerName.split(' ')[0] : 'Desconocida';
-
-                                        return (
-                                            <React.Fragment key={consumer.assetId}>
-                                                <tr 
-                                                    className="group hover:bg-slate-50/50 transition-colors cursor-pointer"
-                                                    onClick={() => setExpandedRow(isExpanded ? null : consumer.assetId)}
-                                                >
-                                                    <td className="py-4">
-                                                        <div className="flex items-start gap-3">
-                                                            <div className="w-10 h-10 rounded-xl bg-slate-100 border border-slate-200/60 flex flex-col items-center justify-center shrink-0 text-slate-400 group-hover:bg-amber-50 group-hover:text-amber-600 group-hover:border-amber-200 transition-colors">
-                                                                <PrinterIcon className="w-4 h-4 mb-0.5" />
-                                                                {isExpanded ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
-                                                            </div>
-                                                            <div>
-                                                                <div className="text-xs font-bold text-slate-800 uppercase tracking-wider flex items-center gap-2">
-                                                                    {index < 3 && <span className={cn("text-[10px] px-1.5 py-0.5 rounded-md text-white shadow-sm", index === 0 ? "bg-amber-400" : index === 1 ? "bg-slate-300" : "bg-amber-700")}>#{index + 1}</span>}
-                                                                    {consumer.printerName || `IMPRESORA-${consumer.assetId}`}
-                                                                </div>
-                                                                <div className="text-[10px] font-black text-slate-400 tracking-widest uppercase mt-0.5 group-hover:text-slate-500 transition-colors">
-                                                                    {consumer.areaName || 'Área no asignada'}
-                                                                </div>
-                                                            </div>
-                                                        </div>
-                                                    </td>
-                                                    <td className="py-4 align-top pt-5">
-                                                        <div className="flex justify-center items-center">
-                                                            <div className="bg-guinda-50 text-guinda-700 border border-guinda-100 px-3 py-1 rounded-lg text-sm font-black tracking-tighter shadow-inner shadow-guinda-100/50">
-                                                                {consumer.toner_count}
-                                                            </div>
-                                                        </div>
-                                                    </td>
-                                                </tr>
-                                                
-                                                {/* Expanded Details Form */}
-                                                {isExpanded && consumer.events && consumer.events.length > 0 && (
-                                                    <tr className="bg-slate-50/50">
-                                                        <td colSpan={2} className="px-4 pb-4 pt-1">
-                                                            <div className="pl-12">
-                                                                <h4 className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-3 flex items-center gap-2">
-                                                                    <Calendar className="w-3 h-3" /> Detalles de Reemplazo
-                                                                </h4>
-                                                                <div className="grid gap-2">
-                                                                    {consumer.events.map((ev, i) => {
-                                                                        const eventDate = new Date(ev.date);
-                                                                        return (
-                                                                            <div key={i} className="flex items-center justify-between bg-white border border-slate-100 p-2.5 rounded-lg shadow-sm">
-                                                                                <div className="flex items-center gap-3">
-                                                                                    <div className="w-6 h-6 rounded-full bg-slate-100 flex items-center justify-center">
-                                                                                        <PackageOpen className="w-3 h-3 text-slate-400" />
-                                                                                    </div>
-                                                                                    <div>
-                                                                                        <p className="text-[10px] font-bold text-slate-700">TÓNER {tonerBrand}</p>
-                                                                                        <p className="text-[9px] text-slate-400 font-bold tracking-widest uppercase">{ev.type}</p>
-                                                                                    </div>
-                                                                                </div>
-                                                                                <div className="text-right">
-                                                                                    <p className="text-[10px] font-bold text-slate-600">{eventDate.toLocaleDateString('es-MX', { day: '2-digit', month: 'short' }).toUpperCase()}</p>
-                                                                                    <p className="text-[9px] font-black text-slate-400 tracking-wider">{eventDate.toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' })}</p>
-                                                                                </div>
-                                                                            </div>
-                                                                        );
-                                                                    })}
-                                                                </div>
-                                                            </div>
-                                                        </td>
-                                                    </tr>
-                                                )}
-                                            </React.Fragment>
-                                        );
-                                    })
-                                ) : (
-                                    <tr>
-                                        <td colSpan={2} className="py-8 text-center text-xs font-bold text-slate-400 uppercase tracking-widest">
-                                            No hay consumos registrados en este mes
-                                        </td>
-                                    </tr>
-                                )}
-                            </tbody>
-                        </table>
+                    <div className="flex-1 w-full min-h-[300px] mt-4 relative z-10">
+                        <ResponsiveContainer width="100%" height="100%">
+                            <ComposedChart
+                                data={chartData}
+                                margin={{ top: 20, right: 10, left: -20, bottom: 0 }}
+                            >
+                                <defs>
+                                    <linearGradient id="colorToner" x1="0" y1="0" x2="0" y2="1">
+                                        <stop offset="5%" stopColor="#7B1E34" stopOpacity={0.3} />
+                                        <stop offset="95%" stopColor="#7B1E34" stopOpacity={0} />
+                                    </linearGradient>
+                                </defs>
+                                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                                <XAxis
+                                    dataKey="name"
+                                    axisLine={false}
+                                    tickLine={false}
+                                    tick={{ fill: '#94a3b8', fontSize: 10, fontWeight: 700 }}
+                                    dy={10}
+                                />
+                                <YAxis
+                                    axisLine={false}
+                                    tickLine={false}
+                                    tick={{ fill: '#94a3b8', fontSize: 10, fontWeight: 700 }}
+                                />
+                                <Tooltip
+                                    cursor={{ stroke: '#cbd5e1', strokeWidth: 1, strokeDasharray: '4 4' }}
+                                    content={({ active, payload }) => {
+                                        if (active && payload && payload.length) {
+                                            const data = payload[0].payload;
+                                            return (
+                                                <div className="bg-white/90 backdrop-blur-xl p-4 rounded-2xl shadow-xl border border-white/50 ring-1 ring-slate-100/50">
+                                                    <p className="text-[10px] uppercase font-black text-slate-400 mb-1 tracking-wider">{data.fullName}</p>
+                                                    <p className="text-2xl font-black text-guinda-700">{data.value} <span className="text-[10px] text-slate-400 font-bold uppercase">Uds.</span></p>
+                                                </div>
+                                            );
+                                        }
+                                        return null;
+                                    }}
+                                />
+                                <Area
+                                    type="monotone"
+                                    dataKey="value"
+                                    stroke="none"
+                                    fillOpacity={1}
+                                    fill="url(#colorToner)"
+                                />
+                                <Line
+                                    type="monotone"
+                                    dataKey="trendValue"
+                                    stroke="#7B1E34"
+                                    strokeWidth={3}
+                                    dot={{ fill: '#fff', stroke: '#7B1E34', strokeWidth: 2, r: 4 }}
+                                    activeDot={{ r: 6, fill: '#7B1E34', stroke: '#fff', strokeWidth: 2 }}
+                                />
+                            </ComposedChart>
+                        </ResponsiveContainer>
                     </div>
                 </DashboardCard>
 
-                {/* Column 2: Individual Printer History */}
-                <div className="flex flex-col h-full">
-                    <TonerPrinterStatsWidget />
+                {/* Individual Printer Detail */}
+                <TonerPrinterStatsWidget />
+            </div>
+
+            {/* Right Column (Widgets) - Span 1 */}
+            <div className="lg:col-span-1 flex flex-col gap-6">
+
+                {/* Period Selector Card */}
+                <div className="flex justify-between items-center bg-white p-4 rounded-3xl shadow-sm border border-slate-100 shrink-0">
+                    <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest leading-none">Periodo</h3>
+                    <MonthYearFilter
+                        month={selectedMonth}
+                        year={selectedYear}
+                        onMonthChange={setSelectedMonth}
+                        onYearChange={setSelectedYear}
+                    />
                 </div>
+
+                {/* Mini KPIs */}
+                <div className="grid grid-cols-2 gap-4 shrink-0">
+                    <DashboardCard className="p-4 flex flex-col justify-center min-h-[100px]">
+                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Puntos de Cambio</p>
+                        <p className="text-2xl font-black text-slate-800">{currentMonthCons.toLocaleString()}</p>
+                    </DashboardCard>
+                    <DashboardCard className="p-4 flex flex-col justify-center min-h-[100px]">
+                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Eficiencia Mensual</p>
+                        {(() => {
+                            const prevMonthIdx = selectedMonth === 1 ? 11 : selectedMonth - 2;
+                            const prevYearValue = selectedMonth === 1 ? selectedYear - 1 : selectedYear;
+                            
+                            const prevMonthData = history?.find(d => 
+                                d.month === (prevMonthIdx + 1) && d.year === prevYearValue
+                            );
+                            
+                            const prevValue = prevMonthData?.changes || 0;
+                            const diff = prevValue > 0 ? ((currentMonthCons - prevValue) / prevValue) * 100 : 0;
+                            const isIncrease = diff > 0;
+                            const absDiff = Math.abs(Math.round(diff));
+
+                            if (prevValue === 0) return <p className="text-[11px] font-bold text-slate-500 uppercase tracking-tight">Sin histórico</p>;
+
+                            return (
+                                <div className="flex flex-col">
+                                    <p className={cn(
+                                        "text-sm font-black flex items-center gap-1",
+                                        isIncrease ? "text-red-500" : "text-emerald-500"
+                                    )}>
+                                        {isIncrease ? '+' : '-'}{absDiff}%
+                                        <TrendingUp className={cn("w-3 h-3", isIncrease ? "" : "rotate-180")} />
+                                    </p>
+                                    <p className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">vs Mes Anterior</p>
+                                </div>
+                            );
+                        })()}
+                    </DashboardCard>
+                </div>
+
+                {/* Top Consumers Report Widget */}
+                <DashboardCard className="flex-1 p-6 flex flex-col min-h-0">
+                    <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest flex items-center gap-2 mb-6 shrink-0">
+                        Consumo de Tóner
+                    </h3>
+
+                    <div className="flex-1 overflow-hidden">
+                        {isConsumersLoading ? (
+                            <div className="h-[400px] flex items-center justify-center">
+                                <div className="w-8 h-8 border-4 border-slate-100 border-t-guinda-700 rounded-full animate-spin"></div>
+                            </div>
+                        ) : (!topConsumers || topConsumers.length === 0) ? (
+                            <div className="h-[400px] flex flex-col items-center justify-center opacity-50">
+                                <Droplet className="w-12 h-12 text-slate-300 mb-4" />
+                                <p className="text-sm font-black text-slate-300 uppercase tracking-widest text-center">Sin consumos este mes</p>
+                            </div>
+                        ) : (
+                            <div className="h-[450px] overflow-y-auto pr-2 custom-scrollbar">
+                                <table className="w-full text-left border-separate border-spacing-y-2">
+                                    <thead>
+                                        <tr className="text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100">
+                                            <th className="pb-3 pl-2">Equipo / Ubicación</th>
+                                            <th className="pb-3 text-right pr-2">Uds.</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {topConsumers.map((consumer, idx) => {
+                                            const isExpanded = expandedRow === consumer.assetId;
+                                            const tonerBrand = consumer.printerName ? consumer.printerName.split(' ')[0] : 'IMPRESORA';
+
+                                            return (
+                                                <React.Fragment key={consumer.assetId}>
+                                                    <tr
+                                                        className={cn(
+                                                            "group cursor-pointer transition-all duration-200",
+                                                            isExpanded ? "bg-guinda-50/50" : "hover:bg-slate-50"
+                                                        )}
+                                                        onClick={() => setExpandedRow(isExpanded ? null : consumer.assetId)}
+                                                    >
+                                                        <td className="py-3 px-2 rounded-l-2xl border-y border-l border-transparent group-hover:border-slate-100">
+                                                            <div className="flex flex-col">
+                                                                <span className="text-[11px] font-black text-slate-700 uppercase leading-tight group-hover:text-guinda-700 transition-colors">
+                                                                    {idx + 1}. {consumer.printerName || `Asset ${consumer.assetId}`}
+                                                                </span>
+                                                                <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider mt-0.5">
+                                                                    {consumer.areaName || 'Sin área'}
+                                                                </span>
+                                                            </div>
+                                                        </td>
+                                                        <td className="py-3 px-2 text-right rounded-r-2xl border-y border-r border-transparent group-hover:border-slate-100">
+                                                            <div className="flex items-center justify-end gap-2">
+                                                                <span className="text-sm font-black text-slate-800 tracking-tighter">{consumer.toner_count}</span>
+                                                                {isExpanded ? <ChevronUp className="w-3 h-3 text-slate-300" /> : <ChevronDown className="w-3 h-3 text-slate-300" />}
+                                                            </div>
+                                                        </td>
+                                                    </tr>
+
+                                                    {/* Expandable Details within table layout */}
+                                                    {isExpanded && consumer.events && (
+                                                        <tr>
+                                                            <td colSpan={2} className="px-1 py-1">
+                                                                <div className="flex flex-col gap-2 p-3 bg-white rounded-2xl border border-guinda-100 shadow-sm animate-in slide-in-from-top-2 duration-300 mb-2 mt-1 mx-1">
+                                                                    <h4 className="text-[9px] font-black text-guinda-700 uppercase tracking-widest flex items-center gap-2 mb-1">
+                                                                        <Calendar className="w-3 h-3" /> Historial de Reemplazo
+                                                                    </h4>
+                                                                    <div className="grid gap-1.5">
+                                                                        {consumer.events.map((ev, i) => {
+                                                                            const eventDate = new Date(ev.date);
+                                                                            return (
+                                                                                <div key={i} className="flex items-center justify-between bg-slate-50 border border-slate-100 p-2 rounded-xl">
+                                                                                    <div className="flex items-center gap-2">
+                                                                                        <div className="w-6 h-6 rounded-full bg-amber-100/50 flex items-center justify-center">
+                                                                                            <PackageOpen className="w-3 h-3 text-amber-700" />
+                                                                                        </div>
+                                                                                        <div>
+                                                                                            <p className="text-[10px] font-black text-slate-700">TÓNER {tonerBrand}</p>
+                                                                                            <p className="text-[8px] text-slate-400 font-black tracking-widest uppercase">{ev.type}</p>
+                                                                                        </div>
+                                                                                    </div>
+                                                                                    <div className="text-right">
+                                                                                        <p className="text-[9px] font-black text-slate-600">{eventDate.toLocaleDateString('es-MX', { day: '2-digit', month: 'short' }).toUpperCase()}</p>
+                                                                                        <p className="text-[8px] font-bold text-slate-400 tracking-wider">
+                                                                                            {eventDate.toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' })}
+                                                                                        </p>
+                                                                                    </div>
+                                                                                </div>
+                                                                            );
+                                                                        })}
+                                                                    </div>
+                                                                </div>
+                                                            </td>
+                                                        </tr>
+                                                    )}
+                                                </React.Fragment>
+                                            );
+                                        })}
+                                    </tbody>
+                                </table>
+                            </div>
+                        )}
+                    </div>
+                </DashboardCard>
             </div>
         </div>
     );

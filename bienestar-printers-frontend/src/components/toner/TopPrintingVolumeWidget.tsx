@@ -29,13 +29,16 @@ export const TopPrintingVolumeWidget = () => {
     const totalCopies = currentMonthData?.copies || 0;
     const totalMensual = currentMonthData?.print_total || 0;
 
-    const impPercent = totalMensual > 0 ? Math.round((totalImpressions / totalMensual) * 100) : 0;
-    const copyPercent = totalMensual > 0 ? Math.round((totalCopies / totalMensual) * 100) : 0;
+    // To ensure percentages add up to 100% without exceeding it,
+    // we use the sum of parts as the base for the breakdown.
+    const totalParts = totalImpressions + totalCopies;
+    const impPercent = totalParts > 0 ? Math.round((totalImpressions / totalParts) * 100) : 0;
+    const copyPercent = totalParts > 0 ? (totalParts > 0 ? 100 - impPercent : 0) : 0;
 
     const maxVolume = topPrinters && topPrinters.length > 0 ? topPrinters[0].totalImpressions : 0;
 
     return (
-        <div className="flex flex-col gap-6 h-full">
+        <div className="flex flex-col gap-6">
             <div className="flex justify-between items-center bg-white p-4 rounded-3xl shadow-sm border border-slate-100 shrink-0">
                 <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest">Periodo</h3>
                 <MonthYearFilter 
@@ -69,29 +72,29 @@ export const TopPrintingVolumeWidget = () => {
                 </DashboardCard>
             </div>
 
-            {/* Top 5 list */}
-            <DashboardCard className="flex-1 p-6 flex flex-col min-h-[400px]">
+            {/* Report list */}
+            <DashboardCard className="p-6 flex flex-col">
                 <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest flex items-center gap-2 mb-6 shrink-0">
                     <Activity className="w-4 h-4 text-guinda-700" />
-                    Top 5 Volumen de Impresión
+                    Reporte de Volumen de Impresión
                 </h3>
 
-                <div className="flex-1 flex flex-col">
+                <div className="overflow-hidden">
                     {isTopLoading ? (
-                        <div className="flex-1 flex items-center justify-center">
+                        <div className="h-[400px] flex items-center justify-center">
                             <div className="w-8 h-8 border-4 border-slate-100 border-t-guinda-700 rounded-full animate-spin"></div>
                         </div>
                     ) : (!topPrinters || topPrinters.length === 0) ? (
-                        <div className="flex-1 flex flex-col items-center justify-center opacity-50">
+                        <div className="h-[400px] flex flex-col items-center justify-center opacity-50">
                             <Activity className="w-12 h-12 text-slate-300 mb-4" />
                             <p className="text-sm font-black text-slate-300 uppercase tracking-widest text-center">Sin datos en el periodo</p>
                         </div>
                     ) : (
-                        <div className="flex flex-col gap-5">
+                        <div className="h-[400px] overflow-y-auto pr-2 custom-scrollbar flex flex-col gap-5">
                             {topPrinters.map((printer, idx) => {
                                 const percentage = maxVolume > 0 ? (printer.totalImpressions / maxVolume) * 100 : 0;
                                 return (
-                                    <div key={printer.printerId} className="flex flex-col gap-2">
+                                    <div key={printer.printerId} className="flex flex-col gap-2 shrink-0">
                                         <div className="flex justify-between items-baseline">
                                             <span className="text-sm font-bold text-slate-700 uppercase">{idx + 1}. {printer.name}</span>
                                             <span className="text-xs font-black text-slate-500">{printer.totalImpressions.toLocaleString()}</span>
