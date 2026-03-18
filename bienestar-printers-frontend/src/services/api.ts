@@ -25,6 +25,10 @@ const processQueue = (error: any, token: string | null = null) => {
             prom.reject(error);
         } else if (token) {
             prom.resolve(token);
+        } else {
+            // CRITICAL: If there is no error but also no token, we MUST settle the promise
+            // to prevent the application from hanging in "loading" state forever.
+            prom.reject(new Error('Sesión expirada o token no recuperado'));
         }
     });
     failedQueue = [];
@@ -98,7 +102,11 @@ api.interceptors.response.use(
                     });
 
                     const newToken = refreshResponse.data.access_token;
-                    if (typeof window !== 'undefined' && newToken) {
+                    if (!newToken) {
+                        throw new Error('Token no devuelto por el servidor');
+                    }
+
+                    if (typeof window !== 'undefined') {
                         sessionStorage.setItem('smiab_token', newToken);
                     }
 
@@ -108,9 +116,15 @@ api.interceptors.response.use(
                     processQueue(null, newToken);
                     resolve(api(originalRequest));
                 } catch (refreshError) {
-                    processQueue(refreshError, null);
+                    // Clear the broken/expired token to prevent infinite loops
                     if (typeof window !== 'undefined') {
                         sessionStorage.removeItem('smiab_token');
+                    }
+                    
+                    processQueue(refreshError, null);
+                    
+                    if (typeof window !== 'undefined') {
+                        // Redirect to SAI login if we can't recover the session
                         window.location.href = `${LARAVEL_URL}/login`;
                     }
                     reject(refreshError);

@@ -205,7 +205,7 @@ export const TonerManagementReport = () => {
                 {/* Mini KPIs */}
                 <div className="grid grid-cols-2 gap-4 shrink-0">
                     <DashboardCard className="p-4 flex flex-col justify-center min-h-[100px]">
-                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Puntos de Cambio</p>
+                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Tóners Reemplazados</p>
                         <p className="text-2xl font-black text-slate-800">{currentMonthCons.toLocaleString()}</p>
                     </DashboardCard>
                     <DashboardCard className="p-4 flex flex-col justify-center min-h-[100px]">
