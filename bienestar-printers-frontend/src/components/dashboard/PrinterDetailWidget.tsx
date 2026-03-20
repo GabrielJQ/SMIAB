@@ -10,6 +10,7 @@ import { cn } from '@/lib/utils';
 import { DashboardCard } from '@/components/ui/DashboardCard';
 import { toast } from 'react-hot-toast';
 import { usePrinterAlerts } from '@/hooks/usePrinterAlerts';
+import { RequestConsumableModal } from '@/components/printers/RequestConsumableModal';
 
 const getSemanticColor = (value: number | null) => {
     if (value === null) return '#e2e8f0'; // Gris (Sin Datos)
@@ -74,6 +75,7 @@ const fetchTonerHistory = async (id: string) => {
 export const PrinterDetailWidget = () => {
     const { selectedPrinter } = useDashboardStore();
     const [copied, setCopied] = React.useState(false);
+    const [isRequestModalOpen, setIsRequestModalOpen] = React.useState(false);
 
     // Alertas SNMP
     const { data: alerts, resolveAlert, isResolving } = usePrinterAlerts(selectedPrinter?.id);
@@ -312,11 +314,11 @@ export const PrinterDetailWidget = () => {
                                         : "El nivel de tóner es adecuado. No requiere acción."}
                         </p>
                         <button
-                            disabled={tonerLevel === null || tonerLevel > 60 || !isOnline}
-                            onClick={() => alert('Nueva Alerta de Consumible registrada (simulado)')}
+                            disabled={tonerLevel === null || tonerLevel > 33 || !isOnline}
+                            onClick={() => setIsRequestModalOpen(true)}
                             className={cn(
                                 "w-full py-3 px-4 rounded-xl font-bold uppercase tracking-wider text-xs transition-all flex items-center justify-center gap-2",
-                                tonerLevel !== null && tonerLevel <= 60 && isOnline
+                                tonerLevel !== null && tonerLevel <= 33 && isOnline
                                     ? "bg-guinda-600 text-white hover:bg-guinda-700 shadow-md hover:shadow-lg shadow-guinda-600/20"
                                     : "bg-slate-200 text-slate-400 cursor-not-allowed"
                             )}
@@ -331,6 +333,14 @@ export const PrinterDetailWidget = () => {
                         )}
                     </div>
                 </div>
+
+                <RequestConsumableModal 
+                    isOpen={isRequestModalOpen}
+                    onClose={() => setIsRequestModalOpen(false)}
+                    printerId={selectedPrinter.id}
+                    printerName={selectedPrinter.name}
+                    printerIp={selectedPrinter.ipAddress}
+                />
 
                 {/* Footer / Status Bar */}
                 <div className="mt-8 pt-6 border-t border-slate-100 flex justify-between items-center text-slate-400 relative z-10">

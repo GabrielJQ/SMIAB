@@ -33,6 +33,7 @@ import {
 } from '@nestjs/swagger';
 import { SupabaseAuthGuard } from '../../auth/guards/supabase-auth.guard';
 import { PrintersService } from './printers.service';
+import { ReportService } from './report.service';
 import { CurrentUser } from '../../auth/decorators/current-user.decorator';
 import { PrinterSummaryDto } from './dto/printer-summary.dto';
 import { PrinterHistoryDto } from './dto/printer-history.dto';
@@ -52,6 +53,7 @@ export class PrintersController {
   constructor(
     private readonly printersService: PrintersService,
     private readonly snmpService: SnmpService,
+    private readonly reportService: ReportService,
   ) {}
 
   // ==========================================
@@ -463,5 +465,29 @@ export class PrintersController {
   @Post(':id/sync')
   async syncOne(@Param('id') id: string) {
     return this.snmpService.forcePrinterUpdate(id);
+  }
+
+  @ApiOperation({ summary: 'Solicitar consumibles para la impresora' })
+  @ApiParam({ name: 'id', description: 'ID de la impresora' })
+  @ApiBody({
+    schema: { type: 'object', properties: { email: { type: 'string' } } },
+  })
+  @Post(':id/request-consumables')
+  async requestConsumables(
+    @CurrentUser('internal') user: UserJwtPayload,
+    @Param('id') id: string,
+    @Body('email') email: string,
+  ) {
+    const unitId = user.unitId || user.areaId;
+    if (!unitId) throw new ForbiddenException('User has no unit assigned');
+
+    const printer = await this.printersService.getPrinterById(id, unitId);
+    if (!printer) throw new NotFoundException('Printer not found');
+
+    return this.reportService.sendConsumableRequest(
+      id,
+      printer.ipAddress,
+      email || user.email,
+    );
   }
 }

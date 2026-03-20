@@ -8,6 +8,7 @@ import {
 } from 'typeorm';
 import { Unit } from './unit.entity';
 import { Printer } from './printer.entity';
+import { Address } from './address.entity';
 
 @Entity('departments')
 export class Department {
@@ -38,6 +39,10 @@ export class Department {
   @ManyToOne(() => Unit, (unit) => unit.departments)
   @JoinColumn({ name: 'unit_id' })
   unit: Unit;
+
+  @ManyToOne(() => Address, (address) => address.departments)
+  @JoinColumn({ name: 'address_id' })
+  address: Address;
 
   @OneToMany(() => Printer, (printer) => printer.department)
   printers: Printer[];

@@ -11,6 +11,8 @@ import { PrinterTonerChange } from '../../toners/entities/printer-toner-change.e
 import { Department } from './department.entity';
 import { Unit } from './unit.entity';
 import { Region } from './region.entity';
+import { Asset } from './asset.entity';
+import { OneToOne } from 'typeorm';
 
 @Entity('printers')
 export class Printer {
@@ -86,4 +88,8 @@ export class Printer {
     (change: PrinterTonerChange) => change.printer,
   )
   tonerChanges: PrinterTonerChange[];
+
+  @OneToOne(() => Asset, (asset) => asset.printer)
+  @JoinColumn({ name: 'asset_id' })
+  asset: Asset;
 }
