@@ -98,10 +98,10 @@ describe('PrintersService', () => {
     it('debería arrojar un error si falta la columna "ip"', async () => {
       const data = [['otra_columna'], ['valor']];
       const buffer = createMockExcelBuffer(data);
-      
-      await expect(service.processExcelHistory(buffer, 2025, 3)).rejects.toThrow(
-        BadRequestException,
-      );
+
+      await expect(
+        service.processExcelHistory(buffer, 2025, 3),
+      ).rejects.toThrow(BadRequestException);
     });
 
     it('debería procesar filas correctamente en formato "Ancho"', async () => {
@@ -119,12 +119,12 @@ describe('PrintersService', () => {
         ['ip', 'ene-25', '', '', ''], // Cabecera
         ['', 'impresiones', 'copia', 'total', 'mensual'], // SubCabecera
         ['192.168.1.10', 500, 100, 600, 600], // Fila válida
-        ['192.168.1.99', 100, 10, 110, 110],  // Fila inválida (IP no encontrada)
+        ['192.168.1.99', 100, 10, 110, 110], // Fila inválida (IP no encontrada)
       ];
       const buffer = createMockExcelBuffer(data);
 
       const result = await service.processExcelHistory(buffer, 2025, 3);
-      
+
       expect(result.processed).toBe(1); // 1 fila válida procesada
       expect(result.errors.length).toBe(1); // 1 error (IP 192.168.1.99 no encontrada)
       expect(mockRepository.save).toHaveBeenCalled(); // Se debe haber llamado save en el repositorio
@@ -147,7 +147,7 @@ describe('PrintersService', () => {
       const buffer = createMockExcelBuffer(data);
 
       const result = await service.processExcelHistory(buffer, 2025, 2);
-      
+
       expect(result.processed).toBe(1);
     });
   });

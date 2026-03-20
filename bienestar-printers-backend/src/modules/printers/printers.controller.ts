@@ -20,6 +20,7 @@ import {
   UploadedFile,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
+import 'multer';
 import {
   ApiTags,
   ApiOperation,
@@ -86,7 +87,7 @@ export class PrintersController {
     if (!year || !month) {
       throw new BadRequestException('El año y mes son requeridos');
     }
-    
+
     // Aunque permitimos que el usuario lo suba sin importar su unidad (o validamos internamente)
     return this.printersService.processExcelHistory(
       file.buffer,
@@ -95,7 +96,9 @@ export class PrintersController {
     );
   }
 
-  @ApiOperation({ summary: 'Descargar plantilla Excel personalizada para el año' })
+  @ApiOperation({
+    summary: 'Descargar plantilla Excel personalizada para el año',
+  })
   @Get('history/template/:year')
   async downloadHistoryTemplate(
     @CurrentUser('internal') user: UserJwtPayload,
@@ -198,7 +201,8 @@ export class PrintersController {
   }
 
   @ApiOperation({
-    summary: 'Obtener top consumidores de impresión de un mes específico para la unidad',
+    summary:
+      'Obtener top consumidores de impresión de un mes específico para la unidad',
   })
   @ApiQuery({ name: 'year', required: true, type: Number })
   @ApiQuery({ name: 'month', required: true, type: Number })
@@ -214,7 +218,7 @@ export class PrintersController {
     return this.printersService.getUnitTopPrintConsumers(
       unitId,
       parseInt(year || new Date().getFullYear().toString()),
-      parseInt(month || (new Date().getMonth() + 1).toString())
+      parseInt(month || (new Date().getMonth() + 1).toString()),
     );
   }
 

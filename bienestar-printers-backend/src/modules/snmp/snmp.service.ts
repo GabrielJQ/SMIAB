@@ -263,7 +263,11 @@ export class SnmpService implements OnModuleInit {
       await this.registerTonerChange(printer.assetId, 'auto_detected');
     } else if (randomToner >= 98 && oldToner > 5) {
       // Cambio prematuro (Guardián)
-      await this.registerPrematureChange(printer.assetId, oldToner, randomToner);
+      await this.registerPrematureChange(
+        printer.assetId,
+        oldToner,
+        randomToner,
+      );
       await this.registerTonerChange(printer.assetId, 'auto_detected');
     } else if (oldToner - randomToner > 10 && randomToner !== 0) {
       // Caída drástica (Swap)
@@ -489,7 +493,11 @@ export class SnmpService implements OnModuleInit {
           oldToner > 5
         ) {
           // Cambio prematuro (Guardián)
-          await this.registerPrematureChange(printer.assetId, oldToner, customTonerPerc);
+          await this.registerPrematureChange(
+            printer.assetId,
+            oldToner,
+            customTonerPerc,
+          );
           await this.registerTonerChange(printer.assetId, 'auto_detected');
         } else if (
           printer.lastReadAt != null &&
@@ -497,14 +505,22 @@ export class SnmpService implements OnModuleInit {
           customTonerPerc !== 0
         ) {
           // Intercambio por cartucho usado/vacío (Swap)
-          await this.registerSuspiciousSwap(printer.assetId, oldToner, customTonerPerc);
+          await this.registerSuspiciousSwap(
+            printer.assetId,
+            oldToner,
+            customTonerPerc,
+          );
         } else if (
           printer.lastReadAt != null &&
           customTonerPerc > oldToner &&
           customTonerPerc < 98
         ) {
           // Relleno parcial / Tóner usado
-          await this.registerSuspiciousSwap(printer.assetId, oldToner, customTonerPerc);
+          await this.registerSuspiciousSwap(
+            printer.assetId,
+            oldToner,
+            customTonerPerc,
+          );
         }
 
         const calculatedKitPerc = calculatePerc(resKit, resKitMax);
@@ -652,10 +668,14 @@ export class SnmpService implements OnModuleInit {
           },
         });
         await this.alertRepository.save(alert);
-        this.logger.warn(`Alerta registrada PREMATURE_CHANGE para ${printerId}. Viejo: ${oldLevel}%, Nuevo: ${newLevel}%`);
+        this.logger.warn(
+          `Alerta registrada PREMATURE_CHANGE para ${printerId}. Viejo: ${oldLevel}%, Nuevo: ${newLevel}%`,
+        );
       }
     } catch (e) {
-      this.logger.error(`Error registering premature change for ${printerId}: ${e.message}`);
+      this.logger.error(
+        `Error registering premature change for ${printerId}: ${e.message}`,
+      );
     }
   }
 
@@ -681,10 +701,14 @@ export class SnmpService implements OnModuleInit {
           },
         });
         await this.alertRepository.save(alert);
-        this.logger.warn(`Alerta registrada SUSPICIOUS_SWAP para ${printerId}. Viejo: ${oldLevel}%, Nuevo: ${newLevel}%`);
+        this.logger.warn(
+          `Alerta registrada SUSPICIOUS_SWAP para ${printerId}. Viejo: ${oldLevel}%, Nuevo: ${newLevel}%`,
+        );
       }
     } catch (e) {
-      this.logger.error(`Error registering suspicious swap for ${printerId}: ${e.message}`);
+      this.logger.error(
+        `Error registering suspicious swap for ${printerId}: ${e.message}`,
+      );
     }
   }
 

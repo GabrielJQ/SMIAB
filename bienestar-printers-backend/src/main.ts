@@ -1,10 +1,16 @@
 import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
+import helmet from 'helmet';
 import { AppModule } from './app.module';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
+
+  // ==========================================
+  // SEGURIDAD HTTP (Cabeceras recomendadas)
+  // ==========================================
+  app.use(helmet());
 
   // ==========================================
   // CONFIGURACIÓN CORS (SMIAB <-> SAI)
@@ -15,8 +21,8 @@ async function bootstrap() {
       'http://localhost:3001',
       'http://127.0.0.1:8000',
       'http://localhost:8000',
-      'http://10.101.21.24',  // IP Real del Frontend / Proxy
-      'http://10.102.21.24',  // IP Real del SAI
+      'http://10.101.21.24', // IP Real del Frontend / Proxy
+      'http://10.102.21.24', // IP Real del SAI
     ],
     // VITAL: Agregamos OPTIONS para las peticiones preflight del navegador
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',

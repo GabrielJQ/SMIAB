@@ -28,6 +28,9 @@ import { PrinterTonerChange } from '../toners/entities/printer-toner-change.enti
 import { PrinterStatusLog } from './entities/printer-status-log.entity';
 import { Alert } from './entities/alert.entity';
 
+type ExcelCell = string | number | boolean | Date | null | undefined;
+type ExcelRow = ExcelCell[];
+
 @Injectable()
 export class PrintersService {
   constructor(
@@ -133,7 +136,7 @@ export class PrintersService {
     const sheet = workbook.Sheets[sheetName];
 
     // Read raw 2D array for structural analysis
-    const rawData: any[][] = xlsx.utils.sheet_to_json(sheet, { header: 1 });
+    const rawData: ExcelRow[] = xlsx.utils.sheet_to_json(sheet, { header: 1 });
 
     // 1. FIND HEADERS AND DETERMINE FORMAT
     let ipColIndex = -1;
@@ -219,7 +222,9 @@ export class PrintersService {
       const row = rawData[i];
       if (!row || !row[ipColIndex]) continue;
 
-      const ip = row[ipColIndex].toString().trim();
+      const ipCell = row[ipColIndex];
+      if (!ipCell) continue;
+      const ip = ipCell.toString().trim();
       if (!ip || ip.toLowerCase() === 'ip' || ip.toLowerCase() === 'total')
         continue;
 
@@ -276,7 +281,8 @@ export class PrintersService {
 
         const mesVal =
           rowDataMap['mes'] || rowDataMap['month'] || rowDataMap['pasa_mes'];
-        const anioVal = rowDataMap['año'] || rowDataMap['anio'] || rowDataMap['year'];
+        const anioVal =
+          rowDataMap['año'] || rowDataMap['anio'] || rowDataMap['year'];
 
         if (mesVal) {
           const m = this.parseMonthName(mesVal.toString());
@@ -324,7 +330,7 @@ export class PrintersService {
       total: number;
       mensual: number;
     },
-    prevReadingsCache?: any,
+    prevReadingsCache?: PrinterMonthlyStat | null,
   ) {
     // 1. Get or create current record
     let stat = await this.printerMonthlyStatRepository.findOne({
@@ -339,8 +345,7 @@ export class PrintersService {
       });
     }
 
-    // 2. Identify previous reading
-    let prev = prevReadingsCache;
+    let prev: PrinterMonthlyStat | null = prevReadingsCache ?? null;
     if (!prev) {
       let prevMonth = month - 1;
       let prevYear = year;
@@ -363,9 +368,12 @@ export class PrintersService {
       // Save deltas (ensure they are non-negative, or fallback to manual 'mensual' if reset)
       const pDelta = printDelta >= 0 ? printDelta : 0;
       const cDelta = copyDelta >= 0 ? copyDelta : 0;
-      
+
       // Total should be at least the sum of components
-      const tDelta = Math.max(totalDelta >= 0 ? totalDelta : (data.mensual || 0), pDelta + cDelta);
+      const tDelta = Math.max(
+        totalDelta >= 0 ? totalDelta : data.mensual || 0,
+        pDelta + cDelta,
+      );
 
       stat.printTotalDelta = tDelta.toString();
       stat.printOnlyDelta = pDelta.toString();
@@ -373,7 +381,7 @@ export class PrintersService {
     } else {
       // First record/No previous: Use 'mensual' as delta if provided
       stat.printTotalDelta = (data.mensual || 0).toString();
-      
+
       // Heuristic for breakdown if only total delta provided:
       // Proportion of current readings
       if (data.total > 0 && data.mensual > 0) {
@@ -414,7 +422,9 @@ export class PrintersService {
     return this.upsertStatWithCalculations(assetId, year, month, data);
   }
 
-  private parseMonthAndYear(cell: any): { month: number; year: number } | null {
+  private parseMonthAndYear(
+    cell: unknown,
+  ): { month: number; year: number } | null {
     if (!cell) return null;
 
     // Handle Excel Date objects (xlsx often returns them as Date objects or formatted strings)
@@ -461,15 +471,26 @@ export class PrintersService {
     });
 
     const monthShortNames = [
-      'ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic',
+      'ene',
+      'feb',
+      'mar',
+      'abr',
+      'may',
+      'jun',
+      'jul',
+      'ago',
+      'sep',
+      'oct',
+      'nov',
+      'dic',
     ];
 
     const yearSuffix = year.toString().slice(-2);
 
     // Row 0: Month Headers (ene-25, etc.)
-    const row0: any[] = ['ip'];
+    const row0: ExcelRow = ['ip'];
     // Row 1: Sub-headers (impresiones, copia, total, mensual)
-    const row1: any[] = [''];
+    const row1: ExcelRow = [''];
 
     const merges: xlsx.Range[] = [];
 
@@ -485,11 +506,11 @@ export class PrintersService {
       });
     });
 
-    const data: any[][] = [row0, row1];
+    const data: ExcelRow[] = [row0, row1];
 
     // Add Printer Rows
     printers.forEach((p) => {
-      const row: any[] = [p.ipPrinter];
+      const row: ExcelRow = [p.ipPrinter];
       // Fill with zeros for each month
       for (let i = 0; i < 12 * 4; i++) row.push(0);
       data.push(row);
@@ -611,14 +632,8 @@ export class PrintersService {
         'CAST(SUM(stats.print_total_delta) AS INTEGER)',
         'totalImpressions',
       )
-      .addSelect(
-        'CAST(SUM(stats.print_only_delta) AS INTEGER)',
-        'printOnly',
-      )
-      .addSelect(
-        'CAST(SUM(stats.copy_delta) AS INTEGER)',
-        'copies',
-      )
+      .addSelect('CAST(SUM(stats.print_only_delta) AS INTEGER)', 'printOnly')
+      .addSelect('CAST(SUM(stats.copy_delta) AS INTEGER)', 'copies')
       .addSelect((subQuery) => {
         return subQuery
           .select('CAST(COUNT(toner.id) AS INTEGER)', 'count')
@@ -716,7 +731,11 @@ export class PrintersService {
     }));
   }
 
-  async getUnitTopPrintConsumers(userUnitId: string, year: number, month: number) {
+  async getUnitTopPrintConsumers(
+    userUnitId: string,
+    year: number,
+    month: number,
+  ) {
     if (!userUnitId) throw new ForbiddenException('User has no unit assigned');
 
     const rawData = await this.printerMonthlyStatRepository
@@ -724,7 +743,10 @@ export class PrintersService {
       .innerJoin('stats.printer', 'printer')
       .select('printer.assetId', 'printerId')
       .addSelect('printer.namePrinter', 'name')
-      .addSelect('CAST(SUM(stats.print_total_delta) AS INTEGER)', 'totalImpressions')
+      .addSelect(
+        'CAST(SUM(stats.print_total_delta) AS INTEGER)',
+        'totalImpressions',
+      )
       .where('printer.unitId = :unitId', { unitId: userUnitId })
       .andWhere('stats.year = :year', { year })
       .andWhere('stats.month = :month', { month })

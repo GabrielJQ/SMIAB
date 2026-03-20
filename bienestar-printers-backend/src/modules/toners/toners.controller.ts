@@ -53,7 +53,7 @@ export class TonersController {
     return this.tonersService.getUnitHistory(
       unitId,
       parseInt(year || new Date().getFullYear().toString()),
-      parseInt(month || (new Date().getMonth() + 1).toString())
+      parseInt(month || (new Date().getMonth() + 1).toString()),
     );
   }
 
@@ -88,7 +88,7 @@ export class TonersController {
       id,
       unitId,
       parseInt(year || new Date().getFullYear().toString()),
-      parseInt(month || (new Date().getMonth() + 1).toString())
+      parseInt(month || (new Date().getMonth() + 1).toString()),
     );
   }
 
@@ -116,10 +116,14 @@ export class TonersController {
   ) {
     const unitId = user.unitId || user.areaId;
     if (!unitId) throw new ForbiddenException('User has no unit assigned');
-    
+
     const parsedYear = year ? parseInt(year, 10) : undefined;
     const parsedMonth = month ? parseInt(month, 10) : undefined;
 
-    return this.tonersService.getUnitTopConsumers(unitId, parsedYear, parsedMonth);
+    return this.tonersService.getUnitTopConsumers(
+      unitId,
+      parsedYear,
+      parsedMonth,
+    );
   }
 }

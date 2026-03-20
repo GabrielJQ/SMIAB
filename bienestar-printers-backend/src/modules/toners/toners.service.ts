@@ -94,7 +94,7 @@ export class TonersService {
       this.printerTonerChangeRepository,
       userUnitId,
       year,
-      month
+      month,
     );
   }
 }
