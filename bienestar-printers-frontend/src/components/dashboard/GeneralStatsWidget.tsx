@@ -4,12 +4,13 @@ import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { api } from '@/services/api';
 import { PrinterComparison } from '@/types/printer';
-import { Globe, FileUp, ChevronDown } from 'lucide-react';
+import { Globe, FileUp, ChevronDown, Download } from 'lucide-react';
 import { DashboardCard } from '@/components/ui/DashboardCard';
 import { BaseBarChart } from '@/components/ui/charts/BaseBarChart';
 import { CHART_COLORS, MONTH_NAMES } from '@/lib/constants';
 import { ImportHistoryModal } from './ImportHistoryModal';
 import { useModalStore } from '@/store/useModalStore';
+import { useExportModalStore } from '@/store/useExportModalStore';
 import {
     ComposedChart,
     Area,
@@ -39,6 +40,7 @@ export const GeneralStatsWidget = () => {
     const now = new Date();
     const [selectedYear, setSelectedYear] = useState(now.getFullYear());
     const { openImportModal } = useModalStore();
+    const { openExportModal } = useExportModalStore();
 
     const { data: history, isLoading, refetch } = useQuery({
         queryKey: ['unit-history', selectedYear],
@@ -110,6 +112,14 @@ export const GeneralStatsWidget = () => {
                 </div>
 
                 <div className="flex items-center gap-3 relative w-full md:w-auto self-end md:self-auto">
+                    <button 
+                        onClick={() => openExportModal()}
+                        className="flex items-center gap-2 bg-guinda-50 hover:bg-guinda-100 text-guinda-700 px-4 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all hover:scale-[1.02] active:scale-95 whitespace-nowrap"
+                    >
+                        <Download className="w-4 h-4 text-guinda-700" />
+                        Exportar Reporte
+                    </button>
+
                     <button 
                         onClick={() => openImportModal(() => refetch())}
                         className="flex items-center gap-2 bg-slate-100 hover:bg-slate-200 text-slate-600 px-4 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all hover:scale-[1.02] active:scale-95 whitespace-nowrap"

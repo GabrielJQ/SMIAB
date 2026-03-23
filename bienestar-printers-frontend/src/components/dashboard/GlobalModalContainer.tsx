@@ -3,6 +3,7 @@
 import React from 'react';
 import { useModalStore } from '@/store/useModalStore';
 import { ImportHistoryModal } from './ImportHistoryModal';
+import { ExportReportModal } from './ExportReportModal';
 
 export const GlobalModalContainer = () => {
     const { isImportModalOpen, closeImportModal, onImportSuccess } = useModalStore();
@@ -16,6 +17,7 @@ export const GlobalModalContainer = () => {
                     if (onImportSuccess) onImportSuccess();
                 }} 
             />
+            <ExportReportModal />
         </>
     );
 };

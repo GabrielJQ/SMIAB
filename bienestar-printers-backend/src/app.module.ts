@@ -11,6 +11,7 @@ import { PrintersModule } from './modules/printers/printers.module';
 import { TonersModule } from './modules/toners/toners.module';
 import { SnmpModule } from './modules/snmp/snmp.module';
 import { MailerModule } from '@nestjs-modules/mailer';
+import { ReportsModule } from './modules/reports/reports.module';
 
 @Module({
   imports: [
@@ -50,6 +51,7 @@ import { MailerModule } from '@nestjs-modules/mailer';
         },
       }),
     }),
+    ReportsModule,
   ],
   controllers: [AppController],
   providers: [AppService],
