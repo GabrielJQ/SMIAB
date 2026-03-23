@@ -1,3 +1,8 @@
+/**
+ * @interface SupabaseUser
+ * @description Contrato definido por Supabase GoTrue que dicta todos los claims estándar de JWT y los estandarizados de la plataforma.
+ * Actúa como DTO de entrada durante la validación del Token.
+ */
 export interface SupabaseUser {
   // JWT standard
   iss: string;

@@ -1,6 +1,17 @@
 import { Repository } from 'typeorm';
 import { PrinterTonerChange } from '../entities/printer-toner-change.entity';
 
+/**
+ * @description Realiza una consulta agregada para obtener el conteo de cambios de tóner por mes y año para una única impresora.
+ * Similar a la consulta por unidad, garantiza que se retornen todos los meses del periodo solicitado (desde enero) 
+ * rellenando con ceros aquellos donde no haya registros en base de datos.
+ * 
+ * @param {Repository<PrinterTonerChange>} tonerChangeRepository - Repositorio de TypeORM.
+ * @param {string} printerId - Identificador único de la impresora (assetId).
+ * @param {number} year - Año de la consulta.
+ * @param {number} month - Mes final del reporte proyectado.
+ * @returns {Promise<Array<{year: number, month: number, toner_count: number}>>} Historial mensualizado de cambios para la impresora.
+ */
 export async function getPrinterTonerHistoryQuery(
   tonerChangeRepository: Repository<PrinterTonerChange>,
   printerId: string,
@@ -45,3 +56,4 @@ export async function getPrinterTonerHistoryQuery(
     };
   });
 }
+

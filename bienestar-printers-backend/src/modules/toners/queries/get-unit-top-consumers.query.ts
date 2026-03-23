@@ -1,6 +1,18 @@
 import { Repository } from 'typeorm';
 import { PrinterTonerChange } from '../entities/printer-toner-change.entity';
 
+/**
+ * @description Identifica y agrupa las impresoras con mayor número de cambios de tóner en un periodo específico (mes/año).
+ * Realiza un JOIN entre los cambios de tóner, las impresoras y sus departamentos para proporcionar un reporte detallado
+ * del consumo por ubicación dentro de una unidad. Los resultados se limitan a los 10 principales consumidores.
+ * 
+ * @param {Repository<PrinterTonerChange>} tonerChangeRepository - Repositorio de TypeORM para la entidad PrinterTonerChange.
+ * @param {string} unitId - Identificador único de la unidad administrativa a consultar.
+ * @param {number} [year] - Año de consulta (por defecto el año actual).
+ * @param {number} [month] - Mes de consulta (1-12, por defecto el mes actual).
+ * @returns {Promise<Array<{assetId: string, printerName: string, areaName: string, toner_count: number, events: Array<{date: Date, type: string}>}>>} 
+ * Lista de los 10 mayores consumidores con su conteo de tóners y desglose de eventos.
+ */
 export async function getUnitTopConsumersQuery(
   tonerChangeRepository: Repository<PrinterTonerChange>,
   unitId: string,
@@ -69,3 +81,4 @@ export async function getUnitTopConsumersQuery(
 
   return results;
 }
+

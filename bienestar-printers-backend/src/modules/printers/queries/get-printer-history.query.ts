@@ -1,14 +1,30 @@
 import { Repository } from 'typeorm';
 import { PrinterMonthlyStat } from '../entities/printer-monthly-stat.entity';
 
-interface GetPrinterHistoryParams {
+/**
+ * @description Definición de parámetros para el filtrado dinámico del historial de impresoras.
+ */
+export interface GetPrinterHistoryParams {
+  /** ID del activo. */
   printerId: string;
+  /** Año inicial del rango. */
   startYear?: number;
+  /** Mes inicial del rango. */
   startMonth?: number;
+  /** Año final del rango. */
   endYear?: number;
+  /** Mes final del rango. */
   endMonth?: number;
 }
 
+/**
+ * @description Construye una consulta dinámica avanzada para obtener el historial de consumo de una impresora.
+ * Soporta filtrado por rangos temporales (inicio y fin) manejando comparaciones lógicas complejas de año/mes en SQL.
+ * 
+ * @param {Repository<PrinterMonthlyStat>} statRepository - Repositorio de estadísticas mensuales.
+ * @param {GetPrinterHistoryParams} params - Criterios de filtrado temporal.
+ * @returns {Promise<PrinterMonthlyStat[]>} Historial filtrado ordenado cronológicamente.
+ */
 export async function getPrinterHistoryQuery(
   statRepository: Repository<PrinterMonthlyStat>,
   params: GetPrinterHistoryParams,
@@ -43,3 +59,4 @@ export async function getPrinterHistoryQuery(
     .addOrderBy('stats.month', 'ASC')
     .getMany();
 }
+

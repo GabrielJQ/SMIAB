@@ -28,11 +28,18 @@ import { PrinterTonerChange } from '../toners/entities/printer-toner-change.enti
 import { PrinterStatusLog } from './entities/printer-status-log.entity';
 import { Alert } from './entities/alert.entity';
 
-type ExcelCell = string | number | boolean | Date | null | undefined;
-type ExcelRow = ExcelCell[];
+/**
+ * @description Define los tipos de datos permitidos en una celda de Excel histórica.
+ */
+export type ExcelCell = string | number | boolean | Date | null | undefined;
 
 /**
- * @class PrintersService
+ * @description Estructura de fila representando un arreglo de celdas.
+ */
+export type ExcelRow = ExcelCell[];
+
+
+/**
  * @description Servicio core para la gestión operativa y analítica de las impresoras.
  * Orquesta la persistencia de datos, el procesamiento de archivos históricos y la 
  * generación de estadísticas para el tablero de control.
@@ -346,15 +353,16 @@ export class PrintersService {
 
   /**
    * @method upsertStatWithCalculations
-   * @description Realiza el 'Upsert' de una estadística mensual calculando el consumo (Delta).
-   * Si existe un registro previo, el sistema resta algebraicamente las lecturas de los contadores.
+   * @description Realiza el 'Upsert' de una estadística mensual calculando el consumo real (Delta).
+   * Si existe un registro previo, el sistema resta algebraicamente las lecturas actuales menos las anteriores.
+   * Maneja casos excepcionales como reset de contadores lógicos retornando un delta de 0 o usando el valor manual.
    * 
    * @param {string} assetId - ID del activo.
-   * @param {number} year - Año del registro.
-   * @param {number} month - Mes del registro.
-   * @param {Object} data - Lecturas actuales de contadores.
-   * @param {PrinterMonthlyStat} [prevReadingsCache] - Cache opcional de la lectura anterior para optimizar procesos masivos.
-   * @returns {Promise<PrinterMonthlyStat>} Registro persistido con deltas calculados.
+   * @param {number} year - Año de la estadística.
+   * @param {number} month - Mes de la estadística.
+   * @param {Object} data - Lecturas de contadores capturadas en el Excel.
+   * @param {PrinterMonthlyStat} [prevReadingsCache] - Cache de la lectura cronológica anterior para optimizar procesos masivos.
+   * @returns {Promise<PrinterMonthlyStat>} Registro persistido con los deltas ya calculados.
    * @private
    */
   private async upsertStatWithCalculations(
@@ -369,6 +377,7 @@ export class PrintersService {
     },
     prevReadingsCache?: PrinterMonthlyStat | null,
   ) {
+
     // 1. Get or create current record
     let stat = await this.printerMonthlyStatRepository.findOne({
       where: { assetId, year, month },

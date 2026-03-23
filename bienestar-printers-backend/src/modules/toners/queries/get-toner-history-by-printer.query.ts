@@ -4,6 +4,15 @@ import {
   DateRangeFilter,
 } from '../../../common/utils/supabase-query-helpers';
 
+/**
+ * @description Obtiene el historial de cambios de tóner para una impresora individual filtrado por un rango de fechas opcional.
+ * Utiliza helpers comunes para aplicar filtros de marca temporal sobre la columna 'changed_at'.
+ * 
+ * @param {SupabaseClient} supabase - Cliente de Supabase.
+ * @param {string} printerId - ID del activo (assetId) cuya historia se desea consultar.
+ * @param {DateRangeFilter} params - Parámetros de filtrado que incluyen fecha de inicio (startDate) y fin (endDate).
+ * @returns {Promise<any[]>} Arreglo de cambios de tóner para el activo solicitado.
+ */
 export async function getTonerHistoryByPrinterQuery(
   supabase: SupabaseClient,
   printerId: string,
@@ -23,3 +32,4 @@ export async function getTonerHistoryByPrinterQuery(
   if (error) throw new Error(error.message);
   return data;
 }
+

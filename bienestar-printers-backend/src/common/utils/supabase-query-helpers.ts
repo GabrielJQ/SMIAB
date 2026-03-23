@@ -1,3 +1,8 @@
+/**
+ * @interface DateRangeFilter
+ * @description Estructura de filtrado de tiempo aplicable a las consultas de estadísticas e historiales.
+ * Soporta filtros parciales (ej. solo año) o rangos exactos (año y mes de inicio/fin).
+ */
 export interface DateRangeFilter {
   startYear?: number;
   startMonth?: number;
@@ -6,15 +11,16 @@ export interface DateRangeFilter {
 }
 
 /**
- * Applies a date range filter to a Supabase query builder.
- * Assumes the table has 'year' and 'month' columns.
+ * @function applyDateRangeFilter
+ * @description Aplica un filtro de rango de fechas a un constructor de consultas (Query Builder) de Supabase
+ * asumiendo que la tabla objetivo posee columnas numéricas explícitas 'year' y 'month'.
  *
- * Logic:
- * Start: (year > startYear) OR (year = startYear AND month >= startMonth)
- * End:   (year < endYear)   OR (year = endYear   AND month <= endMonth)
- *
- * Note: Supabase .or() applies the filter as an additional condition.
- * Since default behavior is AND, calling .or() twice results in (C1) AND (C2), which is correct.
+ * Utiliza álgebra booleana en formato PostgREST para asegurar que la condición inicial
+ * evalúe `(año > inicio) OR (año = inicio AND mes >= inicio_mes)`, y su análogo para el fin.
+ * 
+ * @param {any} query - Objeto de consulta de Supabase (SupabaseClient Filter Builder).
+ * @param {DateRangeFilter} filters - Parámetros de rango de fecha a aplicar.
+ * @returns {any} El Query Builder mutado con las condiciones de tiempo.
  */
 export const applyDateRangeFilter = (query: any, filters: DateRangeFilter) => {
   let q = query;
@@ -45,8 +51,14 @@ export const applyDateRangeFilter = (query: any, filters: DateRangeFilter) => {
 };
 
 /**
- * Applies a date range filter to a Supabase query builder for 'changed_at' or similar timestamp column.
- * Assumes params may have startYear/Month/endYear/Month.
+ * @function applyTimestampRangeFilter
+ * @description Filtro especializado para aplicar rangos de fecha sobre una única columna de tipo Timestamp (ej. 'changed_at').
+ * Extrae y deduce el primer y último milisegundo del mes objetivo para inyectarlo en .gte() y .lte().
+ * 
+ * @param {any} query - Objeto de consulta de Supabase JS.
+ * @param {string} column - Nombre exacto de la columna Timestamp (ej: 'changed_at', 'created_at').
+ * @param {DateRangeFilter} filters - Parámetros limitantes del rango cronológico.
+ * @returns {any} El Query Builder con los límites estrictos de marca temporal aplicados.
  */
 export const applyTimestampRangeFilter = (
   query: any,

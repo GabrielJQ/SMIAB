@@ -4,6 +4,12 @@ import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import helmet from 'helmet';
 import { AppModule } from './app.module';
 
+/**
+ * @description Punto de entrada principal (Entry Point) de la aplicación NestJS.
+ * Se encarga de instanciar el servidor HTTP, aplicar políticas de seguridad (Helmet, CORS),
+ * configurar los 'Pipes' globales para validación de DTOs y levantar la documentación interactiva con Swagger.
+ * @returns {Promise<void>}
+ */
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 

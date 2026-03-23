@@ -1,5 +1,16 @@
 import { SupabaseClient } from '@supabase/supabase-js';
 
+/**
+ * @description Extrae el historial detallado de cambios de tóner para una unidad en un mes específico.
+ * Incluye cruces con tablas suplementarias (Printers, Departments) para devolver la foto completa del activo.námico (gte) sobre la fecha de cambio. 
+ * Los datos devueltos incluyen la relación con la impresora para facilitar la posterior agregación en la capa de servicio.
+ * 
+ * @param {SupabaseClient} supabase - Cliente de Supabase autenticado.
+ * @param {string} unitId - ID de la unidad administrativa.
+ * @param {number} [months=6] - Cantidad de meses hacia atrás para la consulta (por defecto 6).
+ * @returns {Promise<any[]>} Arreglo de registros crudos de cambios de tóner con metadatos de impresoras.
+ * @throws {Error} Si ocurre un fallo en la comunicación con el API de Supabase.
+ */
 export async function getTonerHistoryMonthlyQuery(
   supabase: SupabaseClient,
   unitId: string,
@@ -37,3 +48,4 @@ export async function getTonerHistoryMonthlyQuery(
   if (error) throw new Error(error.message);
   return data;
 }
+

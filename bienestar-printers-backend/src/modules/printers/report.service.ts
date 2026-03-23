@@ -16,14 +16,23 @@ import { Printer } from './entities/printer.entity';
  */
 /**
  * @class ReportService
- * @description Servicio de alto nivel para la orquestación de reportes visuales y notificaciones.
- * Implementa una arquitectura de embudo (Funnel) para gestionar el consumo de RAM de Puppeteer,
- * garantizando la estabilidad operativa del servidor bajo carga simultánea.
+ * @description Servicio de alto nivel encargado de la orquestación de reportes visuales y notificaciones institucionales.
+ * Utiliza Puppeteer para el "Visual Scraping" del estado de las impresoras y Mailer para el despacho de correos.
+ * El servicio garantiza la estabilidad operativa mediante una arquitectura de embudo para el manejo de RAM.
  */
 @Injectable()
 export class ReportService {
   private readonly logger = new Logger(ReportService.name);
+
+  /**
+   * @private
+   * @property {pLimit.Limit} limit
+   * @description Embudo de ejecución (Funnel) que limita a Puppeteer a una única instancia concurrente.
+   * Debido a que cada instancia consume ~200MB de RAM, esta protección previene errores de "Out of Memory" (OOM)
+   * si varios usuarios solicitan reportes simultáneamente.
+   */
   private readonly limit = pLimit(1);
+
 
   constructor(
     private readonly mailerService: MailerService,

@@ -1,5 +1,10 @@
 import type { SupabaseUser } from './supabase-user.type';
 
+/**
+ * @interface AuthenticatedUser
+ * @description Estructura de contrato final asignada a 'request.user' tras pasar por el SupabaseAuthGuard.
+ * Combina la identidad proveniente de GoTrue (Supabase) con la validación interna (Roles y Regiones de SAI).
+ */
 export interface AuthenticatedUser {
   supabase: SupabaseUser;
   internal: {

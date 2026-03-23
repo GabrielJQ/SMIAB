@@ -10,19 +10,38 @@ import { PrinterStatusLog } from '../printers/entities/printer-status-log.entity
 import { PrinterTonerChange } from '../toners/entities/printer-toner-change.entity';
 import * as snmp from 'net-snmp';
 
-type SnmpDriver = {
+/**
+ * @description Define la estructura de OIDs (Object Identifiers) necesarios para extraer 
+ * telemetría específica de una marca o modelo de impresora.
+ */
+export type SnmpDriver = {
+  /** OID del contador histórico total (Vida del equipo). */
   totalPages: string;
+  /** OID del contador de impresiones (excepto copias). */
   printOnly: string | null;
+  /** OID del contador de copias físicas. */
   copyOnly: string | null;
+  /** OID del nivel de suministro (tóner). */
   tonerLevel: string;
+  /** OID de la capacidad máxima del cartucho (para calcular %). */
   tonerMaxCapacity: string | null;
+  /** OID del nivel de vida del kit de mantenimiento. */
   maintenanceKit: string | null;
+  /** Capacidad máxima del kit de mantenimiento. */
   maintenanceKitMax: string | null;
+  /** OID del nivel de la unidad de imagen (Drum/Fotoconductor). */
   imageUnit: string | null;
+  /** Capacidad máxima de la unidad de imagen. */
   imageUnitMax: string | null;
 };
 
-const SNMP_DRIVERS: Record<string, SnmpDriver> = {
+
+/**
+ * @description Diccionario de perfiles OID por fabricante. 
+ * Contiene las rutas específicas del MIB (Management Information Base) para Kyocera y Lexmark.
+ * El perfil 'generic' actúa como fallback basado en el estándar RFC 1213/3805.
+ */
+export const SNMP_DRIVERS: Record<string, SnmpDriver> = {
   kyocera: {
     totalPages: '1.3.6.1.2.1.43.10.2.1.4.1.1',
     printOnly: '1.3.6.1.4.1.1347.43.10.1.1.12.1.1',
@@ -58,15 +77,18 @@ const SNMP_DRIVERS: Record<string, SnmpDriver> = {
   },
 };
 
-const SYS_DESCR_OID = '1.3.6.1.2.1.1.1.0';
+
+/**
+ * @description OID estándar para obtener la descripción del sistema.
+ * Se utiliza como paso inicial para detectar automáticamente la marca del fabricante.
+ */
+export const SYS_DESCR_OID = '1.3.6.1.2.1.1.1.0';
+
 
 /**
  * Servicio encargado de la comunicación y recolección de datos vía SNMP (Simple Network Management Protocol).
  * Actúa como el "Recolector de Telemetría" del sistema SMIAB, gestionando barridos automáticos,
  * detección de cambios de tóner y cierre mensual de contadores.
- * 
- * @class SnmpService
- * @implements {OnModuleInit}
  */
 @Injectable()
 export class SnmpService implements OnModuleInit {

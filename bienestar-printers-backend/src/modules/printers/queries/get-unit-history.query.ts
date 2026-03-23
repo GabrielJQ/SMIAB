@@ -2,6 +2,17 @@ import { Repository } from 'typeorm';
 import { PrinterComparisonDto } from '../dto/printer-comparison.dto';
 import { PrinterMonthlyStat } from '../entities/printer-monthly-stat.entity';
 
+/**
+ * @description Realiza una agregación masiva de consumos (impresiones y copias) para toda una unidad administrativa.
+ * Utiliza QueryBuilder para ejecutar operaciones SUM y GROUP BY directamente en el motor de base de datos,
+ * asegurando eficiencia al procesar grandes volúmenes de registros históricos.
+ * 
+ * @param {Repository<PrinterMonthlyStat>} statRepository - Repositorio de estadísticas mensuales.
+ * @param {string} unitId - Identificador de la unidad.
+ * @param {number} year - Año de consulta.
+ * @param {number} month - Mes límite (inclusive) para el acumulado.
+ * @returns {Promise<PrinterComparisonDto[]>} Lista de consumos agregados mapeados al DTO de comparación.
+ */
 export async function getUnitHistoryQuery(
   statRepository: Repository<PrinterMonthlyStat>,
   unitId: string,
@@ -38,3 +49,4 @@ export async function getUnitHistoryQuery(
       }),
   );
 }
+

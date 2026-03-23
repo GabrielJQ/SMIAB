@@ -2,6 +2,11 @@ import { Injectable, OnModuleInit } from '@nestjs/common';
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import { ConfigService } from '@nestjs/config';
 
+/**
+ * @class SupabaseService
+ * @description Proveedor genérico para inicializar y mantener vivo un cliente de Supabase privilegiado en el backend.
+ * Implementa OnModuleInit para asegurar la inyección de claves Service Role durante el arranque.
+ */
 @Injectable()
 export class SupabaseService implements OnModuleInit {
   private adminClient: SupabaseClient;
@@ -25,7 +30,13 @@ export class SupabaseService implements OnModuleInit {
     });
   }
 
-  /** 👑 Cliente con SERVICE ROLE (backend only) */
+  /**
+   * @method getAdminClient
+   * @description Retorna una instancia unificada de acceso pleno (Service Role) a Supabase.
+   * IMPORTANTE: Esta instancia puentea (bypasses) Row Level Security (RLS). Debe ser usada exclusivamente
+   * por servicios del backend para validación, auditoría o accesos administrativos justificados.
+   * @returns {SupabaseClient} Cliente de Supabase con privilegios máximos de lectura y escritura.
+   */
   getAdminClient(): SupabaseClient {
     return this.adminClient;
   }
