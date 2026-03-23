@@ -37,7 +37,21 @@ cd bienestar-printers-frontend
 npm install
 npm run dev
 ```
+---
 
+## 📚 Documentación del Código (Compodoc)
+
+Este proyecto utiliza el estándar JSDoc en combinación con **Compodoc** para generar un portal web interactivo con la documentación técnica profunda de todos los módulos, controladores y servicios.
+
+Para generar y visualizar el portal de documentación en tu entorno local:
+
+1. Abre la terminal en la raíz del proyecto backend.
+2. Ejecuta el comando de construcción:
+   ```bash
+   npm run docs
+El script compilará los comentarios y levantará un servidor local. Abre tu navegador en: http://localhost:8080
+
+Nota para desarrolladores: La carpeta /documentation generada por Compodoc está ignorada en Git (.gitignore) por ser un artefacto de compilación. No la subas al repositorio; genérala siempre bajo demanda.
 ---
 
 ## ⚙️ Variables de Entorno Críticas

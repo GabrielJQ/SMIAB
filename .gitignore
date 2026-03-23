@@ -70,3 +70,6 @@ GEMINI.md
 # --- AI Agents & Skills ---
 .agents/
 skills-lock.json
+
+# --- Documentation ---
+documentation/
