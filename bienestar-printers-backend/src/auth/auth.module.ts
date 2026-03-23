@@ -7,6 +7,11 @@ import { SupabaseAuthGuard } from './guards/supabase-auth.guard';
 import { RolesGuard } from './guards/roles.guard';
 import { UsersModule } from '../modules/users/users.module';
 
+/**
+ * @module AuthModule
+ * @description Módulo encargado de la orquestación de la seguridad, JWT y guardias de roles.
+ * Integra la estrategia de Supabase para la validación de identidad.
+ */
 @Module({
   imports: [
     PassportModule.register({

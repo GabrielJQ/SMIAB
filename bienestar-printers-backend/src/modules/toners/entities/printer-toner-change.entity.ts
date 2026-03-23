@@ -7,6 +7,11 @@ import {
 } from 'typeorm';
 import { Printer } from '../../printers/entities/printer.entity';
 
+/**
+ * @class PrinterTonerChange
+ * @description Entidad que registra cada evento de cambio de tóner.
+ * Puede ser detectado automáticamente por SNMP o registrado manualmente por el usuario.
+ */
 @Entity('printer_toner_changes')
 export class PrinterTonerChange {
   @PrimaryGeneratedColumn('increment')

@@ -3,6 +3,11 @@ import { AssetAssignment } from './asset-assignment.entity';
 import { Printer } from './printer.entity';
 import { Department } from './department.entity';
 
+/**
+ * @class Asset
+ * @description Representa un activo físico dentro del inventario centralizado (SAI).
+ * Sirve como base para la vinculación con entidades de telemetría (Printer).
+ */
 @Entity('assets')
 export class Asset {
   @PrimaryGeneratedColumn({ type: 'bigint' })

@@ -10,6 +10,11 @@ import { Unit } from './unit.entity';
 import { Printer } from './printer.entity';
 import { Address } from './address.entity';
 
+/**
+ * @class Department
+ * @description Representa un departamento o área específica dentro de una Unidad.
+ * Es el nivel más granular de ubicación organizacional para los activos.
+ */
 @Entity('departments')
 export class Department {
   @PrimaryGeneratedColumn({ type: 'bigint' })

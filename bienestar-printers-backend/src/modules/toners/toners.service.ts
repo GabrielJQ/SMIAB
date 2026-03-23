@@ -16,6 +16,11 @@ import { getPrinterByIdQuery } from '../printers/queries/get-printer-by-id.query
 import { PrinterTonerChange } from './entities/printer-toner-change.entity';
 import { Printer } from '../printers/entities/printer.entity';
 
+/**
+ * @class TonersService
+ * @description Servicio especializado en la gestión del ciclo de vida y analítica de los tóners.
+ * Proporciona el historial de cambios y detección de consumos atípicos.
+ */
 @Injectable()
 export class TonersService {
   constructor(

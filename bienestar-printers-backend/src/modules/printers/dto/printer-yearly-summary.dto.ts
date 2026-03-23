@@ -8,6 +8,11 @@ class MonthlyBreakdown {
   printVolume: number;
 }
 
+/**
+ * @class PrinterYearlySummaryDto
+ * @description Proporciona un resumen ejecutivo del consumo anual de una impresora,
+ * incluyendo el total de impresiones, el mes más activo y el desglose mensual detallado.
+ */
 export class PrinterYearlySummaryDto {
   @ApiProperty({ description: 'Año consultado' })
   year: number;

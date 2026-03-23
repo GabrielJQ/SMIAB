@@ -3,6 +3,11 @@ import { Asset } from './asset.entity';
 import { Employee } from './employee.entity';
 import { Department } from './department.entity';
 
+/**
+ * @class AssetAssignment
+ * @description Registra la asignación histórica y actual de un activo a un empleado o departamento.
+ * Permite rastrear el movimiento de las impresoras entre distintas áreas.
+ */
 @Entity('asset_assignments')
 export class AssetAssignment {
   @PrimaryGeneratedColumn({ type: 'bigint' })

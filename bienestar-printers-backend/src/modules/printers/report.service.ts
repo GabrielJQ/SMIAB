@@ -7,6 +7,19 @@ import puppeteer from 'puppeteer';
 import pLimit from 'p-limit';
 import { Printer } from './entities/printer.entity';
 
+/**
+ * Servicio encargado de la generación de reportes visuales y envío de correos institucionales.
+ * Utiliza Puppeteer para capturar evidencia visual del estado de las impresoras (Visual Scraping)
+ * y garantiza la estabilidad del sistema mediante el procesamiento serial de tareas.
+ * 
+ * @class ReportService
+ */
+/**
+ * @class ReportService
+ * @description Servicio de alto nivel para la orquestación de reportes visuales y notificaciones.
+ * Implementa una arquitectura de embudo (Funnel) para gestionar el consumo de RAM de Puppeteer,
+ * garantizando la estabilidad operativa del servidor bajo carga simultánea.
+ */
 @Injectable()
 export class ReportService {
   private readonly logger = new Logger(ReportService.name);
@@ -19,6 +32,30 @@ export class ReportService {
     private readonly printerRepository: Repository<Printer>,
   ) {}
 
+  /**
+   * Genera y envía una solicitud de consumibles vía correo electrónico.
+   * El proceso incluye la recuperación de datos relacionales, captura de pantalla del panel
+   * de la impresora (vía Puppeteer) y el envío de un correo con formato institucional.
+   * 
+   * @param {string} printerId - ID único de la impresora (Asset ID).
+   * @param {string} printerIp - Dirección IP para acceder al panel web.
+   * @param {string} userEmail - Correo electrónico del destinatario.
+   * @returns {Promise<void>}
+   * @throws {InternalServerErrorException} Si hay errores en la conexión o procesamiento.
+   * @memberof ReportService
+   */
+  /**
+   * @method sendConsumableRequest
+   * @description Dispara el flujo de solicitud de insumos. Realiza un SQL Join complejo para obtener
+   * datos del resguardante, genera una evidencia visual (Screenshot) vía Puppeteer y despacha
+   * un correo HTML con recursos incrustados (CID).
+   * 
+   * @param {string} printerId - UUID/AssetID de la impresora para el Join de datos.
+   * @param {string} printerIp - IP de red para el acceso al panel web del dispositivo.
+   * @param {string} userEmail - Destinatario final de la gestión administrativa.
+   * @returns {Promise<void>}
+   * @protected_by p-limit(1) - Protección de memoria para prevenir desbordamientos de RAM (OOM).
+   */
   async sendConsumableRequest(printerId: string, printerIp: string, userEmail: string) {
     return this.limit(async () => {
       this.logger.log(`Iniciando solicitud de consumibles para impresora ${printerId} (${printerIp})`);

@@ -10,6 +10,11 @@ import { Region } from './region.entity';
 import { Department } from './department.entity';
 import { Printer } from './printer.entity';
 
+/**
+ * @class Unit
+ * @description Representa una 'Unidad' o centro de distribución administrativa de nivel medio.
+ * Agrupa múltiples departamentos y gestiona su propia flota de activos.
+ */
 @Entity('units')
 export class Unit {
   @PrimaryGeneratedColumn({ type: 'bigint' })

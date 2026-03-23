@@ -1,5 +1,9 @@
 import { ApiProperty } from '@nestjs/swagger';
 
+/**
+ * @class PrinterComparisonDto
+ * @description Objeto de transferencia para comparar métricas de impresión y copiado entre periodos.
+ */
 export class PrinterComparisonDto {
   @ApiProperty({ description: 'Año' })
   year: number;

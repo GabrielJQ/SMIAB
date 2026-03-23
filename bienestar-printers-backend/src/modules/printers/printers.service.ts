@@ -31,6 +31,12 @@ import { Alert } from './entities/alert.entity';
 type ExcelCell = string | number | boolean | Date | null | undefined;
 type ExcelRow = ExcelCell[];
 
+/**
+ * @class PrintersService
+ * @description Servicio core para la gestión operativa y analítica de las impresoras.
+ * Orquesta la persistencia de datos, el procesamiento de archivos históricos y la 
+ * generación de estadísticas para el tablero de control.
+ */
 @Injectable()
 export class PrintersService {
   constructor(
@@ -51,6 +57,12 @@ export class PrintersService {
   //  BASIC PRINTER METHODS
   // ==========================================
 
+  /**
+   * @method getPrintersByUserArea
+   * @description Recupera el listado de impresoras asignadas al área específica del usuario.
+   * @param {string} areaId - Identificador del departamento o unidad.
+   * @returns {Promise<PrinterSummaryDto[]>} Lista normalizada de impresoras.
+   */
   async getPrintersByUserArea(areaId: string) {
     const rows = await getPrintersByAreaQuery(this.printerRepository, areaId);
     if (!rows) return [];
@@ -130,6 +142,18 @@ export class PrintersService {
   //  NEW STATISTICS METHODS
   // ==========================================
 
+  /**
+   * @method processExcelHistory
+   * @description Motor de ingesta masiva de historial. Detecta automáticamente el formato del Excel
+   * (Wide o Long), identifica columnas de IP y periodos, y realiza el cálculo de deltas
+   * comparando con lecturas previas en la base de datos.
+   * 
+   * @param {Buffer} buffer - Contenido binario del archivo Excel.
+   * @param {number} year - Año de referencia para el procesamiento.
+   * @param {number} month - Mes de referencia para el procesamiento.
+   * @returns {Promise<{processed: number, errors: string[]}>} Resumen del proceso.
+   * @throws {BadRequestException} Si el formato del archivo es inválido.
+   */
   async processExcelHistory(buffer: Buffer, year: number, month: number) {
     const workbook = xlsx.read(buffer, { type: 'buffer' });
     const sheetName = workbook.SheetNames[0];
@@ -320,6 +344,19 @@ export class PrintersService {
     return results;
   }
 
+  /**
+   * @method upsertStatWithCalculations
+   * @description Realiza el 'Upsert' de una estadística mensual calculando el consumo (Delta).
+   * Si existe un registro previo, el sistema resta algebraicamente las lecturas de los contadores.
+   * 
+   * @param {string} assetId - ID del activo.
+   * @param {number} year - Año del registro.
+   * @param {number} month - Mes del registro.
+   * @param {Object} data - Lecturas actuales de contadores.
+   * @param {PrinterMonthlyStat} [prevReadingsCache] - Cache opcional de la lectura anterior para optimizar procesos masivos.
+   * @returns {Promise<PrinterMonthlyStat>} Registro persistido con deltas calculados.
+   * @private
+   */
   private async upsertStatWithCalculations(
     assetId: string,
     year: number,

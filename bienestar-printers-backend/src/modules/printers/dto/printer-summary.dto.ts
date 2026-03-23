@@ -1,5 +1,10 @@
 import { ApiProperty } from '@nestjs/swagger';
 
+/**
+ * @class PrinterSummaryDto
+ * @description DTO híbrido que normaliza la información de las impresoras proveniente de 
+ * Supabase y TypeORM para el frontend.
+ */
 export class PrinterSummaryDto {
   @ApiProperty({ description: 'ID de la impresora' })
   id: string;

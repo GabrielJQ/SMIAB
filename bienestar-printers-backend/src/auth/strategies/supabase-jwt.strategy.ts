@@ -5,6 +5,11 @@ import * as jwksRsa from 'jwks-rsa';
 import { ConfigService } from '@nestjs/config';
 import type { SupabaseUser } from '../types/supabase-user.type';
 
+/**
+ * @class SupabaseJwtStrategy
+ * @description Estrategia de Passport para validar tokens JWT emitidos por Supabase (GoTrue).
+ * Utiliza certificados JWKS para verificar la firma de forma segura y descentralizada.
+ */
 @Injectable()
 export class SupabaseJwtStrategy extends PassportStrategy(
   Strategy,
@@ -30,8 +35,13 @@ export class SupabaseJwtStrategy extends PassportStrategy(
     });
   }
 
+  /**
+   * @method validate
+   * @description Extrae y devuelve el payload del JWT tras una verificación de firma exitosa.
+   * @param {SupabaseUser} payload - Datos contenidos en el token.
+   * @returns {Promise<SupabaseUser>} Payload validado.
+   */
   async validate(payload: SupabaseUser): Promise<SupabaseUser> {
-    // 🔥 DEVOLVER EL PAYLOAD TAL CUAL
     return payload;
   }
 }

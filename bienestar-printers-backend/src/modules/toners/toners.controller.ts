@@ -19,6 +19,10 @@ import { TonersService } from './toners.service';
 import { TonerHistoryDto } from './dto/toner-history.dto';
 import { UserJwtPayload } from '../../auth/interfaces/user-jwt.interface';
 
+/**
+ * @class TonersController
+ * @description Controlador para la gestión de tóners.
+ */
 @ApiTags('Toners')
 @Controller('toners')
 @UseGuards(SupabaseAuthGuard)

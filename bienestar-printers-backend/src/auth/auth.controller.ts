@@ -7,18 +7,18 @@ import { RolesGuard } from './guards/roles.guard';
 import { Roles } from './decorators/roles.decorator';
 import type { AuthenticatedUser } from './types/authenticated-user.type';
 
-/*@Controller('auth')
-export class AuthController {
-  @UseGuards(SupabaseAuthGuard, StatusGuard, RolesGuard)
-  @Roles('admin')
-  @Get('me')
-  me(@CurrentUser() user : AuthenticatedUser) {
-    return user;
-
-  } */
-
+/**
+ * @class AuthController
+ * @description Controlador encargado de gestionar las peticiones relacionadas con la identidad y sesión del usuario.
+ */
 @Controller('auth')
 export class AuthController {
+  /**
+   * @method me
+   * @description Recupera la información del usuario actualmente autenticado, incluyendo datos de Supabase e internos de SAI.
+   * @param {any} user - Usuario extraído del token por el decorador @CurrentUser.
+   * @returns {any} Objeto con la identidad completa del usuario.
+   */
   @UseGuards(SupabaseAuthGuard)
   @Get('me')
   me(@CurrentUser() user) {

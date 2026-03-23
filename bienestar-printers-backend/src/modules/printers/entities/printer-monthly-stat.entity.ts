@@ -7,6 +7,11 @@ import {
 } from 'typeorm';
 import { Printer } from './printer.entity';
 
+/**
+ * @class PrinterMonthlyStat
+ * @description Almacena las métricas de consumo mensual (Deltas y Lecturas) para una impresora específica.
+ * Es la base para la generación de gráficas históricas.
+ */
 @Entity('printer_monthly_stats')
 export class PrinterMonthlyStat {
   @PrimaryGeneratedColumn('increment', { type: 'bigint' })

@@ -2,6 +2,10 @@ import { Entity, Column, PrimaryGeneratedColumn, OneToMany } from 'typeorm';
 import { Unit } from './unit.entity';
 import { Printer } from './printer.entity';
 
+/**
+ * @class Region
+ * @description Representa una región geográfica o administrativa que agrupa múltiples Unidades.
+ */
 @Entity('regions')
 export class Region {
   @PrimaryGeneratedColumn({ type: 'bigint' })

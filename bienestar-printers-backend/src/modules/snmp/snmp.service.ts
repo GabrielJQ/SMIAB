@@ -60,6 +60,14 @@ const SNMP_DRIVERS: Record<string, SnmpDriver> = {
 
 const SYS_DESCR_OID = '1.3.6.1.2.1.1.1.0';
 
+/**
+ * Servicio encargado de la comunicación y recolección de datos vía SNMP (Simple Network Management Protocol).
+ * Actúa como el "Recolector de Telemetría" del sistema SMIAB, gestionando barridos automáticos,
+ * detección de cambios de tóner y cierre mensual de contadores.
+ * 
+ * @class SnmpService
+ * @implements {OnModuleInit}
+ */
 @Injectable()
 export class SnmpService implements OnModuleInit {
   private readonly logger = new Logger(SnmpService.name);
@@ -171,6 +179,12 @@ export class SnmpService implements OnModuleInit {
     return true;
   }
 
+  /**
+   * Dispara un barrido SNMP programado. Verifica si la ejecución ocurre en horario laboral
+   * para evitar peticiones innecesarias fuera de tiempo.
+   * 
+   * @memberof SnmpService
+   */
   @Cron('0 9 * * *', { timeZone: 'America/Mexico_City' })
   async scheduledSweep() {
     if (!this.isWorkingHours()) {
@@ -181,6 +195,13 @@ export class SnmpService implements OnModuleInit {
     await this.executeSweep();
   }
 
+  /**
+   * Forza la actualización de una o todas las impresoras registradas.
+   * 
+   * @param {string} [assetId] - Opcional. ID del activo para actualizar una impresora específica.
+   * @returns {Promise<any>} Objeto con el estado del barrido (éxitos/totales).
+   * @memberof SnmpService
+   */
   public async forcePrinterUpdate(assetId?: string) {
     this.logger.log(
       `Barrido manual solicitado. AssetID: ${assetId || 'TODAS'}`,
@@ -188,6 +209,14 @@ export class SnmpService implements OnModuleInit {
     return await this.executeSweep(assetId);
   }
 
+  /**
+   * Lógica central del barrido. Recupera impresoras de la base de datos y ejecuta
+   * la lectura (simulada o producción) según la configuración del entorno.
+   * 
+   * @private
+   * @param {string} [assetId] - ID opcional para filtrar una única impresora.
+   * @memberof SnmpService
+   */
   private async executeSweep(assetId?: string) {
     const query = this.printerRepository
       .createQueryBuilder('printer')
@@ -558,6 +587,16 @@ export class SnmpService implements OnModuleInit {
     return false;
   }
 
+  /**
+   * @method readSnmpOids
+   * @description Realiza la petición SNMP de bajo nivel para un conjunto de OIDs.
+   * Gestiona la sesión, el tiempo de espera y la normalización de la respuesta.
+   * 
+   * @param {string} ip - Dirección IP del dispositivo.
+   * @param {string[]} oids - Lista de OIDs a consultar.
+   * @returns {Promise<any[]>} Arreglo con los valores obtenidos o nulo por cada error de varbind.
+   * @private
+   */
   private readSnmpOids(ip: string, oids: string[]): Promise<any[]> {
     return new Promise((resolve, reject) => {
       const session = snmp.createSession(ip, 'public', {
@@ -712,6 +751,13 @@ export class SnmpService implements OnModuleInit {
     }
   }
 
+  /**
+   * Registra un cambio físico de tóner detectado por el sistema o reportado manualmente.
+   * 
+   * @param {string} assetId - ID del activo.
+   * @param {('auto_detected' | 'manual')} [detectionType='auto_detected'] - Origen de la detección.
+   * @memberof SnmpService
+   */
   public async registerTonerChange(
     assetId: string,
     detectionType: 'auto_detected' | 'manual' = 'auto_detected',
@@ -733,6 +779,15 @@ export class SnmpService implements OnModuleInit {
     }
   }
 
+  /**
+   * Procesa el cierre mensual de contadores de impresión.
+   * Calcula el delta (consumo del mes) comparando la lectura actual con la última lectura persistida.
+   * 
+   * @private
+   * @param {Printer} printer - Entidad de la impresora a procesar.
+   * @param {Date} [date=new Date()] - Fecha del cierre.
+   * @memberof SnmpService
+   */
   private async processMonthlyClosing(
     printer: Printer,
     date: Date = new Date(),

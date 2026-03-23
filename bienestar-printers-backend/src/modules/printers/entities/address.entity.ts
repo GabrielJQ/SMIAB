@@ -1,6 +1,10 @@
 import { Entity, Column, PrimaryGeneratedColumn, OneToMany } from 'typeorm';
 import { Department } from './department.entity';
 
+/**
+ * @class Address
+ * @description Almacena la ubicación física detallada de los departamentos.
+ */
 @Entity('addresses')
 export class Address {
   @PrimaryGeneratedColumn({ type: 'bigint' })

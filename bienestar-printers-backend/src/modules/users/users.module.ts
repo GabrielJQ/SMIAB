@@ -3,6 +3,10 @@ import { UsersService } from './users.service';
 import { SupabaseModule } from '../../integrations/supabase/supabase.module';
 import { ConfigModule } from '@nestjs/config';
 
+/**
+ * @module UsersModule
+ * @description Módulo encargado de la persistencia y consulta de perfiles de usuario.
+ */
 @Module({
   imports: [SupabaseModule, ConfigModule],
   providers: [UsersService],

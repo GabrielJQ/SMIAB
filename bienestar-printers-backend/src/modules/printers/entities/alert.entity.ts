@@ -9,6 +9,10 @@ import {
 } from 'typeorm';
 import { Printer } from './printer.entity';
 
+/**
+ * @class Alert
+ * @description Representa una notificación o evento crítico detectado en una impresora (ej: Tóner bajo).
+ */
 @Entity('alerts')
 export class Alert {
   @PrimaryGeneratedColumn('uuid')

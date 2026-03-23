@@ -2,6 +2,11 @@ import { Entity, Column, PrimaryGeneratedColumn, OneToMany, ManyToOne, JoinColum
 import { AssetAssignment } from './asset-assignment.entity';
 import { Department } from './department.entity';
 
+/**
+ * @class Employee
+ * @description Representa a un empleado o resguardante dentro de la organización.
+ * Vinculado a departamentos y asignaciones de activos.
+ */
 @Entity('employees')
 export class Employee {
   @PrimaryGeneratedColumn({ type: 'bigint' })

@@ -9,6 +9,14 @@ import { AuthGuard } from '@nestjs/passport';
 import { UsersService } from '../../modules/users/users.service';
 import type { SupabaseUser } from '../types/supabase-user.type';
 
+/**
+ * @class SupabaseAuthGuard
+ * @description Guardia principal de autenticación. Valida el token JWT emitido por Supabase
+ * y vincula la identidad interna del usuario (SAI) al objeto Request.
+ * 
+ * @extends {AuthGuard('supabase-jwt')}
+ * @implements {CanActivate}
+ */
 @Injectable()
 export class SupabaseAuthGuard
   extends AuthGuard('supabase-jwt')
@@ -18,6 +26,18 @@ export class SupabaseAuthGuard
     super();
   }
 
+  /**
+   * @method canActivate
+   * @description Ejecuta el flujo de validación de identidad.
+   * 1. Valida el JWT con Passport.
+   * 2. Recupera el usuario de Supabase.
+   * 3. Busca la relación interna en la tabla de Usuarios del sistema SMIAB/SAI.
+   * 4. Normaliza el objeto request.user con el contrato final de la aplicación.
+   * 
+   * @param {ExecutionContext} context - Contexto de ejecución.
+   * @returns {Promise<boolean>} True si el usuario es válido y existe en el sistema interno.
+   * @throws {UnauthorizedException} Si el token es inválido o el usuario no existe en SAI.
+   */
   async canActivate(context: ExecutionContext): Promise<boolean> {
     // 1️⃣ Dejar que Passport valide el JWT
     const activated = (await super.canActivate(context)) as boolean;

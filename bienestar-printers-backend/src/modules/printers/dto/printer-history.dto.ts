@@ -1,6 +1,10 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { PrinterMonthlyStats } from '../types/printer-monthly-stats.type';
 
+/**
+ * @class PrinterHistoryDto
+ * @description DTO especializado para representar el historial de consumo mensual acumulado.
+ */
 export class PrinterHistoryDto {
   @ApiProperty({ description: 'Año del registro' })
   year: number;

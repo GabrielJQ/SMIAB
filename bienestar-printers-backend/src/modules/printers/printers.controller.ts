@@ -46,6 +46,11 @@ import { RolesGuard } from '../../auth/guards/roles.guard';
 
 import { SnmpService } from '../snmp/snmp.service';
 
+/**
+ * @class PrintersController
+ * @description Punto de entrada para la gestión de impresoras. Expone endpoints para consulta,
+ * estadísticas de consumo, reportes de insumos y sincronización SNMP.
+ */
 @ApiTags('Printers')
 @Controller('printers')
 @UseGuards(SupabaseAuthGuard, RolesGuard)
@@ -75,6 +80,17 @@ export class PrintersController {
       },
     },
   })
+  /**
+   * Procesa la subida masiva de contadores de impresión desde un archivo Excel.
+   * Realiza un mapeo de datos y persiste los registros históricos (Upsert).
+   * 
+   * @param {UserJwtPayload} user - Usuario autenticado.
+   * @param {Express.Multer.File} file - Archivo Excel procesado por Multer.
+   * @param {string} year - Año de los registros.
+   * @param {string} month - Mes de los registros.
+   * @returns {Promise<any>} Resultado del procesamiento.
+   * @memberof PrintersController
+   */
   @Post('history/upload')
   @UseInterceptors(FileInterceptor('file'))
   async uploadHistory(
@@ -101,6 +117,14 @@ export class PrintersController {
   @ApiOperation({
     summary: 'Descargar plantilla Excel personalizada para el año',
   })
+  /**
+   * @method downloadHistoryTemplate
+   * @description Genera y entrega un archivo Excel pre-llenado con las IPs de las impresoras
+   * de la unidad del usuario para facilitar la carga de historial.
+   * @param {UserJwtPayload} user - Usuario autenticado.
+   * @param {number} year - Año de la plantilla.
+   * @param {Response} res - Objeto Express Response para el stream de descarga.
+   */
   @Get('history/template/:year')
   async downloadHistoryTemplate(
     @CurrentUser('internal') user: UserJwtPayload,
@@ -298,6 +322,14 @@ export class PrintersController {
     description: 'Resumen anual',
     type: PrinterYearlySummaryDto,
   })
+  /**
+   * @method getYearlySummary
+   * @description Genera un resumen ejecutivo del desempeño anual de una impresora.
+   * @param {UserJwtPayload} user - Usuario autenticado para validación de unidad.
+   * @param {string} id - ID del activo.
+   * @param {number} year - Año a consultar.
+   * @returns {Promise<PrinterYearlySummaryDto>}
+   */
   @Get(':id/summary/:year')
   async getYearlySummary(
     @CurrentUser('internal') user: UserJwtPayload,
@@ -450,6 +482,13 @@ export class PrintersController {
 
   @ApiOperation({ summary: 'Forzar barrido SNMP de todas las impresoras' })
   @ApiOkResponse({ description: 'Resultado del barrido' })
+  /**
+   * Dispara una sincronización SNMP forzada para todas las impresoras del sistema.
+   * Restringido a roles administrativos.
+   * 
+   * @returns {Promise<any>}
+   * @memberof PrintersController
+   */
   @Roles('super_admin', 'admin')
   @Post('sync')
   async syncAll() {
@@ -472,6 +511,16 @@ export class PrintersController {
   @ApiBody({
     schema: { type: 'object', properties: { email: { type: 'string' } } },
   })
+  /**
+   * Inicia el flujo de solicitud de consumibles para una impresora específica.
+   * Genera reporte visual y envía correo institucional.
+   * 
+   * @param {UserJwtPayload} user - Usuario autenticado.
+   * @param {string} id - ID de la impresora.
+   * @param {string} email - Correo adicional opcional del solicitante.
+   * @returns {Promise<void>}
+   * @memberof PrintersController
+   */
   @Post(':id/request-consumables')
   async requestConsumables(
     @CurrentUser('internal') user: UserJwtPayload,

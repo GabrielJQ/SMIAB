@@ -14,6 +14,11 @@ import { Region } from './region.entity';
 import { Asset } from './asset.entity';
 import { OneToOne } from 'typeorm';
 
+/**
+ * @class Printer
+ * @description Entidad principal que representa una impresora en el sistema de telemetría SMIAB.
+ * Contiene información técnica, estados de consumibles y contadores de impresión.
+ */
 @Entity('printers')
 export class Printer {
   @PrimaryColumn({ name: 'asset_id', type: 'bigint' })
