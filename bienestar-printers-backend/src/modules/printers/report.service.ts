@@ -172,11 +172,14 @@ export class ReportService {
               }
 
               // Buscar señales de que Knockout.js logró inyectar y pintar los datos VISUALMENTE
+              // Agregamos palabras clave genéricas y de Lexmark ("Consumibles", "Reposo")
               const isLoaded = visibleText.includes('Estado del dispositivo') || 
                                visibleText.includes('Tóner') || 
                                visibleText.includes('Toner') || 
                                visibleText.includes('Preparado') || 
-                               visibleText.includes('En reposo');
+                               visibleText.includes('En reposo') ||
+                               visibleText.includes('Consumibles') ||
+                               visibleText.includes('Reposo');
 
               if (isLoaded) {
                 renderSuccess = true;
@@ -198,9 +201,16 @@ export class ReportService {
           }
         }
 
-        // Quitamos { fullPage: true } porque rompe el renderizado en sitios con framesets.
-        // Capturará la resolución exacta que le dimos en setViewport (1280x900).
-        screenshot = (await page.screenshot()) as Buffer;
+        // Captura inteligente dinámica según la marca (Opción C)
+        if (data.marca && data.marca.toLowerCase().includes('kyocera')) {
+          // Kyocera usa framesets que rompen el cálculo de fullPage en Puppeteer,
+          // por lo que capturamos solo el Viewport fijo (1024x768).
+          screenshot = (await page.screenshot()) as Buffer;
+        } else {
+          // Lexmark y otras marcas no usan framesets y suelen ser más largas verticalmente.
+          // fullPage: true emula un scroll perfecto para capturar todo el panel hacia abajo.
+          screenshot = (await page.screenshot({ fullPage: true })) as Buffer;
+        }
 
         await this.mailerService.sendMail({
           to: userEmail,
