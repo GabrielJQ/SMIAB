@@ -39,7 +39,7 @@ export class ReportService {
     private readonly configService: ConfigService,
     @InjectRepository(Printer)
     private readonly printerRepository: Repository<Printer>,
-  ) {}
+  ) { }
 
   /**
    * Genera y envía una solicitud de consumibles vía correo electrónico.
@@ -68,7 +68,7 @@ export class ReportService {
   async sendConsumableRequest(printerId: string, printerIp: string, userEmail: string) {
     return this.limit(async () => {
       this.logger.log(`Iniciando solicitud de consumibles para impresora ${printerId} (${printerIp})`);
-      
+
       // 1. Obtener información detallada de la impresora y su resguardante
       const printer = await this.printerRepository.findOne({
         where: { assetId: printerId },
@@ -103,7 +103,7 @@ export class ReportService {
         email: employee?.email || 'N/A',
         centro_trabajo: 'ALIMENTACION PARA EL BIENESTAR', // Siempre este valor según el usuario
         direccion: address ? `${address.calle}, ${address.colonia}, ${address.municipio}, CP ${address.cp}` : 'N/A',
-        piso: 'N/A', 
+        piso: 'N/A',
         adscripcion: dept?.areanom || 'N/A',
         area: dept?.areanom || 'N/A',
         puesto: employee?.puesto || 'N/A',
@@ -122,7 +122,11 @@ export class ReportService {
 
       try {
         const page = await browser.newPage();
-        
+
+        // Ajustamos un viewport fijo (resolución de pantalla) para evitar que
+        // la propiedad fullPage calcule un alto 0 en interfaces con <frameset>.
+        await page.setViewport({ width: 1024, height: 768 });
+
         if (snmpMode === 'simulation') {
           this.logger.log(`Modo simulación activo para IP: ${printerIp}`);
           await page.setContent(`
@@ -140,25 +144,69 @@ export class ReportService {
             </div>
           `);
         } else {
-          try {
-            this.logger.log(`Navegando a http://${printerIp}...`);
-            await page.goto(`http://${printerIp}`, {
-              timeout: 15000,
-              waitUntil: 'networkidle0',
-            });
-          } catch (error) {
-            this.logger.error(`Error al conectar con la impresora ${printerIp}: ${error.message}`);
-            throw new InternalServerErrorException(`No se pudo conectar a la impresora en http://${printerIp}`);
+          let renderSuccess = false;
+          let retries = 0;
+          const maxRetries = 2; // Total de 3 intentos
+
+          while (!renderSuccess && retries <= maxRetries) {
+            try {
+              this.logger.log(`Navegando a http://${printerIp}... (Intento ${retries + 1}/${maxRetries + 1})`);
+              
+              await page.goto(`http://${printerIp}`, {
+                timeout: 30000,
+                waitUntil: 'networkidle2',
+              });
+
+              this.logger.log('Esperando 15s para el renderizado del panel web...');
+              await new Promise(resolve => setTimeout(resolve, 15000));
+
+              // Auto-validación: Extraer el TEXTO VISIBLE de todos los iframes ocultos
+              // Usamos innerText en lugar de content() para no engañarnos con los diccionarios JS ocultos.
+              let visibleText = '';
+              for (const frame of page.frames()) {
+                try {
+                  visibleText += await frame.evaluate(() => document.body ? document.body.innerText : '');
+                } catch (e) {
+                  // Ignorar errores de context destroyed si el frame se recargó
+                }
+              }
+
+              // Buscar señales de que Knockout.js logró inyectar y pintar los datos VISUALMENTE
+              const isLoaded = visibleText.includes('Estado del dispositivo') || 
+                               visibleText.includes('Tóner') || 
+                               visibleText.includes('Toner') || 
+                               visibleText.includes('Preparado') || 
+                               visibleText.includes('En reposo');
+
+              if (isLoaded) {
+                renderSuccess = true;
+                this.logger.log('Renderizado validado con éxito. Esperando 3s a que terminen las animaciones CSS de las barras...');
+                await new Promise(resolve => setTimeout(resolve, 3000));
+              } else {
+                this.logger.warn(`Los marcos están en blanco o incompletos (falla interna de la impresora). Reintentando...`);
+                retries++;
+              }
+            } catch (error) {
+              this.logger.warn(`Error de red en intento ${retries + 1}: ${error.message}`);
+              retries++;
+              
+              if (retries > maxRetries) {
+                this.logger.error(`Agotados los intentos para cargar la interfaz de ${printerIp}.`);
+                throw new InternalServerErrorException(`La impresora http://${printerIp} no responde o su interfaz está colapsada.`);
+              }
+            }
           }
         }
 
-        screenshot = (await page.screenshot({ fullPage: true })) as Buffer;
+        // Quitamos { fullPage: true } porque rompe el renderizado en sitios con framesets.
+        // Capturará la resolución exacta que le dimos en setViewport (1280x900).
+        screenshot = (await page.screenshot()) as Buffer;
 
         await this.mailerService.sendMail({
           to: userEmail,
           subject: `Solicitud de Consumibles - ${data.marca} ${data.modelo} - ${data.serie}`,
           html: `
-            <div style="font-family: Arial, sans-serif; color: #000; max-width: 600px; margin: 0 auto;">
+            <div style="font-family: Arial, sans-serif; color: #000; max-width: 850px; margin: 0 auto; border: 1px solid #eaeaea; padding: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.05);">
               
               <!-- Mensaje Dinámico Superior -->
               <p style="margin-bottom: 20px; font-size: 15px;">
@@ -245,8 +293,8 @@ export class ReportService {
               </table>
 
               <!-- Captura de Pantalla -->
-              <div style="padding: 15px; text-align: center; border-top: 1px solid #000;">
-                <img src="cid:screenshot" alt="Panel de Impresora" style="max-width: 100%; border: 1px solid #ccc;" />
+              <div style="padding: 15px; text-align: center; border-top: 1px solid #000; background-color: #f9f9f9;">
+                <img src="cid:screenshot" alt="Panel de Impresora" style="max-width: 100%; height: auto; display: block; margin: 0 auto; border: 1px solid #ccc;" />
               </div>
             </div>
           `,
