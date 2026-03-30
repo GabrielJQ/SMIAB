@@ -4,13 +4,15 @@ import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { api } from '@/services/api';
 import { PrinterComparison } from '@/types/printer';
-import { Globe, FileUp, ChevronDown, Download } from 'lucide-react';
+import { Globe, FileUp, ChevronDown, Download, AlertTriangle, CheckCircle2 } from 'lucide-react';
 import { DashboardCard } from '@/components/ui/DashboardCard';
 import { BaseBarChart } from '@/components/ui/charts/BaseBarChart';
 import { CHART_COLORS, MONTH_NAMES } from '@/lib/constants';
 import { ImportHistoryModal } from './ImportHistoryModal';
 import { useModalStore } from '@/store/useModalStore';
 import { useExportModalStore } from '@/store/useExportModalStore';
+import { toast } from 'react-hot-toast';
+import { ConfirmActionModal } from '@/components/ui/ConfirmActionModal';
 import {
     ComposedChart,
     Area,
@@ -22,15 +24,22 @@ import {
     ResponsiveContainer
 } from 'recharts';
 
-const fetchUnitHistory = async (year: number): Promise<PrinterComparison[]> => {
+const fetchUnitHistory = async (year: number): Promise<{currentYear: PrinterComparison[], previousYear: PrinterComparison[]}> => {
     // We always request month 12 to get the full year history from the backend
-    const { data } = await api.get('/printers/unit/history', { params: { year, month: 12 } });
-    return data;
+    const [currentRes, previousRes] = await Promise.all([
+        api.get('/printers/unit/history', { params: { year, month: 12 } }),
+        api.get('/printers/unit/history', { params: { year: year - 1, month: 12 } })
+    ]);
+    return {
+        currentYear: currentRes.data,
+        previousYear: previousRes.data
+    };
 };
 
 interface ChartData {
     name: string;
     value: number;
+    previousValue: number;
     color: string;
     fullName?: string;
     trendValue?: number;
@@ -41,8 +50,10 @@ export const GeneralStatsWidget = () => {
     const [selectedYear, setSelectedYear] = useState(now.getFullYear());
     const { openImportModal } = useModalStore();
     const { openExportModal } = useExportModalStore();
+    const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
+    const [isExecutingClosure, setIsExecutingClosure] = useState(false);
 
-    const { data: history, isLoading, refetch } = useQuery({
+    const { data: historyData, isLoading, refetch } = useQuery({
         queryKey: ['unit-history', selectedYear],
         queryFn: () => fetchUnitHistory(selectedYear),
     });
@@ -50,25 +61,28 @@ export const GeneralStatsWidget = () => {
     const currentYear = new Date().getFullYear();
     const years = Array.from({ length: currentYear - 2024 + 1 }, (_, i) => 2024 + i);
 
-    // --- VIEW LOGIC ---
-
     let chartData: ChartData[] = [];
     let totalProduction = 0;
 
-    if (history && history.length > 0) {
+    if (historyData) {
         // VIEW: HISTORICAL UNIT STATS (12 MONTHS COMPOSED CHART)
-        const yearData = history.filter(d => d.year === selectedYear);
+        const yearData = historyData.currentYear.filter(d => d.year === selectedYear);
+        const prevYearData = historyData.previousYear.filter(d => d.year === (selectedYear - 1));
 
         // Generate strict 12-month array
         chartData = Array.from({ length: 12 }, (_, index) => {
             const iterMonth = index + 1;
             const dbRecord = yearData.find(d => d.month === iterMonth);
+            const prevDbRecord = prevYearData.find(d => d.month === iterMonth);
+            
             const value = dbRecord ? (dbRecord.print_total ?? 0) : 0;
+            const previousValue = prevDbRecord ? (prevDbRecord.print_total ?? 0) : 0;
 
             return {
                 name: `${MONTH_NAMES[index]}`,
                 fullName: `${MONTH_NAMES[index]} ${selectedYear}`,
                 value: value,
+                previousValue: previousValue,
                 trendValue: value > 0 ? value + (value * 0.05) : 0, // Visual trend line slightly above
                 color: CHART_COLORS[index % CHART_COLORS.length]
             };
@@ -85,12 +99,60 @@ export const GeneralStatsWidget = () => {
         </DashboardCard>
     );
 
-    return (
-        <DashboardCard className="min-h-[400px]">
-            {/* Decoration */}
-            <div className="absolute bottom-0 left-0 w-80 h-80 bg-gradient-to-tr from-slate-100/50 to-transparent rounded-full blur-3xl translate-y-1/3 -translate-x-1/4 pointer-events-none" />
+    const handleManualClose = async () => {
+        setIsExecutingClosure(true);
+        const toastId = toast.loading('Ejecutando cierre mensual...');
+        try {
+            await api.post('/printers/sync/monthly-closing');
+            toast.success('Cierre mensual ejecutado exitosamente', { id: toastId });
+            refetch();
+            setIsConfirmModalOpen(false);
+        } catch (error) {
+            console.error(error);
+            toast.error('Error al ejecutar el cierre mensual', { id: toastId });
+        } finally {
+            setIsExecutingClosure(false);
+        }
+    };
 
-            <div className="flex flex-col md:flex-row md:items-center justify-between mb-4 relative z-10 gap-4">
+    const isEndOfMonth = () => {
+        const today = new Date();
+        return today.getDate() >= 28; // Activar a partir del día 28 del mes
+    };
+
+    const isMonthClosed = () => {
+        if (!historyData) return false;
+        const currentMonth = new Date().getMonth() + 1;
+        const currentYearValue = new Date().getFullYear();
+        
+        const currentMonthData = historyData.currentYear.find(d => d.month === currentMonth && d.year === currentYearValue);
+        // Si el mes actual ya tiene datos de producción, significa que el cierre ya se ejecutó con éxito.
+        return currentMonthData !== undefined && (currentMonthData.print_total ?? 0) > 0;
+    };
+
+    // MODO PRUEBA MANUAL ACTIVADO (Forzar vista temporal para el usuario)
+    // const showClosureUI = true; 
+    
+    // MODO NORMAL:
+    // El UI solo debe activarse si estamos en la pestaña del año actual. No para años pasados.
+    const showClosureUI = selectedYear === currentYear && isEndOfMonth() && !isMonthClosed();
+
+    return (
+        <div className="flex flex-col w-full h-full gap-4">
+            {showClosureUI && (
+                <div className="bg-orange-50 border border-orange-200 text-orange-700 px-4 py-3 rounded-xl flex items-center gap-3 relative z-10 shadow-sm animate-in fade-in slide-in-from-top-4 duration-500">
+                    <AlertTriangle className="w-5 h-5 flex-shrink-0 animate-pulse" />
+                    <div>
+                        <p className="text-sm font-bold">¡Cierre Mensual Pendiente!</p>
+                        <p className="text-xs opacity-90">El mes está por concluir. Recuerda ejecutar el cierre estadístico en el panel debajo para guardar el avance en el historial.</p>
+                    </div>
+                </div>
+            )}
+            <DashboardCard className="min-h-[400px] flex-1 flex flex-col justify-between">
+                {/* Decoration */}
+                <div className="absolute bottom-0 left-0 w-80 h-80 bg-gradient-to-tr from-slate-100/50 to-transparent rounded-full blur-3xl translate-y-1/3 -translate-x-1/4 pointer-events-none" />
+
+                <div className="flex flex-col md:flex-row md:items-center justify-between mb-4 relative z-10 gap-4">
                 <div>
                     <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest flex items-center gap-2 mb-2">
                         <Globe className="w-4 h-4 text-guinda-700" />
@@ -111,7 +173,17 @@ export const GeneralStatsWidget = () => {
                     </div>
                 </div>
 
-                <div className="flex items-center gap-3 relative w-full md:w-auto self-end md:self-auto">
+                <div className="flex flex-wrap items-center justify-end gap-3 relative w-full md:w-auto mt-4 md:mt-0">
+                    {showClosureUI && (
+                        <button 
+                            onClick={() => setIsConfirmModalOpen(true)}
+                            className="flex items-center gap-2 bg-slate-900 hover:bg-slate-800 text-white px-4 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all hover:scale-[1.02] active:scale-95 whitespace-nowrap shadow-sm border border-slate-700"
+                        >
+                            <CheckCircle2 className="w-4 h-4 text-white" />
+                            Cierre Mensual
+                        </button>
+                    )}
+
                     <button 
                         onClick={() => openExportModal()}
                         className="flex items-center gap-2 bg-guinda-50 hover:bg-guinda-100 text-guinda-700 px-4 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all hover:scale-[1.02] active:scale-95 whitespace-nowrap"
@@ -147,7 +219,7 @@ export const GeneralStatsWidget = () => {
             </div>
 
             <div className="w-full h-[350px] mt-4 relative z-10 flex-1">
-                {(!history || history.length === 0) ? (
+                {(!historyData) ? (
                     <div className="h-full flex flex-col items-center justify-center opacity-50">
                         <Globe className="w-12 h-12 text-slate-300 mb-4" />
                         <p className="text-sm font-black text-slate-300 uppercase tracking-widest">Sin datos disponibles</p>
@@ -156,7 +228,7 @@ export const GeneralStatsWidget = () => {
                     <ResponsiveContainer width="100%" height="100%">
                         <ComposedChart
                             data={chartData}
-                            margin={{ top: 20, right: 10, left: -20, bottom: 0 }}
+                            margin={{ top: 20, right: 10, left: -20, bottom: 15 }}
                         >
                             <defs>
                                 <linearGradient id="colorValue" x1="0" y1="0" x2="0" y2="1">
@@ -184,14 +256,33 @@ export const GeneralStatsWidget = () => {
                                     if (active && payload && payload.length) {
                                         const data = payload[0].payload;
                                         return (
-                                            <div className="bg-white/90 backdrop-blur-xl p-4 rounded-2xl shadow-xl border border-white/50 ring-1 ring-slate-100/50">
-                                                <p className="text-[10px] uppercase font-black text-slate-400 mb-1 tracking-wider">{data.fullName}</p>
-                                                <p className="text-2xl font-black text-guinda-700">{data.value.toLocaleString()}</p>
+                                            <div className="bg-white/90 backdrop-blur-xl p-4 rounded-2xl shadow-xl border border-white/50 ring-1 ring-slate-100/50 min-w-[140px]">
+                                                <p className="text-[10px] uppercase font-black text-slate-400 mb-2 tracking-wider">{data.name}</p>
+                                                <div className="flex flex-col gap-2">
+                                                    <div className="flex justify-between items-baseline gap-4">
+                                                        <span className="text-xl font-black text-guinda-700">{data.value.toLocaleString()}</span>
+                                                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{selectedYear}</span>
+                                                    </div>
+                                                    <div className="flex justify-between items-baseline gap-4 border-t border-slate-100 pt-2">
+                                                        <span className="text-sm font-bold text-slate-500">{data.previousValue.toLocaleString()}</span>
+                                                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{selectedYear - 1}</span>
+                                                    </div>
+                                                </div>
                                             </div>
                                         );
                                     }
                                     return null;
                                 }}
+                            />
+                            <Area
+                                type="monotone"
+                                dataKey="previousValue"
+                                stroke="#cbd5e1"
+                                strokeWidth={2}
+                                strokeDasharray="4 4"
+                                fillOpacity={0.3}
+                                fill="#e2e8f0"
+                                activeDot={false}
                             />
                             <Area
                                 type="monotone"
@@ -213,6 +304,23 @@ export const GeneralStatsWidget = () => {
                     </ResponsiveContainer>
                 )}
             </div>
-        </DashboardCard>
+            </DashboardCard>
+
+            <ConfirmActionModal 
+                isOpen={isConfirmModalOpen}
+                onClose={() => setIsConfirmModalOpen(false)}
+                onConfirm={handleManualClose}
+                isExecuting={isExecutingClosure}
+                title="Cierre Estadístico Mensual"
+                description={
+                    <>
+                        ¿Estás seguro de ejecutar el cierre de mes?
+                        <br /><br />
+                        Esto registrará permanentemente el contador absoluto de <b>todas las impresoras</b> activas en este momento bajo el bloque actual. Esta acción es irreversible.
+                    </>
+                }
+                confirmText="Ejecutar Cierre Definitivo"
+            />
+        </div>
     );
 };

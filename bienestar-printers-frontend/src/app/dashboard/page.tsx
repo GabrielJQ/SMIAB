@@ -23,11 +23,6 @@ export default function DashboardPage() {
             <div className="flex-1 min-h-[300px]">
                 <TonerUnitStatsWidget />
             </div>
-
-            {/* Future Executive Widgets could go here */}
-            {/* <div className="p-6 bg-slate-50 border border-dashed border-slate-200 rounded-3xl text-center text-slate-400">
-                <p className="text-xs font-bold uppercase tracking-widest">Más métricas ejecutivas en desarrollo...</p>
-            </div> */}
         </div>
     );
 }

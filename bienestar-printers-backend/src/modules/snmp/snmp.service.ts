@@ -43,9 +43,9 @@ export type SnmpDriver = {
  */
 export const SNMP_DRIVERS: Record<string, SnmpDriver> = {
   kyocera: {
-    totalPages: '1.3.6.1.2.1.43.10.2.1.4.1.1',
-    printOnly: '1.3.6.1.4.1.1347.43.10.1.1.12.1.1',
-    copyOnly: '1.3.6.1.4.1.1347.43.10.1.1.12.1.2',
+    totalPages: '1.3.6.1.4.1.1347.43.10.1.1.12.1.1', // Perfect match for the Web UI Total
+    printOnly: null, // Kyocera firmware does not expose reliable print/copy splits via standard SNMP
+    copyOnly: null,
     tonerLevel: '1.3.6.1.2.1.43.11.1.1.9.1.1',
     tonerMaxCapacity: '1.3.6.1.2.1.43.11.1.1.8.1.1',
     maintenanceKit: '1.3.6.1.2.1.43.11.1.1.9.1.2',
@@ -228,7 +228,22 @@ export class SnmpService implements OnModuleInit {
     this.logger.log(
       `Barrido manual solicitado. AssetID: ${assetId || 'TODAS'}`,
     );
-    return await this.executeSweep(assetId);
+    return await this.executeSweep(assetId, false);
+  }
+
+  /**
+   * Ejecuta un cierre mensual forzado (estadísticas del mes actual) para propósitos de pruebas
+   * o para adelantar el cierre administrativo.
+   * 
+   * @param {string} [assetId] - Opcional. ID del activo para actualizar una impresora específica.
+   * @returns {Promise<any>} Objeto con el estado del barrido.
+   * @memberof SnmpService
+   */
+  public async forceMonthlyClosing(assetId?: string) {
+    this.logger.log(
+      `Cierre mensual manual solicitado. AssetID: ${assetId || 'TODAS'}`,
+    );
+    return await this.executeSweep(assetId, true);
   }
 
   /**
@@ -239,7 +254,7 @@ export class SnmpService implements OnModuleInit {
    * @param {string} [assetId] - ID opcional para filtrar una única impresora.
    * @memberof SnmpService
    */
-  private async executeSweep(assetId?: string) {
+  private async executeSweep(assetId?: string, forceClosing: boolean = false) {
     const query = this.printerRepository
       .createQueryBuilder('printer')
       .where('printer.ip_printer IS NOT NULL');
@@ -256,7 +271,7 @@ export class SnmpService implements OnModuleInit {
       };
 
     const now = new Date();
-    const isClosingDay = this.isLastWorkingDayOfMonth(now);
+    const isClosingDay = forceClosing;
     let successCount = 0;
 
     for (const printer of printers) {
@@ -266,7 +281,7 @@ export class SnmpService implements OnModuleInit {
           : await this.productionRead(printer);
       if (success) {
         successCount++;
-        if (isClosingDay) await this.processMonthlyClosing(printer, now);
+        if (isClosingDay) await this.processMonthlyClosing(printer, now, forceClosing);
       }
     }
     this.logger.log(
@@ -475,10 +490,31 @@ export class SnmpService implements OnModuleInit {
 
         // 4. Mapear respuestas
         const resTotalPages = result[oidMap['totalPages']];
-        const resPrintOnly = driver.printOnly
-          ? result[oidMap['printOnly']]
-          : resTotalPages;
-        const resCopyOnly = driver.copyOnly ? result[oidMap['copyOnly']] : 0;
+        
+        let newPrintOnly = parseInt(printer.printOnlyPages || '0', 10);
+        let newCopyOnly = parseInt(printer.copyPages || '0', 10);
+        
+        // Calcular delta si no tenemos separación nativa
+        const previousTotal = parseInt(printer.totalPagesPrinted || '0', 10);
+        const currentTotal = resTotalPages || previousTotal;
+        const delta = currentTotal > previousTotal ? currentTotal - previousTotal : 0;
+
+        if (driver.printOnly && result[oidMap['printOnly']] != null) {
+          newPrintOnly = result[oidMap['printOnly']];
+        } else if (delta > 0) {
+          // Asumir que todo el incremento nuevo son impresiones si no hay OID separado
+          newPrintOnly += delta;
+        }
+
+        if (driver.copyOnly && result[oidMap['copyOnly']] != null) {
+          newCopyOnly = result[oidMap['copyOnly']];
+        } else if (driver.printOnly && result[oidMap['printOnly']] != null) {
+          // Si tenemos impresiones pero no copias, podemos inferirlas por diferencia
+          const calculatedCopies = currentTotal - newPrintOnly;
+          if (calculatedCopies >= newCopyOnly) {
+            newCopyOnly = calculatedCopies;
+          }
+        }
 
         const resTonerLevel = result[oidMap['tonerLevel']];
         const resTonerMax = driver.tonerMaxCapacity
@@ -522,51 +558,41 @@ export class SnmpService implements OnModuleInit {
         printer.printerStatus = 'online';
         printer.totalPagesPrinted =
           resTotalPages?.toString() || printer.totalPagesPrinted;
-        printer.printOnlyPages =
-          resPrintOnly?.toString() ||
-          printer.printOnlyPages ||
-          printer.totalPagesPrinted;
-        printer.copyPages = resCopyOnly?.toString() || printer.copyPages || '0';
+        printer.printOnlyPages = newPrintOnly.toString();
+        printer.copyPages = newCopyOnly.toString();
 
         const oldToner = printer.tonerLvl;
         printer.tonerLvl = customTonerPerc;
 
         if (
           printer.lastReadAt != null &&
-          oldToner <= 5 &&
-          customTonerPerc >= 98
+          customTonerPerc > oldToner // ¡REGLA DE ORO! Solo analizar si de verdad el nivel subió.
         ) {
-          // Cambio NORMAL (estricto < 5%)
-          await this.registerTonerChange(printer.assetId, 'auto_detected');
-        } else if (
-          printer.lastReadAt != null &&
-          customTonerPerc >= 98 &&
-          oldToner > 5
-        ) {
-          // Cambio prematuro (Guardián)
-          await this.registerPrematureChange(
-            printer.assetId,
-            oldToner,
-            customTonerPerc,
-          );
-          await this.registerTonerChange(printer.assetId, 'auto_detected');
+          if (oldToner <= 5 && customTonerPerc >= 98) {
+            // Cambio NORMAL (estricto <= 5%)
+            await this.registerTonerChange(printer.assetId, 'auto_detected');
+          } else if (customTonerPerc >= 98 && oldToner > 5) {
+            // Cambio prematuro (Guardián)
+            await this.registerPrematureChange(
+              printer.assetId,
+              oldToner,
+              customTonerPerc,
+            );
+            await this.registerTonerChange(printer.assetId, 'auto_detected');
+          } else if (customTonerPerc < 98) {
+            // Relleno parcial / Tóner usado
+            await this.registerSuspiciousSwap(
+              printer.assetId,
+              oldToner,
+              customTonerPerc,
+            );
+          }
         } else if (
           printer.lastReadAt != null &&
           oldToner - customTonerPerc > 10 &&
           customTonerPerc !== 0
         ) {
-          // Intercambio por cartucho usado/vacío (Swap)
-          await this.registerSuspiciousSwap(
-            printer.assetId,
-            oldToner,
-            customTonerPerc,
-          );
-        } else if (
-          printer.lastReadAt != null &&
-          customTonerPerc > oldToner &&
-          customTonerPerc < 98
-        ) {
-          // Relleno parcial / Tóner usado
+          // Intercambio por cartucho usado/vacío (Swap negativo grave)
           await this.registerSuspiciousSwap(
             printer.assetId,
             oldToner,
@@ -813,6 +839,7 @@ export class SnmpService implements OnModuleInit {
   private async processMonthlyClosing(
     printer: Printer,
     date: Date = new Date(),
+    forceUpdate: boolean = false
   ) {
     const mxTime = new Date(
       date.toLocaleString('en-US', { timeZone: 'America/Mexico_City' }),
@@ -830,7 +857,7 @@ export class SnmpService implements OnModuleInit {
         },
       });
 
-      if (existingStat) {
+      if (existingStat && !forceUpdate) {
         return;
       }
 
@@ -842,11 +869,17 @@ export class SnmpService implements OnModuleInit {
         return;
       }
 
-      // Busca el ÚLTIMO registro cronológico para esta impresora
-      const lastStat = await this.printerMonthlyStatRepository.findOne({
-        where: { assetId: printer.assetId },
-        order: { year: 'DESC', month: 'DESC' },
-      });
+      // Busca el ÚLTIMO registro cronológico para esta impresora (excluyendo el mes actual)
+      const lastStat = await this.printerMonthlyStatRepository
+        .createQueryBuilder('stat')
+        .where('stat.assetId = :assetId', { assetId: printer.assetId })
+        .andWhere(
+          '(stat.year < :year OR (stat.year = :year AND stat.month < :month))',
+          { year: currentYear, month: currentMonth },
+        )
+        .orderBy('stat.year', 'DESC')
+        .addOrderBy('stat.month', 'DESC')
+        .getOne();
 
       // Si hay un registro histórico, tomamos su "Reading" (Foto absoluta de vida de ese momento)
       // Si el registro existe pero fue creado antes de agregar la columna Reading, o si no hay registro
@@ -859,6 +892,8 @@ export class SnmpService implements OnModuleInit {
         lastTotal = parseInt(lastStat.printTotalReading || '0', 10);
         lastPrint = parseInt(lastStat.printOnlyReading || '0', 10);
         lastCopy = parseInt(lastStat.copyReading || '0', 10);
+
+
 
         // Fallback temporal: si lastTotal sigue siendo 0 (por registros legacy sin Reading),
         // no podemos cobrar 100,000 prints de jalón. Asumiremos que el delta es 0 este mes para estabilizar.
@@ -879,22 +914,39 @@ export class SnmpService implements OnModuleInit {
       let printOnlyDelta = currentPrint - lastPrint;
       let copyDelta = currentCopy - lastCopy;
 
+      // Transición Segura para Registros Legacy:
+      // Si el registro anterior solo tenía el Total (y 0 en print/copy), la resta directa 
+      // generaría un delta equivalente a la vida entera de la impresora.
+      // Para respetar la pureza de los datos históricos (no alterarlos), pero tener deltas 
+      // razonables este mes, distribuimos el "Total Delta" real en proporción al contador actual.
+      if (lastTotal > 0 && lastPrint === 0 && lastCopy === 0) {
+        if (currentTotal > 0) {
+          const ratioP = currentPrint / currentTotal;
+          printOnlyDelta = Math.floor(printTotalDelta * ratioP);
+          copyDelta = printTotalDelta - printOnlyDelta;
+        } else {
+          printOnlyDelta = printTotalDelta;
+          copyDelta = 0;
+        }
+      }
+
       // Evitar deltas negativos por reemplazo de impresoras o reset de contadores lógicos
       if (printTotalDelta < 0) printTotalDelta = 0;
       if (printOnlyDelta < 0) printOnlyDelta = 0;
       if (copyDelta < 0) copyDelta = 0;
 
-      const stat = this.printerMonthlyStatRepository.create({
+      const stat = existingStat || this.printerMonthlyStatRepository.create({
         assetId: printer.assetId,
         year: currentYear,
         month: currentMonth,
-        printTotalDelta: printTotalDelta.toString(),
-        printOnlyDelta: printOnlyDelta.toString(),
-        copyDelta: copyDelta.toString(),
-        printTotalReading: currentTotal.toString(),
-        printOnlyReading: currentPrint.toString(),
-        copyReading: currentCopy.toString(),
       });
+
+      stat.printTotalDelta = printTotalDelta.toString();
+      stat.printOnlyDelta = printOnlyDelta.toString();
+      stat.copyDelta = copyDelta.toString();
+      stat.printTotalReading = currentTotal.toString();
+      stat.printOnlyReading = currentPrint.toString();
+      stat.copyReading = currentCopy.toString();
       stat.updatedAt = new Date();
 
       await this.printerMonthlyStatRepository.save(stat);

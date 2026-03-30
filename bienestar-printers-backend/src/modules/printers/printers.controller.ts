@@ -495,6 +495,15 @@ export class PrintersController {
     return this.snmpService.forcePrinterUpdate();
   }
 
+  @ApiOperation({ summary: 'Forzar cierre estadístico mensual (pruebas/adelanto)' })
+  @ApiOkResponse({ description: 'Resultado del cierre' })
+  @Roles('super_admin', 'admin')
+  @Post('sync/monthly-closing')
+  async forceMonthlyClosing() {
+    return this.snmpService.forceMonthlyClosing();
+  }
+
+
   @ApiOperation({
     summary: 'Forzar actualización SNMP de una impresora específica',
   })

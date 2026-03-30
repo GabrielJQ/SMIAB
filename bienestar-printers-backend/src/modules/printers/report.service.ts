@@ -79,6 +79,7 @@ export class ReportService {
           'asset.currentAssignment.employee.department',
           'asset.currentAssignment.employee.department.address',
           'department',
+          'department.address',
           'department.unit',
         ],
       });
@@ -90,7 +91,10 @@ export class ReportService {
       const asset = printer.asset;
       const assignment = asset?.currentAssignment;
       const employee = assignment?.employee;
-      const dept = employee?.department || printer.department;
+      
+      // Priorizar el departamento físico de la impresora (Tesoreria) 
+      // sobre el departamento del resguardante (Informatica).
+      const dept = printer.department || employee?.department;
       const address = dept?.address;
 
       // Mapeo de datos para la plantilla (con valores por defecto "N/A")
