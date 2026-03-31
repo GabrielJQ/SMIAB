@@ -38,7 +38,7 @@ export const TopPrintingVolumeWidget = () => {
     const maxVolume = topPrinters && topPrinters.length > 0 ? topPrinters[0].totalImpressions : 0;
 
     return (
-        <div className="flex flex-col gap-6">
+        <div className="flex flex-col gap-6 h-full">
             <div className="flex justify-between items-center bg-white p-4 rounded-3xl shadow-sm border border-slate-100 shrink-0">
                 <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest">Periodo</h3>
                 <MonthYearFilter 
@@ -73,24 +73,24 @@ export const TopPrintingVolumeWidget = () => {
             </div>
 
             {/* Report list */}
-            <DashboardCard className="p-6 flex flex-col">
+            <DashboardCard className="p-6 flex flex-col flex-1 h-full min-h-0">
                 <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest flex items-center gap-2 mb-6 shrink-0">
                     <Activity className="w-4 h-4 text-guinda-700" />
                     Reporte de Volumen de Impresión
                 </h3>
 
-                <div className="overflow-hidden">
+                <div className="overflow-hidden flex-1 flex flex-col">
                     {isTopLoading ? (
-                        <div className="h-[400px] flex items-center justify-center">
+                        <div className="flex-1 flex items-center justify-center min-h-[400px]">
                             <div className="w-8 h-8 border-4 border-slate-100 border-t-guinda-700 rounded-full animate-spin"></div>
                         </div>
                     ) : (!topPrinters || topPrinters.length === 0) ? (
-                        <div className="h-[400px] flex flex-col items-center justify-center opacity-50">
+                        <div className="flex-1 flex flex-col items-center justify-center opacity-50 min-h-[400px]">
                             <Activity className="w-12 h-12 text-slate-300 mb-4" />
                             <p className="text-sm font-black text-slate-300 uppercase tracking-widest text-center">Sin datos en el periodo</p>
                         </div>
                     ) : (
-                        <div className="h-[400px] overflow-y-auto pr-2 custom-scrollbar flex flex-col gap-5">
+                        <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar flex flex-col gap-5 min-h-0">
                             {topPrinters.map((printer, idx) => {
                                 const percentage = maxVolume > 0 ? (printer.totalImpressions / maxVolume) * 100 : 0;
                                 return (

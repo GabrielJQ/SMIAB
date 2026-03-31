@@ -144,7 +144,7 @@ export const GeneralStatsWidget = () => {
     return (
         <div className="flex flex-col w-full h-full gap-4">
             {showClosureUI && (
-                <div className="bg-orange-50 border border-orange-200 text-orange-700 px-4 py-3 rounded-xl flex items-center gap-3 relative z-10 shadow-sm animate-in fade-in slide-in-from-top-4 duration-500">
+                <div className="bg-orange-50 border border-orange-200 text-orange-700 px-4 py-3 rounded-xl flex items-center gap-3 relative z-10 shadow-sm animate-in fade-in slide-in-from-top-4 duration-500 flex-none">
                     <AlertTriangle className="w-5 h-5 flex-shrink-0 animate-pulse" />
                     <div>
                         <p className="text-sm font-bold">¡Cierre Mensual Pendiente!</p>
@@ -152,7 +152,7 @@ export const GeneralStatsWidget = () => {
                     </div>
                 </div>
             )}
-            <DashboardCard className="min-h-[400px] flex-1 flex flex-col justify-between">
+            <DashboardCard className="min-h-[400px] flex-1 flex flex-col justify-between h-full">
                 {/* Decoration */}
                 <div className="absolute bottom-0 left-0 w-80 h-80 bg-gradient-to-tr from-slate-100/50 to-transparent rounded-full blur-3xl translate-y-1/3 -translate-x-1/4 pointer-events-none" />
 

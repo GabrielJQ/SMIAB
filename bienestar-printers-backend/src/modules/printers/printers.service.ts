@@ -784,6 +784,7 @@ export class PrintersService {
   ) {
     if (!userUnitId) throw new ForbiddenException('User has no unit assigned');
 
+    // 1. Intentamos obtener datos de la tabla de cierres (Stático)
     const rawData = await this.printerMonthlyStatRepository
       .createQueryBuilder('stats')
       .innerJoin('stats.printer', 'printer')
@@ -801,10 +802,101 @@ export class PrintersService {
       .orderBy('CAST(SUM(stats.print_total_delta) AS INTEGER)', 'DESC')
       .getRawMany();
 
+    // 2. Si no hay datos y estamos consultando el mes actual, calculamos en TIEMPO REAL (Dinámico)
+    const today = new Date();
+    if (rawData.length === 0 && year === today.getFullYear() && month === (today.getMonth() + 1)) {
+        // Reutilizamos la lógica de cálculo delta (actual - previo)
+        let prevMonth = month - 1;
+        let prevYear = year;
+        if (prevMonth === 0) { prevMonth = 12; prevYear = year - 1; }
+
+        const dynamicData = await this.printerRepository
+          .createQueryBuilder('printer')
+          .leftJoin('printer.monthlyStats', 'prevstats', 
+            'prevstats.year = :prevYear AND prevstats.month = :prevMonth', 
+            { prevYear, prevMonth })
+          .select('printer.assetId', 'printerId')
+          .addSelect('printer.namePrinter', 'name')
+          .addSelect('CAST(COALESCE(printer.total_pages_printed::bigint - COALESCE(prevstats.print_total_reading::bigint, 0), 0) AS INTEGER)', 'totalImpressions')
+          .where('printer.unitId = :unitId', { unitId: userUnitId })
+          .orderBy('CAST(COALESCE(printer.total_pages_printed::bigint - COALESCE(prevstats.print_total_reading::bigint, 0), 0) AS INTEGER)', 'DESC')
+          .limit(10)
+          .getRawMany();
+
+        return dynamicData.map(row => ({
+            printerId: row.printerId,
+            name: row.name,
+            totalImpressions: Number(row.totalImpressions || 0)
+        }));
+    }
+
     return rawData.map((row) => ({
       printerId: row.printerId,
       name: row.name,
       totalImpressions: Number(row.totalImpressions || 0),
+    }));
+  }
+
+  /**
+   * @method getUnitCombinedTopConsumers
+   * @description Obtiene el Top 5 de impresoras con mayor volumen de impresión en el mes actual,
+   * incluyendo su respectivo conteo de cambios de tóner.
+   * Calcula el delta de impresión comparando el contador actual vs el último cierre mensual.
+   */
+  async getUnitCombinedTopConsumers(userUnitId: string) {
+    const today = new Date();
+    const currentYear = today.getFullYear();
+    const currentMonth = today.getMonth() + 1;
+
+    // Calcular mes previo para la lectura base
+    let prevMonth = currentMonth - 1;
+    let prevYear = currentYear;
+    if (prevMonth === 0) {
+      prevMonth = 12;
+      prevYear = currentYear - 1;
+    }
+
+    const rawData = await this.printerRepository
+      .createQueryBuilder('printer')
+      .leftJoin(
+        'printer.monthlyStats',
+        'prevstats',
+        'prevstats.year = :prevYear AND prevstats.month = :prevMonth',
+        { prevYear, prevMonth },
+      )
+      .leftJoin(
+        'printer.tonerChanges',
+        'tonerchanges',
+        'EXTRACT(YEAR FROM tonerchanges.changed_at) = :currentYear AND EXTRACT(MONTH FROM tonerchanges.changed_at) = :currentMonth',
+        { currentYear, currentMonth },
+      )
+      .select('printer.assetId', 'printerId')
+      .addSelect('printer.namePrinter', 'name')
+      .addSelect('printer.printerStatus', 'status')
+      .addSelect(
+        'CAST(COALESCE(printer.total_pages_printed::bigint - COALESCE(prevstats.print_total_reading::bigint, 0), 0) AS INTEGER)',
+        'impressions',
+      )
+      .addSelect('CAST(COUNT(tonerchanges.id) AS INTEGER)', 'tonerChanges')
+      .where('printer.unitId = :unitId', { unitId: userUnitId })
+      .groupBy('printer.assetId')
+      .addGroupBy('printer.namePrinter')
+      .addGroupBy('printer.printerStatus')
+      .addGroupBy('printer.total_pages_printed')
+      .addGroupBy('prevstats.print_total_reading')
+      .orderBy(
+        'CAST(COALESCE(printer.total_pages_printed::bigint - COALESCE(prevstats.print_total_reading::bigint, 0), 0) AS INTEGER)',
+        'DESC',
+      )
+      .limit(5)
+      .getRawMany();
+
+    return rawData.map((row) => ({
+      printerId: row.printerId,
+      name: row.name,
+      status: row.status,
+      impressions: Number(row.impressions || 0),
+      tonerChanges: Number(row.tonerChanges || 0),
     }));
   }
 

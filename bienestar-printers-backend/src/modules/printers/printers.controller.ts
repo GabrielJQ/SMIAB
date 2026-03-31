@@ -228,6 +228,20 @@ export class PrintersController {
 
   @ApiOperation({
     summary:
+      'Obtener top 5 consumidores combinados (Impresiones + Tóner) en tiempo real',
+  })
+  @ApiOkResponse({ description: 'Top 5 Impresoras Combinadas' })
+  @Get('unit/top-combined')
+  async getUnitTopCombined(
+    @CurrentUser('internal') user: UserJwtPayload,
+  ) {
+    const unitId = user.unitId || user.areaId;
+    if (!unitId) throw new ForbiddenException('User has no unit assigned');
+    return this.printersService.getUnitCombinedTopConsumers(unitId);
+  }
+
+  @ApiOperation({
+    summary:
       'Obtener top consumidores de impresión de un mes específico para la unidad',
   })
   @ApiQuery({ name: 'year', required: true, type: Number })

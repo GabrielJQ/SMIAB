@@ -55,7 +55,7 @@ export const PrinterHistoryWidget = () => {
     totalProduction = history.reduce((acc, curr) => acc + curr.totalImpressions, 0);
 
     return (
-        <DashboardCard className="min-h-[400px]">
+        <DashboardCard className="min-h-[400px] h-full flex flex-col">
             {/* Decoration */}
             <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-bl from-slate-100/50 to-transparent rounded-full blur-3xl -translate-y-1/2 translate-x-1/3 pointer-events-none" />
 
@@ -114,7 +114,7 @@ export const PrinterHistoryWidget = () => {
                 </div>
             </div>
 
-            <div className="w-full h-[300px] mt-4 relative z-10 flex-1">
+            <div className="w-full mt-4 relative z-10 flex-1 min-h-[300px]">
                 {(!history || history.length === 0) ? (
                     <div className="h-full flex flex-col items-center justify-center opacity-50">
                         <Activity className="w-12 h-12 text-slate-300 mb-4" />

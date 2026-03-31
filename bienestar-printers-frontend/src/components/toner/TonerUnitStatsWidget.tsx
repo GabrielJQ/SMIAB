@@ -69,7 +69,7 @@ export const TonerUnitStatsWidget: React.FC<TonerUnitStatsWidgetProps> = ({ comp
     );
 
     return (
-        <DashboardCard className="min-h-[400px] flex flex-col">
+        <DashboardCard className="min-h-[400px] flex flex-col h-full">
             <div className="flex flex-col md:flex-row md:items-start justify-between mb-4 relative z-10 gap-4 flex-none">
                 <div>
                     <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest flex items-center gap-2 mb-2">
@@ -113,7 +113,7 @@ export const TonerUnitStatsWidget: React.FC<TonerUnitStatsWidgetProps> = ({ comp
                 )}
             </div>
 
-            <div className="w-full h-[320px] mt-4 relative z-10 flex-none">
+            <div className="w-full mt-4 relative z-10 flex-1 min-h-[300px]">
                 {(!history || history.length === 0) ? (
                     <div className="h-full flex flex-col items-center justify-center opacity-50">
                         <Package className="w-12 h-12 text-slate-300 mb-4" />

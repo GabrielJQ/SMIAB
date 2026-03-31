@@ -17,20 +17,20 @@ export default function StatisticsPage() {
                 <div className="flex-1 overflow-y-auto custom-scrollbar p-1 w-full">
                     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 min-h-full">
                         {/* Left Column (Charts) */}
-                        <div className="lg:col-span-2 flex flex-col gap-6">
+                        <div className="lg:col-span-2 flex flex-col gap-6 items-stretch">
                             {/* Top Section: Unit Global Stats (Print/Copy) */}
-                            <div className="min-h-[350px] flex-none">
+                            <div className="flex-1">
                                 <GeneralStatsWidget />
                             </div>
 
                             {/* Bottom Section: Specific Printer Stats */}
-                            <div className="min-h-[350px] flex-none">
+                            <div className="flex-1">
                                 <PrinterHistoryWidget />
                             </div>
                         </div>
 
                         {/* Right Column (Widgets) */}
-                        <div className="lg:col-span-1 flex flex-col gap-6">
+                        <div className="lg:col-span-1 flex flex-col gap-6 h-full">
                             <TopPrintingVolumeWidget />
                         </div>
                     </div>

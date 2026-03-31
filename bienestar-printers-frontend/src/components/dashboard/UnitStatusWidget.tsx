@@ -13,7 +13,7 @@ export const UnitStatusWidget = () => {
     const currentStats = stats || { total: 0, online: 0, offline: 0 };
 
     return (
-        <DashboardCard className="flex flex-col justify-between min-h-[300px]">
+        <DashboardCard className="flex flex-col justify-between min-h-[300px] h-full">
             {/* Decoration */}
             <div className="absolute top-0 right-0 w-48 h-48 bg-gradient-to-bl from-emerald-50/50 to-transparent rounded-full blur-3xl -translate-y-1/2 translate-x-1/3 pointer-events-none" />
 
