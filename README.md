@@ -61,7 +61,7 @@ Nota para desarrolladores: La carpeta /documentation generada por Compodoc está
 | `DATABASE_URL` | Cadena de conexión a Supabase. | `postgresql://...` |
 | `SNMP_MODE` | Define si el sistema consulta IPs reales o simula datos. | `production` | `simulation` |
 | `SMTP_HOST` | Servidor de correo para alertas y reportes. | `smtp.mailtrap.io` |
-| `CRON_SNMP_SCHEDULE` | Frecuencia del barrido automático. | `0 */4 * * *` (Cada 4h) |
+
 
 ---
 
