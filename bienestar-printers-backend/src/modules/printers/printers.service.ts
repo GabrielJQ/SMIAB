@@ -824,11 +824,18 @@ export class PrintersService {
       },
     });
 
-    return logs.map((log) => ({
-      date: log.recordedAt.toISOString().split('T')[0], // YYYY-MM-DD
-      time: log.recordedAt.toISOString().split('T')[1].substring(0, 5), // HH:mm
-      tonerLevel: log.tonerLevel,
-    }));
+    return logs.map((log) => {
+      const d = log.recordedAt;
+      const year = d.getFullYear();
+      const month = String(d.getMonth() + 1).padStart(2, '0');
+      const day = String(d.getDate()).padStart(2, '0');
+      
+      return {
+        date: `${year}-${month}-${day}`, // YYYY-MM-DD (Local)
+        time: String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0'), // HH:mm (Local)
+        tonerLevel: log.tonerLevel,
+      };
+    });
   }
 
   // ==========================================

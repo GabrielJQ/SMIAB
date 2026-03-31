@@ -366,6 +366,43 @@ export class SnmpService implements OnModuleInit {
     return randomStatus === 'online';
   }
 
+  /**
+   * @method cleanupOldData
+   * @description Realiza una limpieza de mantenimiento cada madrugada. 
+   * Elimina logs de estado de más de 30 días y alertas resueltas antiguas para 
+   * mantener la base de datos esbelta (Ventana móvil de 30 días).
+   */
+  @Cron('0 3 * * *', { timeZone: 'America/Mexico_City' })
+  async cleanupOldData() {
+    this.logger.log('Iniciando limpieza de mantenimiento (3:00 AM)...');
+    
+    const now = new Date();
+    const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+
+    try {
+      // 1. Eliminar logs de estado antiguos (Historial del gráfico de 30 días)
+      const logDeleteResult = await this.printerStatusLogRepository
+        .createQueryBuilder()
+        .delete()
+        .where('recordedAt < :date', { date: thirtyDaysAgo })
+        .execute();
+
+      // 2. Eliminar alertas RESUELTAS antiguas
+      const alertDeleteResult = await this.alertRepository
+        .createQueryBuilder()
+        .delete()
+        .where('status = :status', { status: 'RESOLVED' })
+        .andWhere('resolvedAt < :date', { date: thirtyDaysAgo })
+        .execute();
+
+      this.logger.log(
+        `Mantenimiento de DB finalizado: ${logDeleteResult.affected} logs y ${alertDeleteResult.affected} alertas purgadas.`,
+      );
+    } catch (error) {
+      this.logger.error('Error durante la ejecución del mantenimiento programado:', error);
+    }
+  }
+
   private async productionRead(printer: Printer): Promise<boolean> {
     const ip = printer.ipPrinter.trim().replace(/\s+/g, '');
     let retries = 0;
@@ -700,17 +737,14 @@ export class SnmpService implements OnModuleInit {
         order: { recordedAt: 'DESC' },
       });
 
-      const today = new Date();
+      const now = new Date();
+      const todayStr = now.toLocaleDateString('en-CA', { timeZone: 'America/Mexico_City' });
       let shouldSave = true;
 
       if (lastLog) {
-        const lastDate = lastLog.recordedAt;
-        const isSameDay =
-          lastDate.getFullYear() === today.getFullYear() &&
-          lastDate.getMonth() === today.getMonth() &&
-          lastDate.getDate() === today.getDate();
-
-        if (isSameDay && lastLog.tonerLevel === tonerLvl) {
+        const lastLogDateStr = lastLog.recordedAt.toLocaleDateString('en-CA', { timeZone: 'America/Mexico_City' });
+        // Si ya hay un log para hoy, no guardamos más (Optimizamos para un log diario único)
+        if (lastLogDateStr === todayStr) {
           shouldSave = false;
         }
       }

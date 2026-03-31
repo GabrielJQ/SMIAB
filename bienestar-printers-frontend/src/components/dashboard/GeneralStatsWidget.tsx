@@ -117,7 +117,11 @@ export const GeneralStatsWidget = () => {
 
     const isEndOfMonth = () => {
         const today = new Date();
-        return today.getDate() >= 28; // Activar a partir del día 28 del mes
+        const year = today.getFullYear();
+        const month = today.getMonth();
+        const lastDay = new Date(year, month + 1, 0).getDate();
+        // Activar a partir de los últimos 4 días del mes (ej: del 28 al 31 en marzo)
+        return today.getDate() > (lastDay - 4);
     };
 
     const isMonthClosed = () => {
@@ -174,15 +178,13 @@ export const GeneralStatsWidget = () => {
                 </div>
 
                 <div className="flex flex-wrap items-center justify-end gap-3 relative w-full md:w-auto mt-4 md:mt-0">
-                    {showClosureUI && (
-                        <button 
-                            onClick={() => setIsConfirmModalOpen(true)}
-                            className="flex items-center gap-2 bg-slate-900 hover:bg-slate-800 text-white px-4 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all hover:scale-[1.02] active:scale-95 whitespace-nowrap shadow-sm border border-slate-700"
-                        >
-                            <CheckCircle2 className="w-4 h-4 text-white" />
-                            Cierre Mensual
-                        </button>
-                    )}
+                    <button 
+                        onClick={() => setIsConfirmModalOpen(true)}
+                        className="flex items-center gap-2 bg-slate-900 hover:bg-slate-800 text-white px-4 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all hover:scale-[1.02] active:scale-95 whitespace-nowrap shadow-sm border border-slate-700"
+                    >
+                        <CheckCircle2 className="w-4 h-4 text-white" />
+                        Cierre Mensual
+                    </button>
 
                     <button 
                         onClick={() => openExportModal()}
