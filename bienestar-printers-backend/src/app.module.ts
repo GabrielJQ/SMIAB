@@ -23,6 +23,7 @@ import { ReportsModule } from './modules/reports/reports.module';
       inject: [ConfigService],
       useFactory: (config: ConfigService) => ({
         type: 'postgres',
+        extra: { max: 75 },
         url: config.get<string>('DATABASE_URL'),
         autoLoadEntities: true,
         synchronize: false, // We use existing tables

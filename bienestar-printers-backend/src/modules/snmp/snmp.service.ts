@@ -9,6 +9,7 @@ import { Alert } from '../printers/entities/alert.entity';
 import { PrinterStatusLog } from '../printers/entities/printer-status-log.entity';
 import { PrinterTonerChange } from '../toners/entities/printer-toner-change.entity';
 import * as snmp from 'net-snmp';
+import pLimit from 'p-limit';
 
 /**
  * @description Define la estructura de OIDs (Object Identifiers) necesarios para extraer 
@@ -274,16 +275,30 @@ export class SnmpService implements OnModuleInit {
     const isClosingDay = forceClosing;
     let successCount = 0;
 
-    for (const printer of printers) {
-      const success =
-        this.snmpMode === 'simulation'
-          ? await this.simulateRead(printer)
-          : await this.productionRead(printer);
-      if (success) {
-        successCount++;
-        if (isClosingDay) await this.processMonthlyClosing(printer, now, forceClosing);
-      }
-    }
+    // Límite de concurrencia: 20 impresoras simultáneas (Para proteger la red institucional)
+    const limit = pLimit(20);
+
+    const promises = printers.map((printer) =>
+      limit(async () => {
+        try {
+          const success =
+            this.snmpMode === 'simulation'
+              ? await this.simulateRead(printer)
+              : await this.productionRead(printer);
+          
+          if (success) {
+            successCount++;
+            if (isClosingDay) await this.processMonthlyClosing(printer, now, forceClosing);
+          }
+        } catch (error) {
+          this.logger.error(`Error no controlado en barrido concurrente para ${printer.ipPrinter || printer.assetId}:`, error);
+        }
+      })
+    );
+
+    // Esperar a que terminen todas las impresiones (hasta 20 al mismo tiempo)
+    await Promise.all(promises);
+
     this.logger.log(
       `Barrido finalizado. ${successCount}/${printers.length} impresoras actualizadas.`,
     );
