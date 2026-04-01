@@ -95,7 +95,7 @@ export const GeneralStatsWidget = () => {
     if (isLoading) return (
         <DashboardCard className="flex flex-col items-center justify-center font-bold text-slate-400 italic">
             <div className="w-12 h-12 border-4 border-slate-100 border-t-slate-400 rounded-full animate-spin mb-4"></div>
-            <p className="text-xs font-black uppercase tracking-[0.2em] leading-relaxed text-center">Consolidando<br />Datos Globales...</p>
+            <p className="text-[10px] font-bold uppercase tracking-[0.2em] leading-relaxed text-center text-slate-400">Consolidando<br />Datos Globales...</p>
         </DashboardCard>
     );
 
@@ -160,7 +160,7 @@ export const GeneralStatsWidget = () => {
                             Resumen de Producción
                         </h3>
                         <div className="flex items-baseline gap-3">
-                            <span className="text-5xl font-black text-slate-900 leading-none tracking-tighter">
+                            <span className="text-4xl font-bold text-slate-900 leading-none tracking-tighter">
                                 {totalProduction.toLocaleString()}
                             </span>
                             <div className="flex flex-col">
@@ -193,7 +193,7 @@ export const GeneralStatsWidget = () => {
 
                             <button 
                                 onClick={() => setIsConfirmModalOpen(true)}
-                                className="flex items-center gap-2 bg-slate-900 hover:bg-slate-800 text-white px-5 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all hover:shadow-md active:scale-95 shadow-sm"
+                                className="flex items-center gap-2 bg-slate-900 hover:bg-slate-800 text-white px-5 py-2 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all hover:shadow-md active:scale-95 shadow-sm"
                             >
                                 <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
                                 Cierre Mensual
@@ -225,7 +225,7 @@ export const GeneralStatsWidget = () => {
                     {(!historyData) ? (
                         <div className="h-full flex flex-col items-center justify-center opacity-50">
                             <Globe className="w-12 h-12 text-slate-300 mb-4" />
-                            <p className="text-sm font-black text-slate-300 uppercase tracking-widest">Sin datos disponibles</p>
+                            <p className="text-sm font-bold text-slate-300 uppercase tracking-widest">Sin datos disponibles</p>
                         </div>
                     ) : (
                         <ResponsiveContainer width="100%" height="100%">
@@ -260,10 +260,10 @@ export const GeneralStatsWidget = () => {
                                             const data = payload[0].payload;
                                             return (
                                                 <div className="bg-white/90 backdrop-blur-xl p-4 rounded-2xl shadow-xl border border-white/50 ring-1 ring-slate-100/50 min-w-[140px]">
-                                                    <p className="text-[10px] uppercase font-black text-slate-400 mb-2 tracking-wider">{data.name}</p>
+                                                    <p className="text-[10px] uppercase font-bold text-slate-400 mb-2 tracking-wider">{data.name}</p>
                                                     <div className="flex flex-col gap-2">
                                                         <div className="flex justify-between items-baseline gap-4">
-                                                            <span className="text-xl font-black text-guinda-700">{data.value.toLocaleString()}</span>
+                                                            <span className="text-xl font-bold text-guinda-700">{data.value.toLocaleString()}</span>
                                                             <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{selectedYear}</span>
                                                         </div>
                                                         <div className="flex justify-between items-baseline gap-4 border-t border-slate-100 pt-2">
@@ -299,9 +299,9 @@ export const GeneralStatsWidget = () => {
                                     type="monotone"
                                     dataKey="trendValue"
                                     stroke="#7B1E34"
-                                    strokeWidth={3}
-                                    dot={{ fill: '#fff', stroke: '#7B1E34', strokeWidth: 2, r: 4 }}
-                                    activeDot={{ r: 6, fill: '#7B1E34', stroke: '#fff', strokeWidth: 2 }}
+                                    strokeWidth={2.5}
+                                    dot={{ fill: '#fff', stroke: '#7B1E34', strokeWidth: 1.5, r: 3 }}
+                                    activeDot={{ r: 5, fill: '#7B1E34', stroke: '#fff', strokeWidth: 2 }}
                                 />
                             </ComposedChart>
                         </ResponsiveContainer>

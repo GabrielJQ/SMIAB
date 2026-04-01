@@ -40,7 +40,7 @@ export const TopPrintingVolumeWidget = () => {
     return (
         <div className="flex flex-col gap-6 h-full">
             <div className="flex justify-between items-center bg-white p-4 rounded-3xl shadow-sm border border-slate-100 shrink-0">
-                <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest">Periodo</h3>
+                <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest leading-none">Periodo</h3>
                 <MonthYearFilter 
                     month={selectedMonth}
                     year={selectedYear}
@@ -52,15 +52,15 @@ export const TopPrintingVolumeWidget = () => {
             {/* Mini KPIs */}
             <div className="grid grid-cols-2 gap-4 shrink-0">
                 <DashboardCard className="p-4 flex flex-col justify-center min-h-[100px]">
-                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Total Mensual</p>
+                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Total Mensual</p>
                     {isHistoryLoading ? (
                         <div className="h-6 bg-slate-100 rounded animate-pulse w-1/2 mt-1"></div>
                     ) : (
-                        <p className="text-2xl font-black text-slate-800">{totalMensual.toLocaleString()}</p>
+                        <p className="text-xl font-bold text-slate-800">{totalMensual.toLocaleString()}</p>
                     )}
                 </DashboardCard>
                 <DashboardCard className="p-4 flex flex-col justify-center min-h-[100px]">
-                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Desglose</p>
+                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Desglose</p>
                     {isHistoryLoading ? (
                         <div className="h-4 bg-slate-100 rounded animate-pulse w-3/4 mt-1 mb-1"></div>
                     ) : (
@@ -74,7 +74,7 @@ export const TopPrintingVolumeWidget = () => {
 
             {/* Report list */}
             <DashboardCard className="p-6 flex flex-col flex-1 h-full min-h-0">
-                <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest flex items-center gap-2 mb-6 shrink-0">
+                <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2 mb-6 shrink-0">
                     <Activity className="w-4 h-4 text-guinda-700" />
                     Reporte de Volumen de Impresión
                 </h3>
@@ -87,7 +87,7 @@ export const TopPrintingVolumeWidget = () => {
                     ) : (!topPrinters || topPrinters.length === 0) ? (
                         <div className="flex-1 flex flex-col items-center justify-center opacity-50 min-h-[400px]">
                             <Activity className="w-12 h-12 text-slate-300 mb-4" />
-                            <p className="text-sm font-black text-slate-300 uppercase tracking-widest text-center">Sin datos en el periodo</p>
+                            <p className="text-sm font-bold text-slate-300 uppercase tracking-widest text-center">Sin datos en el periodo</p>
                         </div>
                     ) : (
                         <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar flex flex-col gap-5 min-h-0">
@@ -97,7 +97,7 @@ export const TopPrintingVolumeWidget = () => {
                                     <div key={printer.printerId} className="flex flex-col gap-2 shrink-0">
                                         <div className="flex justify-between items-baseline">
                                             <span className="text-sm font-bold text-slate-700 uppercase">{idx + 1}. {printer.name}</span>
-                                            <span className="text-xs font-black text-slate-500">{printer.totalImpressions.toLocaleString()}</span>
+                                            <span className="text-xs font-bold text-slate-500">{printer.totalImpressions.toLocaleString()}</span>
                                         </div>
                                         <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
                                             <div 
