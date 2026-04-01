@@ -28,7 +28,7 @@ export class UsersService {
 
     const { data, error } = await client
       .from('users')
-      .select('*')
+      .select('*, units(uninom)')
       .eq('supabase_user_id', supabaseUserId)
       .single();
 

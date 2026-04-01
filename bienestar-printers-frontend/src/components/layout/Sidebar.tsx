@@ -15,8 +15,20 @@ const fetchPrinters = async (): Promise<PrinterSummary[]> => {
     return data;
 };
 
+/**
+ * @component Sidebar
+ * @description Barra lateral dinámica que muestra el listado de impresoras de la unidad activa.
+ * Incluye búsqueda, sincronización manual y resumen estadístico.
+ */
 export const Sidebar: React.FC = () => {
-    const { selectedPrinterId, setSelectedPrinter, isMobileMenuOpen, setMobileMenuOpen } = useDashboardStore();
+    const { 
+        selectedPrinterId, 
+        setSelectedPrinter, 
+        isMobileMenuOpen, 
+        setMobileMenuOpen, 
+        unitName 
+    } = useDashboardStore();
+    
     const [searchQuery, setSearchQuery] = useState('');
     const [syncStatus, setSyncStatus] = useState<'idle' | 'syncing' | 'success'>('idle');
     const queryClient = useQueryClient();
@@ -62,7 +74,6 @@ export const Sidebar: React.FC = () => {
         }, 1000);
     };
 
-    // Close sidebar when clicking a printer on mobile
     const handlePrinterClick = (printer: PrinterSummary) => {
         setSelectedPrinter(printer);
         setMobileMenuOpen(false);
@@ -77,22 +88,14 @@ export const Sidebar: React.FC = () => {
         try {
             const { data } = await api.post('/printers/sync');
             toast.success(`Sincronización completa: ${data.updated}/${data.total} actualizadas`, { id: toastId });
-
             setSyncStatus('success');
-
-            // Refrescar lista de impresoras
             await queryClient.invalidateQueries({ queryKey: ['printers-unit'] });
 
-            // Si hay una seleccionada, refrescar su historial también
             if (selectedPrinterId) {
                 await queryClient.invalidateQueries({ queryKey: ['toner-history', selectedPrinterId] });
             }
 
-            // Regresar a estado original tras 2 segundos
-            setTimeout(() => {
-                setSyncStatus('idle');
-            }, 2000);
-
+            setTimeout(() => setSyncStatus('idle'), 2000);
         } catch (error) {
             console.error('Error in manual sync:', error);
             toast.error('Error al sincronizar impresoras', { id: toastId });
@@ -125,11 +128,12 @@ export const Sidebar: React.FC = () => {
 
                 <div className="relative z-10 flex flex-col h-full">
 
+                    {/* Header */}
                     <div className="p-4 border-b border-guinda-700/10 bg-transparent">
                         <div className="flex items-center justify-between mb-4">
-                            <h2 className="text-lg font-bold text-guinda-700 flex items-center gap-2">
+                            <h2 className="text-lg font-bold text-guinda-700 flex items-center gap-2 uppercase">
                                 <LayoutDashboard className="w-5 h-5" />
-                                ALIMENTACIÓN BIENESTAR
+                                {unitName || "ALIMENTACIÓN BIENESTAR"}
                             </h2>
                             <div className="flex items-center gap-2">
                                 <div className="text-[10px] uppercase font-medium text-slate-400 tracking-[0.1em] hidden md:block">SMIAB Bienestar</div>
@@ -155,7 +159,6 @@ export const Sidebar: React.FC = () => {
                                 <button
                                     onClick={() => setSearchQuery('')}
                                     className="absolute right-3 top-1/2 -translate-y-1/2 p-0.5 rounded-md hover:bg-slate-200 text-slate-400 hover:text-slate-600 transition-all"
-                                    title="Limpiar búsqueda"
                                 >
                                     <X className="w-3.5 h-3.5" />
                                 </button>
@@ -163,7 +166,7 @@ export const Sidebar: React.FC = () => {
                         </div>
                     </div>
 
-                    {/* Mobile Module Navigation */}
+                    {/* Navigation */}
                     <div className="md:hidden p-4 border-b border-guinda-700/10 space-y-1">
                         <div className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] mb-2">Módulos</div>
                         <a href="/dashboard" className="flex items-center gap-3 p-2 rounded-lg text-slate-600 hover:bg-slate-50 hover:text-guinda-700 transition-colors">
@@ -174,16 +177,7 @@ export const Sidebar: React.FC = () => {
                             <Activity className="w-4 h-4" />
                             <span className="text-sm font-bold">Impresoras</span>
                         </a>
-                        <a href="/toner" className="flex items-center gap-3 p-2 rounded-lg text-slate-600 hover:bg-slate-50 hover:text-guinda-700 transition-colors">
-                            <div className="w-4 h-4 flex items-center justify-center"><div className="w-2 h-2 rounded-full bg-current opacity-70" /></div>
-                            <span className="text-sm font-bold">Tóner</span>
-                        </a>
-                        <a href="/statistics" className="flex items-center gap-3 p-2 rounded-lg text-slate-600 hover:bg-slate-50 hover:text-guinda-700 transition-colors">
-                            <div className="w-4 h-4 flex items-center justify-center"><div className="w-0.5 h-3 bg-current opacity-70 rounded-full" /></div>
-                            <span className="text-sm font-bold">Impresión</span>
-                        </a>
                     </div>
-
 
                     <div className="px-4 py-2 text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] mb-1 bg-transparent mt-2">EQUIPOS DE IMPRESIÓN</div>
 
@@ -194,59 +188,39 @@ export const Sidebar: React.FC = () => {
                         )}
                         onScroll={handleScroll}
                     >
-
-                        {filteredPrinters.length > 0 ? (
-                            filteredPrinters.map((printer) => (
-                                <button
-                                    key={printer.id}
-                                    onClick={() => handlePrinterClick(printer)}
-                                    className={cn(
-                                        "w-full text-left p-3 rounded-xl flex items-center gap-3 transition-all duration-300 group outline-none border border-transparent relative overflow-hidden",
-                                        selectedPrinterId === printer.id
-                                            ? "bg-guinda-500/[0.08] border-guinda-500/20 shadow-[inner_0_2px_4px_rgba(123,30,52,0.1)] backdrop-blur-sm scale-[0.98]"
-                                            : "hover:bg-slate-50 hover:border-slate-100 active:scale-[0.99]"
-                                    )}
-                                >
-                                    <div className={cn(
-                                        "w-2 h-2 rounded-full shrink-0",
-                                        printer.isOnline ? "bg-emerald-500 shadow-sm shadow-emerald-200" : "bg-red-500 shadow-sm shadow-red-200"
-                                    )} />
-
-                                    <div className="flex-1 min-w-0">
-                                        <div className="flex items-center gap-2">
-                                            <div className={cn(
-                                                "text-sm font-semibold truncate",
-                                                selectedPrinterId === printer.id ? "text-guinda-900" : "text-slate-600"
-                                            )}>
-                                                {printer.name || `Impresora ${printer.id}`}
-                                            </div>
-                                            {printer.tonerLevel !== null && printer.tonerLevel <= 33 && (
-                                                <AlertTriangle className="w-3.5 h-3.5 text-red-500 shrink-0 animate-pulse" />
-                                            )}
+                        {filteredPrinters.map((printer) => (
+                            <button
+                                key={printer.id}
+                                onClick={() => handlePrinterClick(printer)}
+                                className={cn(
+                                    "w-full text-left p-3 rounded-xl flex items-center gap-3 transition-all duration-300 group outline-none border border-transparent relative overflow-hidden",
+                                    selectedPrinterId === printer.id
+                                        ? "bg-guinda-500/[0.08] border-guinda-500/20 shadow-[inner_0_2px_4px_rgba(123,30,52,0.1)] backdrop-blur-sm scale-[0.98]"
+                                        : "hover:bg-slate-50 hover:border-slate-100 active:scale-[0.99]"
+                                )}
+                            >
+                                <div className={cn(
+                                    "w-2 h-2 rounded-full shrink-0",
+                                    printer.isOnline ? "bg-emerald-500 shadow-sm shadow-emerald-200" : "bg-red-500 shadow-sm shadow-red-200"
+                                )} />
+                                <div className="flex-1 min-w-0">
+                                    <div className="flex items-center gap-2">
+                                        <div className={cn("text-sm font-semibold truncate", selectedPrinterId === printer.id ? "text-guinda-900" : "text-slate-600")}>
+                                            {printer.name || `Impresora ${printer.id}`}
                                         </div>
-                                        <div className="text-[9px] uppercase font-semibold text-slate-400 tracking-wider truncate">
-                                            {printer.area || 'Sin área'}
-                                        </div>
+                                        {printer.tonerLevel !== null && printer.tonerLevel <= 33 && (
+                                            <AlertTriangle className="w-3.5 h-3.5 text-red-500 shrink-0 animate-pulse" />
+                                        )}
                                     </div>
-                                </button>
-                            ))
-                        ) : searchQuery ? (
-                            <div className="absolute inset-0 flex flex-col items-center justify-center p-8 text-center animate-in fade-in duration-500">
-                                <div className="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mb-4 border border-slate-100">
-                                    <Search className="w-8 h-8 text-slate-200" />
+                                    <div className="text-[9px] uppercase font-semibold text-slate-400 tracking-wider truncate">
+                                        {printer.area || 'Sin área'}
+                                    </div>
                                 </div>
-                                <p className="text-xs font-black text-slate-400 uppercase tracking-widest leading-tight">No se encontraron<br />coincidencias</p>
-                                <button
-                                    onClick={() => setSearchQuery('')}
-                                    className="mt-4 text-[10px] font-bold text-guinda-600 hover:text-guinda-700 underline underline-offset-4"
-                                >
-                                    Limpiar búsqueda
-                                </button>
-                            </div>
-                        ) : null}
+                            </button>
+                        ))}
                     </div>
 
-                    {/* Footer: Estadísticas Consolidadas (Physical Inventory Only) */}
+                    {/* Footer Section */}
                     <div className="p-4 bg-slate-50/50 border-t border-guinda-700/10 space-y-4">
                         <button
                             onClick={handleGlobalSync}
@@ -258,10 +232,7 @@ export const Sidebar: React.FC = () => {
                                 syncStatus === 'success' && "bg-emerald-500 text-white shadow-emerald-500/20"
                             )}
                         >
-                            <RefreshCw className={cn(
-                                "w-4 h-4",
-                                syncStatus === 'syncing' && "animate-spin"
-                            )} />
+                            <RefreshCw className={cn("w-4 h-4", syncStatus === 'syncing' && "animate-spin")} />
                             <span>
                                 {syncStatus === 'idle' && 'Actualizar Impresoras'}
                                 {syncStatus === 'syncing' && 'Actualizando...'}
@@ -272,7 +243,7 @@ export const Sidebar: React.FC = () => {
                         <div>
                             <div className="flex items-center gap-2 mb-3 px-1">
                                 <Activity className="w-3.5 h-3.5 text-guinda-700" />
-                                <h3 className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Unidad Oaxaca</h3>
+                                <h3 className="text-[10px] font-bold text-slate-500 uppercase tracking-widest whitespace-nowrap">Unidad {unitName || "Oaxaca"}</h3>
                             </div>
                             <div className="grid grid-cols-3 gap-2">
                                 <div className="bg-white/40 border border-slate-100 p-2 rounded-lg text-center">
@@ -295,4 +266,3 @@ export const Sidebar: React.FC = () => {
         </>
     );
 };
-

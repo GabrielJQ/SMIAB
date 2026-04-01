@@ -78,7 +78,10 @@ export class SupabaseAuthGuard
     // 6️⃣ Normalizar request.user (contrato FINAL de tu app)
     request.user = {
       supabase: supabaseUser,
-      internal: internalUser,
+      internal: {
+        ...internalUser,
+        unit_name: internalUser.units?.uninom,
+      },
       areaId: internalUser.department_id || internalUser.unit_id,
       unitId: internalUser.unit_id,
       departmentId: internalUser.department_id,

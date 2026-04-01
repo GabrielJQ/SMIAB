@@ -1,15 +1,20 @@
 "use client";
 
 import React from 'react';
-import { useQuery } from '@tanstack/react-query';
-import { api } from '@/services/api';
 import { useOperationalStatus } from '@/hooks/useOperationalStatus';
 import { Activity } from 'lucide-react';
 import { DashboardCard } from '@/components/ui/DashboardCard';
+import { useDashboardStore } from '@/store/useDashboardStore';
 
+/**
+ * @component UnitStatusWidget
+ * @description Muestra el resumen operativo (Total, Online, Offline) con identidad dinámica.
+ */
 export const UnitStatusWidget = () => {
     const { data: stats, isFetching } = useOperationalStatus();
+    const { unitName } = useDashboardStore();
 
+    // Fuente de verdad para los contadores
     const currentStats = stats || { total: 0, online: 0, offline: 0 };
 
     return (
@@ -47,7 +52,7 @@ export const UnitStatusWidget = () => {
             </div>
 
             <p className="text-[9px] text-slate-400/80 text-center font-bold uppercase tracking-widest relative z-10 opacity-60">
-                Monitoreo en tiempo real &bull; Unidad de Bienestar
+                Monitoreo en tiempo real &bull; {unitName || "Unidad de Bienestar"}
             </p>
         </DashboardCard>
     );

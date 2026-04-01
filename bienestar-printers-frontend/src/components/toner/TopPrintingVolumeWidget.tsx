@@ -1,41 +1,36 @@
-"use client";
+'use client';
 
 import React, { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
-import { api } from '@/services/api';
-import { MonthYearFilter } from '@/components/dashboard/MonthYearFilter';
-import { useUnitTopPrinters } from '@/hooks/useUnitTopPrinters';
 import { DashboardCard } from '@/components/ui/DashboardCard';
-import { PrinterComparison } from '@/types/printer';
+import { MonthYearFilter } from '../dashboard/MonthYearFilter';
+import { useUnitTopPrinters } from '@/hooks/useUnitTopPrinters';
+import { useUnitHistory } from '@/hooks/useUnitHistory';
 import { Activity } from 'lucide-react';
 
 export const TopPrintingVolumeWidget = () => {
     const now = new Date();
-    const [selectedYear, setSelectedYear] = useState(now.getFullYear());
-    const [selectedMonth, setSelectedMonth] = useState(now.getMonth() + 1);
+    const initialMonth = now.getMonth() + 1;
+    const initialYear = now.getFullYear();
+
+    const [selectedYear, setSelectedYear] = useState(initialYear);
+    const [selectedMonth, setSelectedMonth] = useState(initialMonth);
+
+    // Initial logic: if current day <= 5, default to previous month to show completed reports
 
     const { data: topPrinters, isLoading: isTopLoading } = useUnitTopPrinters(selectedYear, selectedMonth);
 
-    const { data: history, isLoading: isHistoryLoading } = useQuery({
-        queryKey: ['unit-history', selectedYear, selectedMonth],
-        queryFn: async () => {
-            const { data } = await api.get('/printers/unit/history', { params: { year: selectedYear, month: selectedMonth } });
-            return data as PrinterComparison[];
-        },
-    });
+    // useUnitHistory returns data for the selected month and previous months of the same year
+    const { data: historyData, isLoading: isHistoryLoading } = useUnitHistory(selectedYear, selectedMonth);
 
-    const currentMonthData = history?.find(d => d.month === selectedMonth && d.year === selectedYear);
-    const totalImpressions = currentMonthData?.print_only || 0;
-    const totalCopies = currentMonthData?.copies || 0;
-    const totalMensual = currentMonthData?.print_total || 0;
+    // FIX: Buscar específicamente el mes seleccionado en lugar de sumar todo el historial (Evita discrepancia vs gráfico global)
+    const selectedMonthData = historyData?.find(d => Number(d.month) === selectedMonth);
 
-    // To ensure percentages add up to 100% without exceeding it,
-    // we use the sum of parts as the base for the breakdown.
-    const totalParts = totalImpressions + totalCopies;
-    const impPercent = totalParts > 0 ? Math.round((totalImpressions / totalParts) * 100) : 0;
-    const copyPercent = totalParts > 0 ? (totalParts > 0 ? 100 - impPercent : 0) : 0;
+    const totalMensual = Number(selectedMonthData?.print_total) || 0;
+    const totalImpressions = Number(selectedMonthData?.print_only) || 0;
+    const totalCopies = Number(selectedMonthData?.copies) || 0;
 
-    const maxVolume = topPrinters && topPrinters.length > 0 ? topPrinters[0].totalImpressions : 0;
+    const impPercent = totalMensual > 0 ? Math.round((totalImpressions / totalMensual) * 100) : 0;
+    const copyPercent = totalMensual > 0 ? Math.round((totalCopies / totalMensual) * 100) : 0;
 
     return (
         <div className="flex flex-col gap-6 h-full">
@@ -79,10 +74,12 @@ export const TopPrintingVolumeWidget = () => {
                     Reporte de Volumen de Impresión
                 </h3>
 
-                <div className="overflow-hidden flex-1 flex flex-col">
+                <div className="flex-1 min-h-0 flex flex-col">
                     {isTopLoading ? (
-                        <div className="flex-1 flex items-center justify-center min-h-[400px]">
-                            <div className="w-8 h-8 border-4 border-slate-100 border-t-guinda-700 rounded-full animate-spin"></div>
+                        <div className="space-y-4">
+                            {[1, 2, 3, 4, 5].map(i => (
+                                <div key={i} className="h-12 bg-slate-50 rounded-xl animate-pulse"></div>
+                            ))}
                         </div>
                     ) : (!topPrinters || topPrinters.length === 0) ? (
                         <div className="flex-1 flex flex-col items-center justify-center opacity-50 min-h-[400px]">
@@ -91,23 +88,22 @@ export const TopPrintingVolumeWidget = () => {
                         </div>
                     ) : (
                         <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar flex flex-col gap-5 min-h-0">
-                            {topPrinters.map((printer, idx) => {
-                                const percentage = maxVolume > 0 ? (printer.totalImpressions / maxVolume) * 100 : 0;
-                                return (
-                                    <div key={printer.printerId} className="flex flex-col gap-2 shrink-0">
-                                        <div className="flex justify-between items-baseline">
-                                            <span className="text-sm font-bold text-slate-700 uppercase">{idx + 1}. {printer.name}</span>
-                                            <span className="text-xs font-bold text-slate-500">{printer.totalImpressions.toLocaleString()}</span>
-                                        </div>
-                                        <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
-                                            <div 
-                                                className="h-full bg-guinda-700 rounded-full transition-all duration-500"
-                                                style={{ width: `${percentage}%` }}
-                                            />
-                                        </div>
+                            {topPrinters.map((printer, idx) => (
+                                <div key={printer.printerId} className="flex flex-col gap-2 shrink-0">
+                                    <div className="flex justify-between items-baseline">
+                                        <span className="text-sm font-bold text-slate-700 uppercase">{idx + 1}. {printer.name}</span>
+                                        <span className="text-xs font-bold text-slate-500">{printer.totalImpressions.toLocaleString()}</span>
                                     </div>
-                                );
-                            })}
+                                    <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
+                                        <div 
+                                            className="h-full bg-guinda-700 rounded-full transition-all duration-1000 ease-out"
+                                            style={{ 
+                                                width: `${(printer.totalImpressions / (topPrinters[0]?.totalImpressions || 1)) * 100}%` 
+                                            }}
+                                        />
+                                    </div>
+                                </div>
+                            ))}
                         </div>
                     )}
                 </div>

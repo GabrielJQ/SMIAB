@@ -653,8 +653,10 @@ export class PrintersService {
       endMonth?: number;
     },
   ) {
+    // 1. Validación de seguridad y acceso
     await this.validatePrinterAccess(printerId, userAreaId);
 
+    // 2. Obtener registros estáticos (Cierres previos)
     const rows = await getPrinterHistoryQuery(
       this.printerMonthlyStatRepository,
       {
@@ -663,13 +665,58 @@ export class PrintersService {
       },
     );
 
+    // 3. Inteligencia 'Individual Live': Inyectar el mes actual si no hay cierre aún
+    const today = new Date();
+    const currentYear = today.getFullYear();
+    const currentMonth = today.getMonth() + 1;
+
+    // Determinamos si el rango solicitado incluye el mes de hoy
+    const isCurrentInYearRange = (!filters.startYear || currentYear >= filters.startYear) && 
+                                  (!filters.endYear || currentYear <= filters.endYear);
+    
+    // Si el mes actual NO está en los registros pero está en el rango solicitado...
+    if (isCurrentInYearRange && !rows.some(r => r.year === currentYear && r.month === currentMonth)) {
+        // Obtenemos los datos actuales de la impresora (Lectura SNMP fresca)
+        const printer = await getPrinterByIdQuery(this.printerRepository, printerId);
+        
+        if (printer && Number(printer.totalPagesPrinted) > 0) {
+            // Buscamos el cierre del mes anterior para calcular el delta acumulado hoy
+            let prevM = currentMonth - 1;
+            let prevY = currentYear;
+            if (prevM === 0) { prevM = 12; prevY = currentYear - 1; }
+
+            const lastClosure = await this.printerMonthlyStatRepository.findOne({
+                where: { assetId: printerId, year: prevY, month: prevM }
+            });
+
+            if (lastClosure) {
+                const totalReading = Number(printer.totalPagesPrinted);
+                const lastReading = Number(lastClosure.printTotalReading || 0);
+                const delta = totalReading - lastReading;
+
+                // Solo inyectamos si hay consumo real (evitamos ruido de 0)
+                if (delta > 0) {
+                    // Creamos un POJO que el DTO sepa interpretar como PrinterMonthlyStat
+                    const liveRow = {
+                        year: currentYear,
+                        month: currentMonth,
+                        printTotalDelta: delta.toString(),
+                        printOnlyDelta: delta.toString(), // Por ahora, asumimos impresión acumulada
+                        copyDelta: '0',
+                    };
+                    rows.push(liveRow as any);
+                }
+            }
+        }
+    }
+
     return rows.map((row) => new PrinterHistoryDto(row));
   }
 
   async getMonthlyStats(printerId: string, userAreaId: string) {
     await this.validatePrinterAccess(printerId, userAreaId);
 
-    // Utilizamos QueryBuilder de TypeORM y delegamos el SUM/COUNT al motor PostgreSQL
+    // 1. Obtener datos estáticos de la DB (Cierres procesados)
     const rawData = await this.printerMonthlyStatRepository
       .createQueryBuilder('stats')
       .select('stats.year', 'year')
@@ -696,8 +743,7 @@ export class PrintersService {
       .addOrderBy('stats.month', 'ASC')
       .getRawMany();
 
-    // Mapeo Type-Safe: Convertir cualquier string derivado del pg-node driver a number real
-    return rawData.map((row) => ({
+    const formattedData = rawData.map((row) => ({
       year: Number(row.year),
       month: Number(row.month),
       totalImpressions: Number(row.totalImpressions || 0),
@@ -705,6 +751,41 @@ export class PrintersService {
       copies: Number(row.copies || 0),
       tonerChanges: Number(row.tonerChanges || 0),
     }));
+
+    // 2. Inteligencia 'Live' para Recharts: Inyectar mes actual si no hay cierre
+    const today = new Date();
+    const currentYear = today.getFullYear();
+    const currentMonth = today.getMonth() + 1;
+
+    if (!formattedData.some(d => d.year === currentYear && d.month === currentMonth)) {
+        const printer = await getPrinterByIdQuery(this.printerRepository, printerId);
+        
+        if (printer && Number(printer.totalPagesPrinted) > 0) {
+            let prevM = currentMonth - 1;
+            let prevY = currentYear;
+            if (prevM === 0) { prevM = 12; prevY = currentYear - 1; }
+
+            const lastClosure = await this.printerMonthlyStatRepository.findOne({
+                where: { assetId: printerId, year: prevY, month: prevM }
+            });
+
+            if (lastClosure) {
+                const delta = Number(printer.totalPagesPrinted) - Number(lastClosure.printTotalReading || 0);
+                if (delta > 0) {
+                    formattedData.push({
+                        year: currentYear,
+                        month: currentMonth,
+                        totalImpressions: delta,
+                        printOnly: delta, // Asumimos impresión 100% en el cálculo vivo
+                        copies: 0,
+                        tonerChanges: 0,
+                    });
+                }
+            }
+        }
+    }
+
+    return formattedData;
   }
 
   async getPrinterYearlySummary(
@@ -742,13 +823,47 @@ export class PrintersService {
   async getUnitHistory(userUnitId: string, year: number, month: number) {
     if (!userUnitId) throw new ForbiddenException('User has no unit assigned');
 
-    // Now using TypeORM repository instead of Supabase client
+    // 1. Obtener datos estáticos (Cierres ya procesados)
     const rows = await getUnitHistoryQuery(
       this.printerMonthlyStatRepository,
       userUnitId,
       year,
       month,
     );
+
+    // 2. Inteligencia 'Live': Si consultamos el mes actual y no hay cierre, calculamos el delta dinámico global
+    const today = new Date();
+    const currentYear = today.getFullYear();
+    const currentMonth = today.getMonth() + 1;
+
+    // Si el rango solicitado incluye el mes actual y este aún no tiene registros físicos...
+    if (year === currentYear && month >= currentMonth && !rows.some(r => r.month === currentMonth)) {
+        let prevM = currentMonth - 1;
+        let prevY = currentYear;
+        if (prevM === 0) { prevM = 12; prevY = currentYear - 1; }
+
+        // Calculamos la sumatoria de deltas en tiempo real para todas las impresoras de la unidad
+        const dynamicSum = await this.printerRepository.createQueryBuilder('p')
+            .leftJoin('p.monthlyStats', 's', 's.year = :prevY AND s.month = :prevM', { prevY, prevM })
+            .select('SUM(CASE WHEN s.print_total_reading IS NULL THEN 0 ELSE (p.total_pages_printed::bigint - s.print_total_reading::bigint) END)', 'total')
+            // Filtro de ruido: Solo sumamos si el delta individual es > 10 para evitar fluctuaciones mínimas post-cierre
+            .where('p.unit_id = :unitId', { unitId: userUnitId })
+            .andWhere('CASE WHEN s.print_total_reading IS NULL THEN 0 ELSE (p.total_pages_printed::bigint - s.print_total_reading::bigint) END > 10')
+            .getRawOne();
+
+        const totalValue = Number(dynamicSum?.total || 0);
+
+        if (totalValue > 0) {
+            rows.push({
+                year: currentYear,
+                month: currentMonth,
+                print_total: totalValue,
+                print_only: totalValue, // En el cálculo dinámico asumimos 100% impresión (sin desglose nativo aún)
+                copies: 0,
+            } as any);
+        }
+    }
+
     return rows;
   }
 
@@ -817,9 +932,11 @@ export class PrintersService {
             { prevYear, prevMonth })
           .select('printer.assetId', 'printerId')
           .addSelect('printer.namePrinter', 'name')
-          .addSelect('CAST(COALESCE(printer.total_pages_printed::bigint - COALESCE(prevstats.print_total_reading::bigint, 0), 0) AS INTEGER)', 'totalImpressions')
+          // Fix: Only calculate delta if we have a valid previous reading. 
+          // If no previous reading exists (null), we return 0 to avoid showing total historical pages as current month's usage.
+          .addSelect('CAST(CASE WHEN prevstats.print_total_reading IS NULL THEN 0 ELSE printer.total_pages_printed::bigint - prevstats.print_total_reading::bigint END AS INTEGER)', 'totalImpressions')
           .where('printer.unitId = :unitId', { unitId: userUnitId })
-          .orderBy('CAST(COALESCE(printer.total_pages_printed::bigint - COALESCE(prevstats.print_total_reading::bigint, 0), 0) AS INTEGER)', 'DESC')
+          .orderBy('CAST(CASE WHEN prevstats.print_total_reading IS NULL THEN 0 ELSE printer.total_pages_printed::bigint - prevstats.print_total_reading::bigint END AS INTEGER)', 'DESC')
           .limit(10)
           .getRawMany();
 
@@ -849,38 +966,29 @@ export class PrintersService {
       today.toLocaleString('en-US', { timeZone: 'America/Mexico_City' }),
     );
 
-    // Determinamos el mes a mostrar (Siempre el previo al actual)
-    let targetYear = mxTime.getFullYear();
-    let displayMonth = mxTime.getMonth(); // 0 a 11, donde 0 es Ene y 3 es Abr
+    // MODO LIVE: Determinamos el mes ACTUAL en curso (1-indexed)
+    const targetYear = mxTime.getFullYear();
+    const displayMonth = mxTime.getMonth() + 1; 
 
-    if (displayMonth === 0) {
-      displayMonth = 12;
-      targetYear -= 1;
-    }
+    // Punto de comparación: Cierre del Mes Anterior
+    let prevM = displayMonth - 1;
+    let prevY = targetYear;
+    if (prevM === 0) { prevM = 12; prevY = targetYear - 1; }
 
     const monthNames = [
-      'Enero',
-      'Febrero',
-      'Marzo',
-      'Abril',
-      'Mayo',
-      'Junio',
-      'Julio',
-      'Agosto',
-      'Septiembre',
-      'Octubre',
-      'Noviembre',
-      'Diciembre',
+      'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
+      'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre',
     ];
     const periodLabel = `${monthNames[displayMonth - 1]} ${targetYear}`;
 
+    // Query unificada de Dinamismo (Volumen Live + Toner Live)
     const rawData = await this.printerRepository
       .createQueryBuilder('printer')
-      .innerJoin(
+      .leftJoin(
         'printer.monthlyStats',
-        'stats',
-        'stats.year = :targetYear AND stats.month = :displayMonth',
-        { targetYear, displayMonth },
+        'prevstats',
+        'prevstats.year = :prevY AND prevstats.month = :prevM',
+        { prevY, prevM },
       )
       .leftJoin(
         'printer.tonerChanges',
@@ -891,13 +999,16 @@ export class PrintersService {
       .select('printer.assetId', 'printerId')
       .addSelect('printer.namePrinter', 'name')
       .addSelect('printer.printerStatus', 'status')
-      .addSelect('CAST(SUM(stats.print_total_delta) AS INTEGER)', 'impressions')
+      // Cálculo Delta Dinámico (Actual - Cierre Anterior)
+      .addSelect('CAST(SUM(CASE WHEN prevstats.print_total_reading IS NULL THEN 0 ELSE (printer.total_pages_printed::bigint - prevstats.print_total_reading::bigint) END) AS INTEGER)', 'impressions')
       .addSelect('CAST(COUNT(tonerchanges.id) AS INTEGER)', 'tonerChanges')
       .where('printer.unitId = :unitId', { unitId: userUnitId })
+      // Filtro de ruido (>10) para evitar deltas insignificantes de inicio de mes
+      .andWhere('CASE WHEN prevstats.print_total_reading IS NULL THEN 0 ELSE (printer.total_pages_printed::bigint - prevstats.print_total_reading::bigint) END > 10')
       .groupBy('printer.assetId')
       .addGroupBy('printer.namePrinter')
       .addGroupBy('printer.printerStatus')
-      .orderBy('CAST(SUM(stats.print_total_delta) AS INTEGER)', 'DESC')
+      .orderBy('CAST(SUM(CASE WHEN prevstats.print_total_reading IS NULL THEN 0 ELSE (printer.total_pages_printed::bigint - prevstats.print_total_reading::bigint) END) AS INTEGER)', 'DESC')
       .limit(5)
       .getRawMany();
 

@@ -13,6 +13,7 @@ export interface AuthenticatedUser {
     role: 'admin' | 'user';
     status: 'active' | 'inactive' | 'suspended';
     unit_id: number | null;
+    unit_name?: string | null;
     region_id: number | null;
     department_id: number | null;
   };
