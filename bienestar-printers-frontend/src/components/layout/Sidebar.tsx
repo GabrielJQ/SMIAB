@@ -132,7 +132,7 @@ export const Sidebar: React.FC = () => {
                                 ALIMENTACIÓN BIENESTAR
                             </h2>
                             <div className="flex items-center gap-2">
-                                <div className="text-[10px] uppercase font-bold text-slate-400 tracking-widest hidden md:block">SMIAB Bienestar</div>
+                                <div className="text-[10px] uppercase font-medium text-slate-400 tracking-[0.1em] hidden md:block">SMIAB Bienestar</div>
                                 <button
                                     onClick={() => setMobileMenuOpen(false)}
                                     className="md:hidden p-1 text-slate-400 hover:text-guinda-700 transition-colors"
@@ -165,7 +165,7 @@ export const Sidebar: React.FC = () => {
 
                     {/* Mobile Module Navigation */}
                     <div className="md:hidden p-4 border-b border-guinda-700/10 space-y-1">
-                        <div className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-2">Módulos</div>
+                        <div className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] mb-2">Módulos</div>
                         <a href="/dashboard" className="flex items-center gap-3 p-2 rounded-lg text-slate-600 hover:bg-slate-50 hover:text-guinda-700 transition-colors">
                             <LayoutDashboard className="w-4 h-4" />
                             <span className="text-sm font-bold">Dashboard</span>
@@ -185,7 +185,7 @@ export const Sidebar: React.FC = () => {
                     </div>
 
 
-                    <div className="px-3 py-2 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-1 bg-transparent mt-2">EQUIPOS DE IMPRESIÓN</div>
+                    <div className="px-4 py-2 text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] mb-1 bg-transparent mt-2">EQUIPOS DE IMPRESIÓN</div>
 
                     <div
                         className={cn(
@@ -224,7 +224,7 @@ export const Sidebar: React.FC = () => {
                                                 <AlertTriangle className="w-3.5 h-3.5 text-red-500 shrink-0 animate-pulse" />
                                             )}
                                         </div>
-                                        <div className="text-[9px] uppercase font-bold text-slate-400 tracking-wider truncate">
+                                        <div className="text-[9px] uppercase font-semibold text-slate-400 tracking-wider truncate">
                                             {printer.area || 'Sin área'}
                                         </div>
                                     </div>
@@ -252,7 +252,7 @@ export const Sidebar: React.FC = () => {
                             onClick={handleGlobalSync}
                             disabled={syncStatus !== 'idle'}
                             className={cn(
-                                "w-full py-3 px-4 rounded-xl font-black uppercase tracking-[0.15em] text-[10px] transition-all duration-500 shadow-lg flex items-center justify-center gap-3 active:scale-[0.97]",
+                                "w-full py-3 px-4 rounded-xl font-bold uppercase tracking-[0.15em] text-[10px] transition-all duration-500 shadow-lg flex items-center justify-center gap-3 active:scale-[0.97]",
                                 syncStatus === 'idle' && "bg-guinda-600 text-white hover:bg-guinda-700 shadow-guinda-600/20",
                                 syncStatus === 'syncing' && "bg-slate-200 text-slate-500 cursor-not-allowed shadow-none",
                                 syncStatus === 'success' && "bg-emerald-500 text-white shadow-emerald-500/20"
@@ -270,22 +270,22 @@ export const Sidebar: React.FC = () => {
                         </button>
 
                         <div>
-                            <div className="flex items-center gap-2 mb-3">
+                            <div className="flex items-center gap-2 mb-3 px-1">
                                 <Activity className="w-3.5 h-3.5 text-guinda-700" />
-                                <h3 className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Unidad Oaxaca</h3>
+                                <h3 className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Unidad Oaxaca</h3>
                             </div>
                             <div className="grid grid-cols-3 gap-2">
-                                <div className="bg-white/60 border border-slate-100 p-2 rounded-lg text-center shadow-sm">
-                                    <div className="text-base font-black text-slate-700">{statsSummary.total}</div>
-                                    <div className="text-[7px] text-slate-400 uppercase font-black">Equipos</div>
+                                <div className="bg-white/40 border border-slate-100 p-2 rounded-lg text-center">
+                                    <div className="text-sm font-bold text-slate-700">{statsSummary.total}</div>
+                                    <div className="text-[7px] text-slate-400 uppercase font-bold tracking-tighter">Equipos</div>
                                 </div>
-                                <div className="bg-white/60 border border-slate-100 p-2 rounded-lg text-center shadow-sm">
-                                    <div className="text-base font-black text-emerald-600">{statsSummary.online}</div>
-                                    <div className="text-[7px] text-emerald-600/70 uppercase font-black">Online</div>
+                                <div className="bg-white/40 border border-slate-100 p-2 rounded-lg text-center">
+                                    <div className="text-sm font-bold text-emerald-600">{statsSummary.online}</div>
+                                    <div className="text-[7px] text-emerald-600/70 uppercase font-bold tracking-tighter">Online</div>
                                 </div>
-                                <div className="bg-white/60 border border-slate-100 p-2 rounded-lg text-center shadow-sm">
-                                    <div className="text-base font-black text-red-600">{statsSummary.offline}</div>
-                                    <div className="text-[7px] text-red-600/70 uppercase font-black">Offline</div>
+                                <div className="bg-white/40 border border-slate-100 p-2 rounded-lg text-center">
+                                    <div className="text-sm font-bold text-red-600">{statsSummary.offline}</div>
+                                    <div className="text-[7px] text-red-600/70 uppercase font-bold tracking-tighter">Offline</div>
                                 </div>
                             </div>
                         </div>

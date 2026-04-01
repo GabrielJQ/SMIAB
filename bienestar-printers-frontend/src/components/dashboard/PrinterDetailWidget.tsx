@@ -16,7 +16,7 @@ const getSemanticColor = (value: number | null) => {
     if (value === null) return '#e2e8f0'; // Gris (Sin Datos)
     if (value <= 33) return '#EF4444';    // Rojo (Crítico)
     if (value <= 60) return '#F59E0B';    // Naranja (Advertencia)
-    if (value <= 85) return '#6366f1';    // Indigo (Bueno)
+    if (value <= 85) return '#6366f1';    // Indigo (Operativo)
     return '#10B981';                     // Esmeralda (Óptimo)
 };
 
@@ -30,39 +30,39 @@ const DonutMetric = ({ value, label, icon: Icon }: { value: number | null, label
 
     return (
         <div className="flex flex-col items-center group w-full">
-            <div className="relative w-32 h-32 md:w-40 md:h-40 xl:w-56 xl:h-56 transition-transform duration-500 ease-out group-hover:scale-105">
-                {/* Glow Effect */}
-                <div className="absolute inset-0 rounded-full blur-3xl opacity-20 transition-opacity duration-700 group-hover:opacity-40" style={{ backgroundColor: color }}></div>
+            <div className="relative w-28 h-28 md:w-36 md:h-36 xl:w-48 xl:h-48 transition-transform duration-500 ease-out group-hover:scale-105">
+                {/* Glow Effect - Smoother and smaller */}
+                <div className="absolute inset-4 rounded-full blur-2xl opacity-10 transition-opacity duration-700 group-hover:opacity-25" style={{ backgroundColor: color }}></div>
 
                 <ResponsiveContainer width="100%" height="100%">
                     <PieChart>
                         <Pie
                             data={data}
-                            innerRadius="60%"
-                            outerRadius="80%"
+                            innerRadius="65%"
+                            outerRadius="85%"
                             startAngle={90}
                             endAngle={-270}
                             dataKey="value"
                             stroke="none"
                             cornerRadius={40}
-                            paddingAngle={5}
+                            paddingAngle={2}
                         >
                             <Cell fill={color} />
-                            <Cell fill="#f1f5f9" />
+                            <Cell fill="#f8fafc" />
                         </Pie>
                     </PieChart>
                 </ResponsiveContainer>
 
                 {/* Center Content */}
                 <div className="absolute inset-0 flex flex-col items-center justify-center">
-                    <Icon className="w-6 h-6 md:w-8 md:h-8 mb-1 md:mb-2 text-slate-300" />
-                    <span className="text-2xl md:text-4xl xl:text-5xl font-black text-slate-800 tracking-tighter transition-colors duration-300 group-hover:text-slate-900">
+                    <Icon className="w-5 h-5 md:w-6 md:h-6 mb-1 text-slate-300" />
+                    <span className="text-xl md:text-3xl xl:text-4xl font-bold text-slate-800 tracking-tighter transition-colors duration-300 group-hover:text-slate-900">
                         {value ?? '?'}
-                        <span className="text-xs md:text-lg xl:text-xl text-slate-400 font-bold ml-0.5">%</span>
+                        <span className="text-xs md:text-base xl:text-lg text-slate-400 font-semibold ml-0.5">%</span>
                     </span>
                 </div>
             </div>
-            <span className="text-[10px] md:text-sm uppercase tracking-[0.1em] md:tracking-[0.2em] text-slate-400 font-black mt-3 md:mt-6 text-center leading-tight">{label}</span>
+            <span className="text-[10px] md:text-xs uppercase tracking-[0.1em] text-slate-400 font-bold mt-4 text-center leading-tight">{label}</span>
         </div>
     );
 };
@@ -93,7 +93,7 @@ export const PrinterDetailWidget = () => {
                 <div className="w-32 h-32 bg-slate-50 rounded-full flex items-center justify-center mb-6 animate-pulse">
                     <PrinterIcon className="w-16 h-16 opacity-20" />
                 </div>
-                <p className="text-lg font-black uppercase tracking-[0.3em] text-center opacity-60">Selecciona un equipo</p>
+                <p className="text-lg font-bold uppercase tracking-[0.3em] text-center opacity-60">Selecciona un equipo</p>
                 <p className="text-sm font-medium text-slate-400 mt-2">Visualiza el estado de consumibles</p>
             </DashboardCard>
         );
@@ -130,7 +130,7 @@ export const PrinterDetailWidget = () => {
                             <AlertTriangle className="w-6 h-6 text-red-600" />
                         </div>
                         <div className="flex-1">
-                            <h4 className="text-red-900 font-extrabold text-xs sm:text-sm uppercase tracking-wider mb-2">
+                            <h4 className="text-red-900 font-bold text-xs sm:text-sm uppercase tracking-wider mb-2">
                                 {alert.type === 'PREMATURE_CHANGE' ? 'ALERTA: CAMBIO PREMATURO DETECTADO' : 'ALERTA: INTERCAMBIO SOSPECHOSO'}
                             </h4>
 
@@ -145,7 +145,7 @@ export const PrinterDetailWidget = () => {
                                     })}
                                 </div>
                                 {alert.metadata && (
-                                    <div className="flex items-center gap-2 text-red-800 text-[10px] sm:text-xs font-black uppercase tracking-tighter">
+                                    <div className="flex items-center gap-2 text-red-800 text-[10px] sm:text-xs font-bold uppercase tracking-tighter">
                                         <div className="px-1.5 py-0.5 bg-red-200/50 rounded">{alert.metadata.oldLevel}%</div>
                                         <ArrowRight className="w-3 h-3 opacity-50" />
                                         <div className="px-1.5 py-0.5 bg-red-200 rounded">{alert.metadata.newLevel}%</div>
@@ -179,7 +179,7 @@ export const PrinterDetailWidget = () => {
                             }
                         }}
                         disabled={isResolving}
-                        className="relative z-10 shrink-0 h-10 px-6 rounded-lg bg-red-600 hover:bg-red-700 text-white text-[10px] font-black uppercase tracking-widest shadow-lg shadow-red-200 flex items-center gap-2 transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed group"
+                        className="relative z-10 shrink-0 h-10 px-6 rounded-lg bg-red-600 hover:bg-red-700 text-white text-[10px] font-bold uppercase tracking-widest shadow-lg shadow-red-200 flex items-center gap-2 transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed group"
                     >
                         <CheckCircle2 className="w-4 h-4 transition-transform group-hover:scale-110" />
                         Revisado
@@ -218,14 +218,14 @@ export const PrinterDetailWidget = () => {
                                 <span>{copied ? 'COPIADO' : `IP: ${ipAddress || 'Sin IP'}`}</span>
                             </button>
                         </div>
-                        <h2 className="text-2xl md:text-5xl font-black text-slate-900 tracking-tight leading-none bg-clip-text text-transparent bg-gradient-to-r from-slate-900 to-slate-600">
+                        <h2 className="text-2xl md:text-4xl font-bold text-slate-900 tracking-tight leading-none bg-clip-text text-transparent bg-gradient-to-r from-slate-900 to-slate-600">
                             {name}
                         </h2>
                     </div>
 
                     <div className="text-right">
-                        <p className="text-[10px] uppercase tracking-widest text-slate-400 font-bold mb-1">Última Sincronización</p>
-                        <p className="text-sm font-black text-slate-600 capitalize flex items-center justify-end gap-2">
+                        <p className="text-[10px] uppercase tracking-widest text-slate-400 font-semibold mb-1">Última Sincronización</p>
+                        <p className="text-sm font-bold text-slate-600 capitalize flex items-center justify-end gap-2">
                             <Calendar className="w-4 h-4 text-guinda-700" />
                             {updateDate}
                         </p>
@@ -265,7 +265,7 @@ export const PrinterDetailWidget = () => {
                 <div className="mt-4 relative z-10 flex flex-col md:flex-row gap-6 md:gap-8 items-start">
                     {/* Chart Area */}
                     <div className="flex-1 w-full bg-slate-50/50 rounded-2xl p-4 md:p-6 border border-slate-100">
-                        <h3 className="text-[10px] md:text-sm font-black text-slate-400 uppercase tracking-widest mb-4">
+                        <h3 className="text-[10px] md:text-sm font-bold text-slate-400 uppercase tracking-widest mb-4">
                             Historial de Tóner (30 días)
                         </h3>
                         <div className="h-48 w-full">
@@ -286,14 +286,14 @@ export const PrinterDetailWidget = () => {
                                         <YAxis tick={{ fontSize: 10, fill: '#94a3b8' }} tickLine={false} axisLine={false} domain={[0, 100]} />
                                         <Tooltip
                                             contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
-                                            labelStyle={{ fontWeight: 'bold', color: '#475569' }}
+                                            labelStyle={{ fontWeight: 'bold', color: '#475569', fontSize: '12px' }}
                                         />
                                         <Area type="monotone" dataKey="tonerLevel" stroke="#6366f1" strokeWidth={3} fillOpacity={1} fill="url(#colorToner)" />
                                     </AreaChart>
                                 </ResponsiveContainer>
                             ) : (
-                                <div className="w-full h-full flex items-center justify-center text-slate-400 text-xs font-medium">
-                                    Sin datos históricos suficientes
+                                <div className="w-full h-full flex items-center justify-center text-slate-400 text-[10px] font-medium uppercase tracking-wider">
+                                    Sin datos suficientes
                                 </div>
                             )}
                         </div>
@@ -301,7 +301,7 @@ export const PrinterDetailWidget = () => {
 
                     {/* Action Area */}
                     <div className="w-full md:w-64 flex flex-col items-center justify-center p-6 bg-slate-50/50 rounded-2xl border border-slate-100 h-full min-h-[240px]">
-                        <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 text-center">
+                        <h3 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2 text-center">
                             Gestión de Consumibles
                         </h3>
                         <p className="text-xs text-slate-500 text-center mb-6 min-h-[40px]">
@@ -344,7 +344,7 @@ export const PrinterDetailWidget = () => {
 
                 {/* Footer / Status Bar */}
                 <div className="mt-8 pt-6 border-t border-slate-100 flex justify-between items-center text-slate-400 relative z-10">
-                    <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest">
+                    <div className="flex items-center gap-2 text-[10px] font-medium uppercase tracking-widest">
                         <Activity className="w-4 h-4 text-slate-300" />
                         Estado del Dispositivo
                     </div>
