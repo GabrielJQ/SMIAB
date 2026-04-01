@@ -893,8 +893,21 @@ export class SnmpService implements OnModuleInit {
     const mxTime = new Date(
       date.toLocaleString('en-US', { timeZone: 'America/Mexico_City' }),
     );
-    const currentYear = mxTime.getFullYear();
-    const currentMonth = mxTime.getMonth() + 1; // 1-12
+
+    let targetYear = mxTime.getFullYear();
+    let targetMonth = mxTime.getMonth() + 1; // 1-12
+
+    // Lógica de Ventana: Si estamos en los primeros 5 días, el cierre es para el mes pasado
+    if (mxTime.getDate() <= 5) {
+      targetMonth -= 1;
+      if (targetMonth === 0) {
+        targetMonth = 12;
+        targetYear -= 1;
+      }
+    }
+
+    const currentYear = targetYear;
+    const currentMonth = targetMonth;
 
     try {
       // Revisa si ya procesamos este mes (idempotencia)

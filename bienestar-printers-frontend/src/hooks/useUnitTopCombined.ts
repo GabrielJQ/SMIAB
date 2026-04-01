@@ -9,19 +9,23 @@ export interface TopCombinedConsumer {
     tonerChanges: number;
 }
 
+export interface TopCombinedResponse {
+    periodLabel: string;
+    data: TopCombinedConsumer[];
+}
+
 /**
  * @hook useUnitTopCombined
- * @description Recupera las 5 impresoras con mayor volumen de impresión y su conteo de cambios de tóner
- * para el periodo actual en tiempo real.
+ * @description Recupera las 5 impresoras con mayor consumo consolidado del mes anterior.
  */
 export function useUnitTopCombined() {
     return useQuery({
         queryKey: ['printers', 'top-combined'],
         queryFn: async () => {
-            const { data } = await api.get<TopCombinedConsumer[]>('/printers/unit/top-combined');
+            const { data } = await api.get<TopCombinedResponse>('/printers/unit/top-combined');
             return data;
         },
-        refetchInterval: 15 * 60 * 1000, // Refrescar cada 15 minutos (frecuencia de barrido SNMP)
-        staleTime: 5 * 60 * 1000,
+        refetchInterval: 60 * 60 * 1000, // Refrescar cada hora (mes anterior es estático)
+        staleTime: 30 * 60 * 1000,
     });
 }

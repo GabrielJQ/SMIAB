@@ -11,7 +11,9 @@ import { DashboardCard } from '@/components/ui/DashboardCard';
  * con la estética original de SMIAB. Combina volumen de impresión y tóners.
  */
 export const TopConsumersWidget: React.FC = () => {
-    const { data: topPrinters, isLoading } = useUnitTopCombined();
+    const { data: response, isLoading } = useUnitTopCombined();
+    const printers = response?.data || [];
+    const periodLabel = response?.periodLabel || '';
 
     if (isLoading) {
         return (
@@ -21,18 +23,16 @@ export const TopConsumersWidget: React.FC = () => {
         );
     }
 
-    const maxVolume = topPrinters && topPrinters.length > 0 ? topPrinters[0].impressions : 0;
-
     return (
         <DashboardCard className="p-6 flex flex-col min-h-[450px] h-full">
             {/* Header exacto según referencia */}
             <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest flex items-center gap-2 mb-8 shrink-0">
                 <Activity className="w-4 h-4 text-guinda-700" />
-                Top Consumidores
+                Top Consumidores {periodLabel && <span className="text-slate-300">— {periodLabel}</span>}
             </h3>
 
             <div className="overflow-hidden space-y-10 pr-1 flex-grow">
-                {(!topPrinters || topPrinters.length === 0) ? (
+                {(printers.length === 0) ? (
                     <div className="h-full flex flex-col items-center justify-center opacity-50">
                         <Activity className="w-12 h-12 text-slate-300 mb-4" />
                         <p className="text-sm font-black text-slate-300 uppercase tracking-widest text-center">
@@ -40,10 +40,10 @@ export const TopConsumersWidget: React.FC = () => {
                         </p>
                     </div>
                 ) : (
-                    topPrinters.map((printer, idx) => {
-                        const maxImpressions = topPrinters[0].impressions || 1;
+                    printers.map((printer, idx) => {
+                        const maxImpressions = printers[0].impressions || 1;
                         // Buscamos el máximo de cambios de tóner para normalizar su barra también
-                        const maxToners = Math.max(...topPrinters.map(p => p.tonerChanges)) || 1;
+                        const maxToners = Math.max(...printers.map(p => p.tonerChanges)) || 1;
 
                         const printPercentage = (printer.impressions / maxImpressions) * 100;
                         const tonerPercentage = (printer.tonerChanges / maxToners) * 100;
@@ -98,9 +98,11 @@ export const TopConsumersWidget: React.FC = () => {
                 )}
             </div>
 
-            {/* Footer sutil */}
-            <div className="mt-6 pt-4 border-t border-slate-50 flex items-center justify-start opacity-30">
-                <span className="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em]">SMIAB Intelligence Engine</span>
+            {/* Footer con descripción funcional */}
+            <div className="mt-6 pt-4 border-t border-slate-50 flex items-center justify-start opacity-50">
+                <span className="text-[10px] font-medium text-slate-400 italic leading-relaxed">
+                    Métricas de los 5 equipos con mayor demanda de impresiones y reemplazos de tóner en el mes consolidado.
+                </span>
             </div>
         </DashboardCard>
     );

@@ -845,59 +845,72 @@ export class PrintersService {
    */
   async getUnitCombinedTopConsumers(userUnitId: string) {
     const today = new Date();
-    const currentYear = today.getFullYear();
-    const currentMonth = today.getMonth() + 1;
+    const mxTime = new Date(
+      today.toLocaleString('en-US', { timeZone: 'America/Mexico_City' }),
+    );
 
-    // Calcular mes previo para la lectura base
-    let prevMonth = currentMonth - 1;
-    let prevYear = currentYear;
-    if (prevMonth === 0) {
-      prevMonth = 12;
-      prevYear = currentYear - 1;
+    // Determinamos el mes a mostrar (Siempre el previo al actual)
+    let targetYear = mxTime.getFullYear();
+    let displayMonth = mxTime.getMonth(); // 0 a 11, donde 0 es Ene y 3 es Abr
+
+    if (displayMonth === 0) {
+      displayMonth = 12;
+      targetYear -= 1;
     }
+
+    const monthNames = [
+      'Enero',
+      'Febrero',
+      'Marzo',
+      'Abril',
+      'Mayo',
+      'Junio',
+      'Julio',
+      'Agosto',
+      'Septiembre',
+      'Octubre',
+      'Noviembre',
+      'Diciembre',
+    ];
+    const periodLabel = `${monthNames[displayMonth - 1]} ${targetYear}`;
 
     const rawData = await this.printerRepository
       .createQueryBuilder('printer')
-      .leftJoin(
+      .innerJoin(
         'printer.monthlyStats',
-        'prevstats',
-        'prevstats.year = :prevYear AND prevstats.month = :prevMonth',
-        { prevYear, prevMonth },
+        'stats',
+        'stats.year = :targetYear AND stats.month = :displayMonth',
+        { targetYear, displayMonth },
       )
       .leftJoin(
         'printer.tonerChanges',
         'tonerchanges',
-        'EXTRACT(YEAR FROM tonerchanges.changed_at) = :currentYear AND EXTRACT(MONTH FROM tonerchanges.changed_at) = :currentMonth',
-        { currentYear, currentMonth },
+        'EXTRACT(YEAR FROM tonerchanges.changed_at) = :targetYear AND EXTRACT(MONTH FROM tonerchanges.changed_at) = :displayMonth',
+        { targetYear, displayMonth },
       )
       .select('printer.assetId', 'printerId')
       .addSelect('printer.namePrinter', 'name')
       .addSelect('printer.printerStatus', 'status')
-      .addSelect(
-        'CAST(COALESCE(printer.total_pages_printed::bigint - COALESCE(prevstats.print_total_reading::bigint, 0), 0) AS INTEGER)',
-        'impressions',
-      )
+      .addSelect('CAST(SUM(stats.print_total_delta) AS INTEGER)', 'impressions')
       .addSelect('CAST(COUNT(tonerchanges.id) AS INTEGER)', 'tonerChanges')
       .where('printer.unitId = :unitId', { unitId: userUnitId })
       .groupBy('printer.assetId')
       .addGroupBy('printer.namePrinter')
       .addGroupBy('printer.printerStatus')
-      .addGroupBy('printer.total_pages_printed')
-      .addGroupBy('prevstats.print_total_reading')
-      .orderBy(
-        'CAST(COALESCE(printer.total_pages_printed::bigint - COALESCE(prevstats.print_total_reading::bigint, 0), 0) AS INTEGER)',
-        'DESC',
-      )
+      .orderBy('CAST(SUM(stats.print_total_delta) AS INTEGER)', 'DESC')
       .limit(5)
       .getRawMany();
 
-    return rawData.map((row) => ({
-      printerId: row.printerId,
-      name: row.name,
-      status: row.status,
-      impressions: Number(row.impressions || 0),
-      tonerChanges: Number(row.tonerChanges || 0),
-    }));
+    return {
+      periodLabel,
+      data: rawData.map((row) => ({
+        printerId: row.printerId,
+        name: row.name,
+        status: row.status,
+        impressions: Number(row.impressions || 0),
+        tonerChanges: Number(row.tonerChanges || 0),
+      })),
+    };
   }
 
   async getTonerHistory(printerId: string, userAreaId: string) {
