@@ -86,19 +86,19 @@ export const TonerManagementReport = () => {
 
                     <div className="flex flex-col md:flex-row md:items-start justify-between mb-4 relative z-10 gap-4">
                         <div>
-                            <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest flex items-center gap-2 mb-2">
+                            <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2 mb-2">
                                 <Package className="w-4 h-4 text-guinda-700" />
                                 Consumo Histórico Global
                             </h3>
                             <div className="flex items-baseline gap-2">
-                                <span className="text-5xl font-black text-slate-900 leading-none tracking-tighter">
+                                <span className="text-4xl font-bold text-slate-900 leading-none tracking-tighter">
                                     {totalConsumed.toLocaleString()}
                                 </span>
                                 <div className="flex flex-col">
-                                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
                                         Cartuchos Totales
                                     </span>
-                                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-tight">
+                                    <span className="text-[10px] font-medium text-slate-400 uppercase tracking-tight">
                                         Acumulado del Año
                                     </span>
                                 </div>
@@ -176,9 +176,9 @@ export const TonerManagementReport = () => {
                                     type="monotone"
                                     dataKey="trendValue"
                                     stroke="#7B1E34"
-                                    strokeWidth={3}
-                                    dot={{ fill: '#fff', stroke: '#7B1E34', strokeWidth: 2, r: 4 }}
-                                    activeDot={{ r: 6, fill: '#7B1E34', stroke: '#fff', strokeWidth: 2 }}
+                                    strokeWidth={2.5}
+                                    dot={{ fill: '#fff', stroke: '#7B1E34', strokeWidth: 1.5, r: 3 }}
+                                    activeDot={{ r: 5, fill: '#7B1E34', stroke: '#fff', strokeWidth: 2 }}
                                 />
                             </ComposedChart>
                         </ResponsiveContainer>
@@ -194,7 +194,7 @@ export const TonerManagementReport = () => {
 
                 {/* Period Selector Card */}
                 <div className="flex justify-between items-center bg-white p-4 rounded-3xl shadow-sm border border-slate-100 shrink-0">
-                    <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest leading-none">Periodo</h3>
+                    <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest leading-none">Periodo</h3>
                     <MonthYearFilter
                         month={selectedMonth}
                         year={selectedYear}
@@ -206,11 +206,11 @@ export const TonerManagementReport = () => {
                 {/* Mini KPIs */}
                 <div className="grid grid-cols-2 gap-4 shrink-0">
                     <DashboardCard className="p-4 flex flex-col justify-center min-h-[100px]">
-                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Tóners Reemplazados</p>
-                        <p className="text-2xl font-black text-slate-800">{currentMonthCons.toLocaleString()}</p>
+                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Tóners Reemplazados</p>
+                        <p className="text-xl font-bold text-slate-800">{currentMonthCons.toLocaleString()}</p>
                     </DashboardCard>
                     <DashboardCard className="p-4 flex flex-col justify-center min-h-[100px]">
-                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Eficiencia Mensual</p>
+                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Eficiencia Mensual</p>
                         {(() => {
                             const prevMonthIdx = selectedMonth === 1 ? 11 : selectedMonth - 2;
                             const prevYearValue = selectedMonth === 1 ? selectedYear - 1 : selectedYear;
@@ -224,18 +224,18 @@ export const TonerManagementReport = () => {
                             const isIncrease = diff > 0;
                             const absDiff = Math.abs(Math.round(diff));
 
-                            if (prevValue === 0) return <p className="text-[11px] font-bold text-slate-500 uppercase tracking-tight">Sin histórico</p>;
+                            if (prevValue === 0) return <p className="text-[11px] font-medium text-slate-500 uppercase tracking-tight">Sin histórico</p>;
 
                             return (
                                 <div className="flex flex-col">
                                     <p className={cn(
-                                        "text-sm font-black flex items-center gap-1",
+                                        "text-sm font-bold flex items-center gap-1",
                                         isIncrease ? "text-red-500" : "text-emerald-500"
                                     )}>
                                         {isIncrease ? '+' : '-'}{absDiff}%
                                         <TrendingUp className={cn("w-3 h-3", isIncrease ? "" : "rotate-180")} />
                                     </p>
-                                    <p className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">vs Mes Anterior</p>
+                                    <p className="text-[9px] font-medium text-slate-400 uppercase tracking-wider">vs Mes Anterior</p>
                                 </div>
                             );
                         })()}
@@ -244,7 +244,7 @@ export const TonerManagementReport = () => {
 
                 {/* Top Consumers Report Widget */}
                 <DashboardCard className="flex-1 p-6 flex flex-col min-h-0">
-                    <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest flex items-center gap-2 mb-6 shrink-0">
+                    <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2 mb-6 shrink-0">
                         Consumo de Tóner
                     </h3>
 
@@ -262,7 +262,7 @@ export const TonerManagementReport = () => {
                             <div className="h-[450px] overflow-y-auto pr-2 custom-scrollbar">
                                 <table className="w-full text-left border-separate border-spacing-y-2">
                                     <thead>
-                                        <tr className="text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100">
+                                        <tr className="text-[10px] font-bold text-slate-400 uppercase tracking-widest border-b border-slate-100">
                                             <th className="pb-3 pl-2">Equipo / Ubicación</th>
                                             <th className="pb-3 text-right pr-2">Uds.</th>
                                         </tr>
@@ -283,17 +283,17 @@ export const TonerManagementReport = () => {
                                                     >
                                                         <td className="py-3 px-2 rounded-l-2xl border-y border-l border-transparent group-hover:border-slate-100">
                                                             <div className="flex flex-col">
-                                                                <span className="text-[11px] font-black text-slate-700 uppercase leading-tight group-hover:text-guinda-700 transition-colors">
+                                                                <span className="text-[11px] font-bold text-slate-700 uppercase leading-tight group-hover:text-guinda-700 transition-colors">
                                                                     {idx + 1}. {consumer.printerName || `Asset ${consumer.assetId}`}
                                                                 </span>
-                                                                <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider mt-0.5">
+                                                                <span className="text-[9px] font-medium text-slate-400 uppercase tracking-wider mt-0.5">
                                                                     {consumer.areaName || 'Sin área'}
                                                                 </span>
                                                             </div>
                                                         </td>
                                                         <td className="py-3 px-2 text-right rounded-r-2xl border-y border-r border-transparent group-hover:border-slate-100">
                                                             <div className="flex items-center justify-end gap-2">
-                                                                <span className="text-sm font-black text-slate-800 tracking-tighter">{consumer.toner_count}</span>
+                                                                <span className="text-sm font-bold text-slate-800 tracking-tighter">{consumer.toner_count}</span>
                                                                 {isExpanded ? <ChevronUp className="w-3 h-3 text-slate-300" /> : <ChevronDown className="w-3 h-3 text-slate-300" />}
                                                             </div>
                                                         </td>
@@ -304,7 +304,7 @@ export const TonerManagementReport = () => {
                                                         <tr>
                                                             <td colSpan={2} className="px-1 py-1">
                                                                 <div className="flex flex-col gap-2 p-3 bg-white rounded-2xl border border-guinda-100 shadow-sm animate-in slide-in-from-top-2 duration-300 mb-2 mt-1 mx-1">
-                                                                    <h4 className="text-[9px] font-black text-guinda-700 uppercase tracking-widest flex items-center gap-2 mb-1">
+                                                                    <h4 className="text-[9px] font-bold text-guinda-700 uppercase tracking-widest flex items-center gap-2 mb-1">
                                                                         <Calendar className="w-3 h-3" /> Historial de Reemplazo
                                                                     </h4>
                                                                     <div className="grid gap-1.5">
@@ -317,13 +317,13 @@ export const TonerManagementReport = () => {
                                                                                             <PackageOpen className="w-3 h-3 text-amber-700" />
                                                                                         </div>
                                                                                         <div>
-                                                                                            <p className="text-[10px] font-black text-slate-700">TÓNER {tonerBrand}</p>
-                                                                                            <p className="text-[8px] text-slate-400 font-black tracking-widest uppercase">{ev.type}</p>
+                                                                                            <p className="text-[10px] font-bold text-slate-700">TÓNER {tonerBrand}</p>
+                                                                                            <p className="text-[8px] text-slate-400 font-bold tracking-widest uppercase">{ev.type}</p>
                                                                                         </div>
                                                                                     </div>
                                                                                     <div className="text-right">
-                                                                                        <p className="text-[9px] font-black text-slate-600">{eventDate.toLocaleDateString('es-MX', { day: '2-digit', month: 'short' }).toUpperCase()}</p>
-                                                                                        <p className="text-[8px] font-bold text-slate-400 tracking-wider">
+                                                                                        <p className="text-[9px] font-bold text-slate-600">{eventDate.toLocaleDateString('es-MX', { day: '2-digit', month: 'short' }).toUpperCase()}</p>
+                                                                                        <p className="text-[8px] font-medium text-slate-400 tracking-wider">
                                                                                             {eventDate.toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' })}
                                                                                         </p>
                                                                                     </div>

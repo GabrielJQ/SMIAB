@@ -24,7 +24,7 @@ export default function TonerPage() {
                         <button
                             onClick={() => setActiveTab('gerencial')}
                             className={cn(
-                                "flex items-center gap-2 px-6 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all",
+                                "flex items-center gap-2 px-6 py-2.5 rounded-xl text-xs font-bold uppercase tracking-widest transition-all",
                                 activeTab === 'gerencial'
                                     ? "bg-white text-guinda-700 shadow-md shadow-slate-200/50 ring-1 ring-slate-200/50"
                                     : "text-slate-400 hover:text-slate-600"
@@ -36,7 +36,7 @@ export default function TonerPage() {
                         <button
                             onClick={() => setActiveTab('operativo')}
                             className={cn(
-                                "flex items-center gap-2 px-6 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all",
+                                "flex items-center gap-2 px-6 py-2.5 rounded-xl text-xs font-bold uppercase tracking-widest transition-all",
                                 activeTab === 'operativo'
                                     ? "bg-white text-guinda-700 shadow-md shadow-slate-200/50 ring-1 ring-slate-200/50"
                                     : "text-slate-400 hover:text-slate-600"

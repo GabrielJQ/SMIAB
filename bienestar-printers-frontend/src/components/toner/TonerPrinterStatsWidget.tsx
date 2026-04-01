@@ -50,8 +50,8 @@ export const TonerPrinterStatsWidget = () => {
             <div className="w-24 h-24 bg-slate-50 rounded-full flex items-center justify-center mb-6">
                 <Printer className="w-12 h-12 opacity-20" />
             </div>
-            <p className="text-xl font-bold text-slate-400 font-black uppercase tracking-widest">Detalle por Equipo</p>
-            <p className="text-[10px] font-black uppercase tracking-[0.2em] opacity-50 mt-2">Selecciona una impresora en la lista</p>
+            <p className="text-xl font-bold text-slate-400 uppercase tracking-widest">Detalle por Equipo</p>
+            <p className="text-[10px] font-bold uppercase tracking-[0.2em] opacity-50 mt-2">Selecciona una impresora en la lista</p>
         </DashboardCard>
     );
 
@@ -59,7 +59,7 @@ export const TonerPrinterStatsWidget = () => {
         <DashboardCard className="flex items-center justify-center min-h-[400px]">
             <div className="flex flex-col items-center gap-4">
                 <div className="w-12 h-12 border-4 border-slate-100 border-t-guinda-700 rounded-full animate-spin"></div>
-                <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Consultando Historial...</p>
+                <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Consultando Historial...</p>
             </div>
         </DashboardCard>
     );
@@ -73,10 +73,10 @@ export const TonerPrinterStatsWidget = () => {
                 <div>
                     <div className="flex items-center gap-3 mb-2">
                         <Activity className="w-4 h-4 text-guinda-700" />
-                        <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest">
+                        <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest">
                             Monitor de Consumo Individual
                         </h3>
-                        <div className="px-2 py-0.5 rounded-full bg-emerald-50 text-[9px] text-emerald-600 font-black border border-emerald-100 uppercase tracking-wide flex items-center gap-1">
+                        <div className="px-2 py-0.5 rounded-full bg-emerald-50 text-[9px] text-emerald-600 font-bold border border-emerald-100 uppercase tracking-wide flex items-center gap-1">
                             <span className="relative flex h-1.5 w-1.5">
                                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
                                 <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-emerald-500"></span>
@@ -86,14 +86,14 @@ export const TonerPrinterStatsWidget = () => {
                     </div>
 
                     <div className="flex items-baseline gap-2 mb-2">
-                        <span className="text-5xl font-black text-slate-900 leading-none tracking-tighter">
+                        <span className="text-4xl font-bold text-slate-900 leading-none tracking-tighter">
                             {totalConsumed.toLocaleString()}
                         </span>
                         <div className="flex flex-col">
-                            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
                                 Cartuchos
                             </span>
-                            <span className="text-[10px] font-bold text-slate-400 uppercase">
+                            <span className="text-[10px] font-medium text-slate-400 uppercase">
                                 Acumulado del Año
                             </span>
                         </div>
@@ -134,8 +134,8 @@ export const TonerPrinterStatsWidget = () => {
                                 const data = payload[0].payload;
                                 return (
                                     <div className="bg-white/90 backdrop-blur-xl p-4 rounded-2xl shadow-xl border border-white/50 ring-1 ring-slate-100/50">
-                                        <p className="text-[10px] uppercase font-black text-slate-400 mb-1 tracking-wider">{data.fullName}</p>
-                                        <p className="text-2xl font-black text-guinda-700">
+                                        <p className="text-[10px] uppercase font-bold text-slate-400 mb-1 tracking-wider">{data.fullName}</p>
+                                        <p className="text-2xl font-bold text-guinda-700">
                                             {data.value} <span className="text-[10px] text-slate-400 font-bold uppercase">Uds.</span>
                                         </p>
                                     </div>
@@ -154,7 +154,7 @@ export const TonerPrinterStatsWidget = () => {
                 ) : (
                     <div className="h-full flex flex-col items-center justify-center opacity-50">
                         <Activity className="w-8 h-8 text-slate-300 mb-2" />
-                        <p className="text-xs font-black text-slate-300 uppercase tracking-widest">Sin reemplazos registrados en {selectedYear}</p>
+                        <p className="text-xs font-bold text-slate-300 uppercase tracking-widest">Sin reemplazos registrados en {selectedYear}</p>
                     </div>
                 )}
             </div>
