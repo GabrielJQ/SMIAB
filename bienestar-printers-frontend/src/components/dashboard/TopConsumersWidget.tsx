@@ -31,11 +31,11 @@ export const TopConsumersWidget: React.FC = () => {
                 Top Consumidores {periodLabel && <span className="text-slate-300">— {periodLabel}</span>}
             </h3>
 
-            <div className="overflow-hidden space-y-10 pr-1 flex-grow">
+            <div className="overflow-hidden space-y-8 pr-1 flex-grow">
                 {(printers.length === 0) ? (
                     <div className="h-full flex flex-col items-center justify-center opacity-50">
                         <Activity className="w-12 h-12 text-slate-300 mb-4" />
-                        <p className="text-sm font-black text-slate-300 uppercase tracking-widest text-center">
+                        <p className="text-sm font-semibold text-slate-300 uppercase tracking-widest text-center">
                             Sin datos en el periodo
                         </p>
                     </div>
@@ -52,7 +52,7 @@ export const TopConsumersWidget: React.FC = () => {
                             <div key={printer.printerId} className="flex flex-col gap-4 shrink-0 group">
                                 {/* Encabezado de Impresora */}
                                 <div className="flex justify-between items-center mb-1">
-                                    <span className="text-sm font-black text-slate-700 uppercase tracking-tight">
+                                    <span className="text-sm font-bold text-slate-700 uppercase tracking-tight">
                                         {idx + 1}. {printer.name}
                                     </span>
                                 </div>
@@ -60,7 +60,7 @@ export const TopConsumersWidget: React.FC = () => {
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4">
                                     {/* Métrica 1: Impresiones (Guinda) */}
                                     <div className="flex flex-col gap-1.5">
-                                        <div className="flex justify-between text-[10px] font-black uppercase tracking-wider">
+                                        <div className="flex justify-between text-[10px] font-bold uppercase tracking-wider">
                                             <div className="flex items-center gap-1.5 text-guinda-700">
                                                 <Activity size={12} />
                                                 <span>Impresiones</span>
@@ -77,7 +77,7 @@ export const TopConsumersWidget: React.FC = () => {
 
                                     {/* Métrica 2: Tóners (Slate/Azul) */}
                                     <div className="flex flex-col gap-1.5">
-                                        <div className="flex justify-between text-[10px] font-black uppercase tracking-wider">
+                                        <div className="flex justify-between text-[10px] font-bold uppercase tracking-wider">
                                             <div className="flex items-center gap-1.5 text-slate-500">
                                                 <Droplets size={12} />
                                                 <span>Consumo Tóner</span>

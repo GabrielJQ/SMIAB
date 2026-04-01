@@ -263,6 +263,20 @@ export class PrintersController {
   }
 
   @ApiOperation({
+    summary:
+      'Obtener listado de impresoras que requieren atención inmediata (Alertas/Tóner bajo)',
+  })
+  @ApiOkResponse({
+    description: 'Listado de impresoras críticas',
+  })
+  @Get('unit/attention-required')
+  async getAttentionRequired(@CurrentUser('internal') user: UserJwtPayload) {
+    const userUnitId = user.unitId || user.areaId;
+    if (!userUnitId) throw new ForbiddenException('User has no unit assigned');
+    return this.printersService.getPrintersRequiringAttention(userUnitId);
+  }
+
+  @ApiOperation({
     summary: 'Obtener listado completo de impresoras de la unidad',
   })
   @ApiOkResponse({

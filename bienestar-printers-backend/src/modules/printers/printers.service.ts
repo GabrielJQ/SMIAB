@@ -985,4 +985,41 @@ export class PrintersService {
 
     return { success: true, message: 'Alert resolved successfully' };
   }
+
+  /**
+   * @method getPrintersRequiringAttention
+   * @description Obtiene el listado de impresoras que tienen alertas PENDING (Tóner bajo, cambios sospechosos, etc.)
+   * para la unidad del usuario.
+   */
+  async getPrintersRequiringAttention(userUnitId: string) {
+    if (!userUnitId) throw new ForbiddenException('User has no unit assigned');
+
+    const alerts = await this.alertRepository.find({
+      where: {
+        status: 'PENDING',
+        printer: {
+          unitId: userUnitId,
+        },
+      },
+      relations: ['printer', 'printer.department'],
+      order: {
+        createdAt: 'DESC',
+      },
+    });
+
+    // Mapeamos para un formato más amigable pal frontend
+    return alerts.map((alert) => ({
+      alertId: alert.id,
+      type: alert.type,
+      createdAt: alert.createdAt,
+      metadata: alert.metadata,
+      printer: {
+        id: alert.printer.assetId,
+        name: alert.printer.namePrinter,
+        ip: alert.printer.ipPrinter,
+        tonerLevel: alert.printer.tonerLvl,
+        area: alert.printer.department?.areanom || 'Sin Área',
+      },
+    }));
+  }
 }
