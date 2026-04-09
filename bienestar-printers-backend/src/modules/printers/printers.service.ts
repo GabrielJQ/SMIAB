@@ -123,8 +123,9 @@ export class PrintersService {
   async getOperationalStatus(userUnitId: string) {
     if (!userUnitId) throw new ForbiddenException('User has no unit assigned');
 
-    // Define "online" threshold: seen in the last 20 minutes (since sweep is every 15m)
-    const twentyMinutesAgo = new Date(Date.now() - 20 * 60 * 1000);
+    // Define "online" threshold: seen today (from midnight)
+    const startOfToday = new Date();
+    startOfToday.setHours(0, 0, 0, 0);
 
     const totalCount = await this.printerRepository.count({
       where: { unitId: userUnitId },
@@ -135,7 +136,7 @@ export class PrintersService {
       .createQueryBuilder('p')
       .where('p.unit_id = :unitId', { unitId: userUnitId })
       .andWhere('p.printer_status = :status', { status: 'online' })
-      .andWhere('p.last_read_at >= :ago', { ago: twentyMinutesAgo })
+      .andWhere('p.last_read_at >= :ago', { ago: startOfToday })
       .getCount();
 
     return {

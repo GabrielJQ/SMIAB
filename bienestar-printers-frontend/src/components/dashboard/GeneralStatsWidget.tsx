@@ -43,6 +43,7 @@ interface ChartData {
     color: string;
     fullName?: string;
     trendValue?: number;
+    monthOverMonthDelta?: number;
 }
 
 export const GeneralStatsWidget = () => {
@@ -78,12 +79,22 @@ export const GeneralStatsWidget = () => {
             const value = dbRecord ? (dbRecord.print_total ?? 0) : 0;
             const previousValue = prevDbRecord ? (prevDbRecord.print_total ?? 0) : 0;
 
+            const prevMonthDbRecord = yearData.find(d => d.month === iterMonth - 1);
+            const prevMonthValue = prevMonthDbRecord ? (prevMonthDbRecord.print_total ?? 0) : 0;
+            let monthOverMonthDelta = 0;
+            if (prevMonthValue > 0) {
+                monthOverMonthDelta = ((value - prevMonthValue) / prevMonthValue) * 100;
+            } else if (value > 0) {
+                monthOverMonthDelta = 100;
+            }
+
             return {
                 name: `${MONTH_NAMES[index]}`,
                 fullName: `${MONTH_NAMES[index]} ${selectedYear}`,
                 value: value,
                 previousValue: previousValue,
                 trendValue: value > 0 ? value + (value * 0.05) : 0, // Visual trend line slightly above
+                monthOverMonthDelta: monthOverMonthDelta,
                 color: CHART_COLORS[index % CHART_COLORS.length]
             };
         });
@@ -258,9 +269,29 @@ export const GeneralStatsWidget = () => {
                                     content={({ active, payload }) => {
                                         if (active && payload && payload.length) {
                                             const data = payload[0].payload;
+                                            let deltaColor = "bg-slate-100 text-slate-500 border-slate-200";
+                                            let deltaIcon = "";
+                                            let deltaText = "0%";
+                                            if (data.monthOverMonthDelta > 0) {
+                                                deltaColor = "bg-red-50 text-red-600 border-red-200";
+                                                deltaIcon = "↑";
+                                                deltaText = `+${data.monthOverMonthDelta.toFixed(1)}%`;
+                                            } else if (data.monthOverMonthDelta < 0) {
+                                                deltaColor = "bg-emerald-50 text-emerald-600 border-emerald-200";
+                                                deltaIcon = "↓";
+                                                deltaText = `${data.monthOverMonthDelta.toFixed(1)}%`;
+                                            }
+
                                             return (
                                                 <div className="bg-white/90 backdrop-blur-xl p-4 rounded-2xl shadow-xl border border-white/50 ring-1 ring-slate-100/50 min-w-[140px]">
-                                                    <p className="text-[10px] uppercase font-bold text-slate-400 mb-2 tracking-wider">{data.name}</p>
+                                                    <div className="flex justify-between items-center mb-2">
+                                                        <p className="text-[10px] uppercase font-bold text-slate-400 tracking-wider m-0">{data.name}</p>
+                                                        {data.monthOverMonthDelta !== 0 && (
+                                                            <div className={`px-1.5 py-0.5 rounded-md text-[9px] font-bold border ${deltaColor}`}>
+                                                                {deltaIcon} {deltaText} vs mes anterior
+                                                            </div>
+                                                        )}
+                                                    </div>
                                                     <div className="flex flex-col gap-2">
                                                         <div className="flex justify-between items-baseline gap-4">
                                                             <span className="text-xl font-bold text-guinda-700">{data.value.toLocaleString()}</span>
@@ -278,7 +309,7 @@ export const GeneralStatsWidget = () => {
                                     }}
                                 />
                                 <Area
-                                    type="monotone"
+                                    type="linear"
                                     dataKey="previousValue"
                                     stroke="#cbd5e1"
                                     strokeWidth={2}
@@ -288,18 +319,18 @@ export const GeneralStatsWidget = () => {
                                     activeDot={false}
                                 />
                                 <Area
-                                    type="monotone"
+                                    type="linear"
                                     dataKey="value"
                                     stroke="none"
-                                    fillOpacity={1}
+                                    fillOpacity={0.1}
                                     fill="url(#colorValue)"
                                     activeDot={false}
                                 />
                                 <Line
-                                    type="monotone"
+                                    type="linear"
                                     dataKey="trendValue"
                                     stroke="#7B1E34"
-                                    strokeWidth={2.5}
+                                    strokeWidth={4}
                                     dot={{ fill: '#fff', stroke: '#7B1E34', strokeWidth: 1.5, r: 3 }}
                                     activeDot={{ r: 5, fill: '#7B1E34', stroke: '#fff', strokeWidth: 2 }}
                                 />

@@ -44,12 +44,22 @@ export const TonerUnitStatsWidget: React.FC<TonerUnitStatsWidgetProps> = ({ comp
             const value = dbRecord ? dbRecord.changes : 0;
             const prevValue = prevDbRecord ? prevDbRecord.changes : 0;
 
+            const prevMonthDbRecord = history.find(d => d.month === iterMonth - 1);
+            const prevMonthValue = prevMonthDbRecord ? prevMonthDbRecord.changes : 0;
+            let monthOverMonthDelta = 0;
+            if (prevMonthValue > 0) {
+                monthOverMonthDelta = ((value - prevMonthValue) / prevMonthValue) * 100;
+            } else if (value > 0) {
+                monthOverMonthDelta = 100;
+            }
+
             return {
                 name: `${MONTH_NAMES[index].substring(0, 3)}`,
                 fullName: `${MONTH_NAMES[index]} ${selectedYear}`,
                 prevFullName: `${MONTH_NAMES[index]} ${selectedYear - 1}`,
                 value: value,
                 prevValue: prevValue,
+                monthOverMonthDelta: monthOverMonthDelta,
                 color: CHART_COLORS[index % CHART_COLORS.length]
             };
         });
@@ -151,9 +161,30 @@ export const TonerUnitStatsWidget: React.FC<TonerUnitStatsWidgetProps> = ({ comp
                                 content={({ active, payload }) => {
                                     if (active && payload && payload.length) {
                                         const data = payload[0].payload;
+                                        
+                                        let deltaColor = "bg-slate-100 text-slate-500 border-slate-200";
+                                        let deltaIcon = "";
+                                        let deltaText = "0%";
+                                        if (data.monthOverMonthDelta > 0) {
+                                            deltaColor = "bg-red-50 text-red-600 border-red-200";
+                                            deltaIcon = "↑";
+                                            deltaText = `+${data.monthOverMonthDelta.toFixed(1)}%`;
+                                        } else if (data.monthOverMonthDelta < 0) {
+                                            deltaColor = "bg-emerald-50 text-emerald-600 border-emerald-200";
+                                            deltaIcon = "↓";
+                                            deltaText = `${data.monthOverMonthDelta.toFixed(1)}%`;
+                                        }
+
                                         return (
                                             <div className="bg-white/90 backdrop-blur-xl p-4 rounded-2xl shadow-xl border border-white/50 ring-1 ring-slate-100/50 min-w-[160px]">
-                                                <p className="text-[10px] uppercase font-black text-slate-400 mb-3 tracking-wider">{MONTH_NAMES[chartData.findIndex(d => d.name === data.name)]}</p>
+                                                <div className="flex justify-between items-center mb-3">
+                                                    <p className="text-[10px] uppercase font-black text-slate-400 tracking-wider m-0">{MONTH_NAMES[chartData.findIndex(d => d.name === data.name)]}</p>
+                                                    {data.monthOverMonthDelta !== 0 && (
+                                                        <div className={`px-1.5 py-0.5 rounded-md text-[9px] font-bold border ${deltaColor}`}>
+                                                            {deltaIcon} {deltaText} vs mes anterior
+                                                        </div>
+                                                    )}
+                                                </div>
                                                 <div className="flex flex-col gap-3">
                                                     <div className="flex justify-between items-baseline gap-4">
                                                         <div className="flex items-center gap-2">
@@ -177,15 +208,15 @@ export const TonerUnitStatsWidget: React.FC<TonerUnitStatsWidgetProps> = ({ comp
                                 }}
                             />
                             <Area
-                                type="monotone"
+                                type="linear"
                                 dataKey="value"
                                 stroke="none"
-                                fillOpacity={1}
+                                fillOpacity={0.1}
                                 fill="url(#gradient_toner_premium_v2)"
                                 isAnimationActive={false}
                             />
                             <Line
-                                type="monotone"
+                                type="linear"
                                 dataKey="prevValue"
                                 stroke="#cbd5e1"
                                 strokeWidth={2}
@@ -195,7 +226,7 @@ export const TonerUnitStatsWidget: React.FC<TonerUnitStatsWidgetProps> = ({ comp
                                 isAnimationActive={false}
                             />
                             <Line
-                                type="monotone"
+                                type="linear"
                                 dataKey="value"
                                 stroke="#7B1E34"
                                 strokeWidth={4}
