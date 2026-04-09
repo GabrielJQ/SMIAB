@@ -11,8 +11,7 @@ const nextConfig: NextConfig = {
     'http://127.0.0.1:8000',
     'http://localhost:8000',
     'http://127.0.0.1:3001',
-    'http://10.101.21.24',   // Agregada IP del servidor
-    'http://10.102.21.24'    // Agregada IP de SAI por si acaso
+    'http://192.168.0.64',   // Agregada IP unificada del servidor
   ],
 
 };

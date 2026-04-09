@@ -27,8 +27,7 @@ async function bootstrap() {
       'http://localhost:3001',
       'http://127.0.0.1:8000',
       'http://localhost:8000',
-      'http://10.101.21.24', // IP Real del Frontend / Proxy
-      'http://10.102.21.24', // IP Real del SAI
+      'http://192.168.0.64', // IP Real del Servidor Unificado (Frontend y SAI)
     ],
     // VITAL: Agregamos OPTIONS para las peticiones preflight del navegador
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
