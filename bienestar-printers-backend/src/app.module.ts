@@ -12,6 +12,7 @@ import { TonersModule } from './modules/toners/toners.module';
 import { SnmpModule } from './modules/snmp/snmp.module';
 import { MailerModule } from '@nestjs-modules/mailer';
 import { ReportsModule } from './modules/reports/reports.module';
+import { AiAssistantModule } from './modules/ai-assistant/ai-assistant.module';
 
 @Module({
   imports: [
@@ -35,6 +36,7 @@ import { ReportsModule } from './modules/reports/reports.module';
     PrintersModule,
     TonersModule,
     SnmpModule,
+    AiAssistantModule,
     MailerModule.forRootAsync({
       inject: [ConfigService],
       useFactory: (config: ConfigService) => ({
