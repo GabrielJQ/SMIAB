@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { SnmpService } from './snmp.service';
 import { Printer } from '../printers/entities/printer.entity';
@@ -6,6 +6,8 @@ import { PrinterMonthlyStat } from '../printers/entities/printer-monthly-stat.en
 import { Alert } from '../printers/entities/alert.entity';
 import { PrinterStatusLog } from '../printers/entities/printer-status-log.entity';
 import { PrinterTonerChange } from '../toners/entities/printer-toner-change.entity';
+import { TelemetryProcessor } from './processors/telemetry.processor';
+import { PrintersModule } from '../printers/printers.module';
 
 @Module({
   imports: [
@@ -16,8 +18,9 @@ import { PrinterTonerChange } from '../toners/entities/printer-toner-change.enti
       PrinterStatusLog,
       PrinterTonerChange,
     ]),
+    forwardRef(() => PrintersModule),
   ],
-  providers: [SnmpService],
-  exports: [SnmpService],
+  providers: [SnmpService, TelemetryProcessor],
+  exports: [SnmpService, TelemetryProcessor],
 })
 export class SnmpModule {}
