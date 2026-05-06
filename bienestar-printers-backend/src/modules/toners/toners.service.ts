@@ -17,10 +17,8 @@ import { getTonerHistoryMonthlyQuery } from './queries/get-toner-history-monthly
 import { TonerHistoryDto } from './dto/toner-history.dto';
 import { TonerChangeResponseDto } from './dto/toner-change-response.dto';
 
-// Reuse existing queries for Authorization steps
-import { getPrinterByIdQuery } from '../printers/queries/get-printer-by-id.query';
 import { PrinterTonerChange } from './entities/printer-toner-change.entity';
-import { Printer } from '../printers/entities/printer.entity';
+import { PrintersAccessService } from '../printers/printers-access.service';
 
 /**
  * @class TonersService
@@ -33,32 +31,10 @@ export class TonersService {
     private readonly supabaseService: SupabaseService,
     @InjectRepository(PrinterTonerChange)
     private readonly printerTonerChangeRepository: Repository<PrinterTonerChange>,
-    @InjectRepository(Printer)
-    private readonly printerRepository: Repository<Printer>,
+    private readonly printersAccessService: PrintersAccessService,
   ) {}
 
-  /**
-   * @method validatePrinterAccess
-   * @description Verifica si una impresora pertenece a la unidad administrativa del usuario.
-   * @param {string} printerId - ID del activo.
-   * @param {string} userUnitId - ID de la unidad del usuario.
-   * @private
-   */
-  private async validatePrinterAccess(printerId: string, userUnitId: string) {
-    if (!userUnitId) throw new ForbiddenException('User has no unit assigned');
 
-    const row = await getPrinterByIdQuery(this.printerRepository, printerId);
-    if (!row) throw new BadRequestException('Printer not found');
-
-    const printerUnitId = row.unitId;
-
-    if (!userUnitId || printerUnitId?.toString() !== userUnitId) {
-      throw new ForbiddenException(
-        'Access to printer denied (Different Unit)',
-      );
-    }
-    return { printerId, userUnitId };
-  }
 
   /**
    * @method getUnitHistory
@@ -97,6 +73,7 @@ export class TonersService {
    */
   async getPrinterHistory(
     printerId: string,
+    unitId: string,
     filters: {
       startYear?: number;
       startMonth?: number;
@@ -104,6 +81,8 @@ export class TonersService {
       endMonth?: number;
     },
   ) {
+    await this.printersAccessService.validatePrinterAccess(printerId, unitId);
+
     const rows = await getPrinterTonerHistoryQuery(
       this.printerTonerChangeRepository,
       printerId,
@@ -166,6 +145,7 @@ export class TonersService {
    */
   async getRecentChangesByPrinter(
     printerId: string,
+    unitId: string,
     filters: {
       startYear?: number;
       startMonth?: number;
@@ -173,6 +153,8 @@ export class TonersService {
       endMonth?: number;
     },
   ) {
+    await this.printersAccessService.validatePrinterAccess(printerId, unitId);
+
     const rows = await getTonerHistoryByPrinterQuery(
       this.supabaseService.getAdminClient(),
       printerId,

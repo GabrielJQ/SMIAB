@@ -7,6 +7,7 @@ import { Printer } from '../printers/entities/printer.entity';
 import { PrinterTonerChange } from './entities/printer-toner-change.entity';
 import { AuthModule } from '../../auth/auth.module';
 import { UsersModule } from '../users/users.module';
+import { PrintersModule } from '../printers/printers.module';
 
 @Module({
   imports: [
@@ -14,6 +15,7 @@ import { UsersModule } from '../users/users.module';
     SupabaseModule,
     AuthModule,
     UsersModule,
+    PrintersModule,
   ],
   controllers: [TonersController],
   providers: [TonersService],
