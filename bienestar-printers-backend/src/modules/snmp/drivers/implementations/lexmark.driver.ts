@@ -7,6 +7,31 @@ export class LexmarkDriver extends BaseSnmpDriver {
   }
 
   /**
+   * @method getTotalPages
+   * @description Implementa fallback para obtener el contador de facturación real (Billing Meter).
+   */
+  async getTotalPages(session: any, config: SnmpDriverConfig): Promise<number> {
+    const billingOids = [
+      '1.3.6.1.4.1.641.2.1.2.1.6.1', // Lexmark Billing Total OID 1
+      '1.3.6.1.4.1.641.6.4.2.1.1.4', // Lexmark Billing Total OID 2
+    ];
+
+    for (const oid of billingOids) {
+      try {
+        const pages = await this.snmpGet(session, oid);
+        if (pages !== null && pages !== undefined && !isNaN(pages) && pages >= 0) {
+          return pages;
+        }
+      } catch (error) {
+        // Ignorar y probar el siguiente
+      }
+    }
+
+    // Fallback al contador mecánico por defecto
+    return super.getTotalPages(session, config);
+  }
+
+  /**
    * @method getTonerLevel
    * @description Implementación con descubrimiento dinámico para Lexmark.
    */
