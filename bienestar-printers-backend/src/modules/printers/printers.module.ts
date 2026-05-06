@@ -2,6 +2,9 @@ import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { PrintersController } from './printers.controller';
 import { PrintersService } from './printers.service';
+import { PrintersExcelService } from './printers-excel.service';
+import { PrintersAccessService } from './printers-access.service';
+import { PrintersStatsService } from './printers-stats.service';
 import { ReportService } from './report.service';
 import { UsersModule } from '../users/users.module';
 import { SupabaseModule } from '../../integrations/supabase/supabase.module';
@@ -40,7 +43,19 @@ import { SnmpModule } from '../snmp/snmp.module';
     SnmpModule,
   ],
   controllers: [PrintersController],
-  providers: [PrintersService, ReportService],
-  exports: [PrintersService, ReportService],
+  providers: [
+    PrintersService,
+    PrintersExcelService,
+    PrintersAccessService,
+    PrintersStatsService,
+    ReportService,
+  ],
+  exports: [
+    PrintersService,
+    PrintersExcelService,
+    PrintersAccessService,
+    PrintersStatsService,
+    ReportService,
+  ],
 })
 export class PrintersModule {}

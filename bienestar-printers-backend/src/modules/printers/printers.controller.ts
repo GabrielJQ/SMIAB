@@ -33,6 +33,8 @@ import {
 } from '@nestjs/swagger';
 import { SupabaseAuthGuard } from '../../auth/guards/supabase-auth.guard';
 import { PrintersService } from './printers.service';
+import { PrintersExcelService } from './printers-excel.service';
+import { PrintersStatsService } from './printers-stats.service';
 import { ReportService } from './report.service';
 import { CurrentUser } from '../../auth/decorators/current-user.decorator';
 import { PrinterSummaryDto } from './dto/printer-summary.dto';
@@ -57,6 +59,8 @@ import { SnmpService } from '../snmp/snmp.service';
 export class PrintersController {
   constructor(
     private readonly printersService: PrintersService,
+    private readonly printersExcelService: PrintersExcelService,
+    private readonly printersStatsService: PrintersStatsService,
     private readonly snmpService: SnmpService,
     private readonly reportService: ReportService,
   ) {}
@@ -106,8 +110,8 @@ export class PrintersController {
       throw new BadRequestException('El año y mes son requeridos');
     }
 
-    // Aunque permitimos que el usuario lo suba sin importar su unidad (o validamos internamente)
-    return this.printersService.processExcelHistory(
+    // Delegamos al servicio especializado de Excel
+    return this.printersExcelService.processExcelHistory(
       file.buffer,
       parseInt(year),
       parseInt(month),
@@ -134,7 +138,7 @@ export class PrintersController {
     const unitId = user.unitId || user.areaId;
     if (!unitId) throw new ForbiddenException('User has no unit assigned');
 
-    const buffer = await this.printersService.getExcelTemplate(year, unitId);
+    const buffer = await this.printersExcelService.getExcelTemplate(year, unitId);
 
     const fileName = `SMIAB_Plantilla_${year}.xlsx`;
 
@@ -176,7 +180,7 @@ export class PrintersController {
     const unitId = user.unitId || user.areaId;
     if (!unitId) throw new ForbiddenException('User has no unit assigned');
 
-    return this.printersService.getUnitHistory(
+    return this.printersStatsService.getUnitHistory(
       unitId,
       parseInt(year || new Date().getFullYear().toString()),
       parseInt(month || (new Date().getMonth() + 1).toString()),
@@ -219,7 +223,7 @@ export class PrintersController {
     const userUnitId = user.unitId || user.areaId;
     if (!userUnitId) throw new ForbiddenException('User has no unit assigned');
 
-    return this.printersService.getUnitTonerStats(
+    return this.printersStatsService.getUnitTonerStats(
       userUnitId,
       parseInt(year || new Date().getFullYear().toString()),
       parseInt(month || (new Date().getMonth() + 1).toString()),
@@ -237,7 +241,7 @@ export class PrintersController {
   ) {
     const unitId = user.unitId || user.areaId;
     if (!unitId) throw new ForbiddenException('User has no unit assigned');
-    return this.printersService.getUnitCombinedTopConsumers(unitId);
+    return this.printersStatsService.getUnitCombinedTopConsumers(unitId);
   }
 
   @ApiOperation({
@@ -255,7 +259,7 @@ export class PrintersController {
   ) {
     const unitId = user.unitId || user.areaId;
     if (!unitId) throw new ForbiddenException('User has no unit assigned');
-    return this.printersService.getUnitTopPrintConsumers(
+    return this.printersStatsService.getUnitTopPrintConsumers(
       unitId,
       parseInt(year || new Date().getFullYear().toString()),
       parseInt(month || (new Date().getMonth() + 1).toString()),
@@ -273,7 +277,7 @@ export class PrintersController {
   async getAttentionRequired(@CurrentUser('internal') user: UserJwtPayload) {
     const userUnitId = user.unitId || user.areaId;
     if (!userUnitId) throw new ForbiddenException('User has no unit assigned');
-    return this.printersService.getPrintersRequiringAttention(userUnitId);
+    return this.printersStatsService.getPrintersRequiringAttention(userUnitId);
   }
 
   @ApiOperation({
@@ -320,7 +324,7 @@ export class PrintersController {
     if (!user?.areaId)
       throw new ForbiddenException('User has no area assigned');
 
-    return this.printersService.getPrinterHistory(id, user.areaId, {
+    return this.printersStatsService.getPrinterHistory(id, user.areaId, {
       startYear: startYear ? parseInt(startYear) : undefined,
       startMonth: startMonth ? parseInt(startMonth) : undefined,
       endYear: endYear ? parseInt(endYear) : undefined,
@@ -340,7 +344,7 @@ export class PrintersController {
   ) {
     if (!user?.areaId)
       throw new ForbiddenException('User has no area assigned');
-    return this.printersService.getMonthlyStats(id, user.areaId);
+    return this.printersStatsService.getMonthlyStats(id, user.areaId);
   }
 
   @ApiOperation({ summary: 'Obtener resumen anual de impresora' })
@@ -367,7 +371,7 @@ export class PrintersController {
     if (!user?.areaId)
       throw new ForbiddenException('User has no area assigned');
 
-    return this.printersService.getPrinterYearlySummary(id, user.areaId, year);
+    return this.printersStatsService.getPrinterYearlySummary(id, user.areaId, year);
   }
 
   @ApiOperation({ summary: 'Comparar últimos N meses' })
@@ -392,7 +396,7 @@ export class PrintersController {
       throw new ForbiddenException('User has no area assigned');
 
     const monthsLimit = months ? parseInt(months) : 3;
-    return this.printersService.getPrinterComparison(
+    return this.printersStatsService.getPrinterComparison(
       id,
       user.areaId,
       monthsLimit,
@@ -412,7 +416,7 @@ export class PrintersController {
     if (!user?.areaId)
       throw new ForbiddenException('User has no area assigned');
 
-    return this.printersService.getTonerHistory(id, user.areaId);
+    return this.printersStatsService.getTonerHistory(id, user.areaId);
   }
 
   // ==========================================
