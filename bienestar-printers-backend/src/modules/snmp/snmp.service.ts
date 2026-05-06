@@ -10,6 +10,7 @@ import { SnmpDriverFactory } from './drivers/snmp-driver.factory';
 import { SYS_DESCR_OID, SNMP_DRIVERS_CONFIG } from './constants/oids.constants';
 import * as snmp from 'net-snmp';
 import pLimit from 'p-limit';
+import { EventEmitter2, OnEvent } from '@nestjs/event-emitter';
 
 /**
  * Servicio encargado de la comunicación y recolección de datos vía SNMP (Simple Network Management Protocol).
@@ -28,6 +29,7 @@ export class SnmpService implements OnModuleInit {
     private readonly printerMonthlyStatRepository: Repository<PrinterMonthlyStat>,
     private readonly telemetryProcessor: TelemetryProcessor,
     private readonly configService: ConfigService,
+    private readonly eventEmitter: EventEmitter2,
   ) {
     this.snmpMode = this.configService.get<string>('SNMP_MODE') || 'simulation';
     this.logger.log(`SNMP Service initialized in ${this.snmpMode} mode`);
@@ -95,30 +97,45 @@ export class SnmpService implements OnModuleInit {
     const printers = await query.getMany();
     if (printers.length === 0) return { success: false, message: 'No se encontraron impresoras válidas.' };
 
-    const now = new Date();
-    let successCount = 0;
-    const limit = pLimit(20);
+    this.logger.log(`Iniciando despacho de ${printers.length} tareas de escaneo...`);
+    
+    // Emitimos eventos para cada impresora para que se procesen de forma asíncrona
+    for (const printer of printers) {
+      this.eventEmitter.emit('snmp.printer.scan', { 
+        printerId: printer.assetId, 
+        forceClosing 
+      });
+    }
 
-    const promises = printers.map((printer) =>
-      limit(async () => {
-        try {
-          const success = this.snmpMode === 'simulation'
-              ? await this.simulateRead(printer)
-              : await this.productionRead(printer);
-          
-          if (success) {
-            successCount++;
-            if (forceClosing) await this.processMonthlyClosing(printer, now, forceClosing);
-          }
-        } catch (error) {
-          this.logger.error(`Error no controlado en barrido para ${printer.ipPrinter || printer.assetId}:`, error);
+    return { 
+      success: true, 
+      message: `Barrido iniciado para ${printers.length} impresoras. Los resultados se procesarán en segundo plano.`,
+      total: printers.length 
+    };
+  }
+
+  private readonly scanLimit = pLimit(5); // Límite de concurrencia para el escaneo real
+
+  @OnEvent('snmp.printer.scan', { async: true })
+  async handlePrinterScanEvent(payload: { printerId: string, forceClosing: boolean }) {
+    const { printerId, forceClosing } = payload;
+    
+    await this.scanLimit(async () => {
+      const printer = await this.printerRepository.findOne({ where: { assetId: printerId } });
+      if (!printer) return;
+
+      try {
+        const success = this.snmpMode === 'simulation'
+            ? await this.simulateRead(printer)
+            : await this.productionRead(printer);
+        
+        if (success && forceClosing) {
+          await this.processMonthlyClosing(printer, new Date(), forceClosing);
         }
-      })
-    );
-
-    await Promise.all(promises);
-    this.logger.log(`Barrido finalizado. ${successCount}/${printers.length} impresoras actualizadas.`);
-    return { success: true, updated: successCount, total: printers.length };
+      } catch (error) {
+        this.logger.error(`Error procesando evento SNMP para ${printer.ipPrinter || printerId}:`, error);
+      }
+    });
   }
 
   private async simulateRead(printer: Printer): Promise<boolean> {
@@ -145,14 +162,8 @@ export class SnmpService implements OnModuleInit {
   @Cron('0 3 * * *', { timeZone: 'America/Mexico_City' })
   async cleanupOldData() {
     this.logger.log('Iniciando limpieza de mantenimiento (3:00 AM)...');
-    const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
-
     try {
-      // Nota: Aquí se asume que SnmpService ya no tiene acceso directo a AlertRepository y StatusLogRepository
-      // Por simplicidad en este refactor, mantendremos esta lógica si los repositorios estuvieran inyectados,
-      // pero como los quitamos del constructor, lo ideal es mover esto al TelemetryProcessor o un MaintanceService.
-      // Por ahora, para no romper el Cron, lo dejamos pero comentamos que requiere inyección o delegación.
-      this.logger.warn('Cleanup cron requiere migración a TelemetryProcessor/MaintenanceService.');
+      await this.telemetryProcessor.cleanupOldData();
     } catch (error) {
       this.logger.error('Error durante mantenimiento:', error);
     }

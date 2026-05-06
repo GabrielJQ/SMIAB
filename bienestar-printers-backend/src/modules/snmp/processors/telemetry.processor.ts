@@ -173,4 +173,21 @@ export class TelemetryProcessor {
     await this.tonerChangeRepository.save(change);
     this.logger.log(`Toner change registered for printer ${assetId} (Type: ${detectionType})`);
   }
+
+  /**
+   * @method cleanupOldData
+   * @description Elimina logs de telemetría con más de 30 días de antigüedad para mantener la salud de la DB.
+   */
+  async cleanupOldData() {
+    const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+    this.logger.log(`Iniciando purga de telemetría anterior a ${thirtyDaysAgo.toISOString()}`);
+
+    const result = await this.printerStatusLogRepository
+      .createQueryBuilder()
+      .delete()
+      .where('recordedAt < :date', { date: thirtyDaysAgo })
+      .execute();
+
+    this.logger.log(`Purga completada. Registros eliminados: ${result.affected || 0}`);
+  }
 }
