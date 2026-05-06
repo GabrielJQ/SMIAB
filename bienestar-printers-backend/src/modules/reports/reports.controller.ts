@@ -1,6 +1,6 @@
 import { Controller, Get, Query, Res, UseGuards, ForbiddenException } from '@nestjs/common';
 import type { Response } from 'express';
-import { ReportsService } from './reports.service';
+import { ReportsExcelService } from './services/reports-excel.service';
 import { ExportReportDto } from './dto/export-report.dto';
 import { SupabaseAuthGuard } from '../../auth/guards/supabase-auth.guard';
 import { RolesGuard } from '../../auth/guards/roles.guard';
@@ -14,7 +14,7 @@ import { UserJwtPayload } from '../../auth/interfaces/user-jwt.interface';
 @Controller('reports')
 @UseGuards(SupabaseAuthGuard, RolesGuard)
 export class ReportsController {
-  constructor(private readonly reportsService: ReportsService) {}
+  constructor(private readonly reportsExcelService: ReportsExcelService) {}
 
   /**
    * @description Endpoint tipo GET que construye y transfiere el reporte de impresoras (mensual/anual) en formato Excel (.xlsx).
@@ -35,7 +35,7 @@ export class ReportsController {
     if (!unitId) throw new ForbiddenException('User has no unit assigned');
     
     try {
-      await this.reportsService.exportExcel(unitId, dto, res);
+      await this.reportsExcelService.exportExcel(unitId, dto, res);
     } catch (error) {
       console.error('[ExportExcel Error]:', error);
       res.status(500).json({ statusCode: 500, message: error.message, stack: error.stack });

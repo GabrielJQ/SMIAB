@@ -4,7 +4,7 @@ import { Repository } from 'typeorm';
 import { Alert } from '../../printers/entities/alert.entity';
 import { PrinterStatusLog } from '../../printers/entities/printer-status-log.entity';
 import { PrinterTonerChange } from '../../toners/entities/printer-toner-change.entity';
-import { ReportService } from '../../printers/report.service';
+import { ReportsConsumablesService } from '../../reports/services/reports-consumables.service';
 
 /**
  * @class TelemetryProcessor
@@ -22,7 +22,7 @@ export class TelemetryProcessor {
     private readonly printerStatusLogRepository: Repository<PrinterStatusLog>,
     @InjectRepository(PrinterTonerChange)
     private readonly tonerChangeRepository: Repository<PrinterTonerChange>,
-    private readonly reportService: ReportService,
+    private readonly reportService: ReportsConsumablesService,
   ) {}
 
   /**

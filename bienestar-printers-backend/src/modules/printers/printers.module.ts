@@ -5,7 +5,6 @@ import { PrintersService } from './printers.service';
 import { PrintersExcelService } from './printers-excel.service';
 import { PrintersAccessService } from './printers-access.service';
 import { PrintersStatsService } from './printers-stats.service';
-import { ReportService } from './report.service';
 import { UsersModule } from '../users/users.module';
 import { SupabaseModule } from '../../integrations/supabase/supabase.module';
 import { Printer } from './entities/printer.entity';
@@ -21,6 +20,7 @@ import { Employee } from './entities/employee.entity';
 import { AssetAssignment } from './entities/asset-assignment.entity';
 import { Address } from './entities/address.entity';
 import { SnmpModule } from '../snmp/snmp.module';
+import { ReportsModule } from '../reports/reports.module';
 
 @Module({
   imports: [
@@ -41,6 +41,7 @@ import { SnmpModule } from '../snmp/snmp.module';
     UsersModule,
     SupabaseModule,
     SnmpModule,
+    ReportsModule,
   ],
   controllers: [PrintersController],
   providers: [
@@ -48,14 +49,12 @@ import { SnmpModule } from '../snmp/snmp.module';
     PrintersExcelService,
     PrintersAccessService,
     PrintersStatsService,
-    ReportService,
   ],
   exports: [
     PrintersService,
     PrintersExcelService,
     PrintersAccessService,
     PrintersStatsService,
-    ReportService,
   ],
 })
 export class PrintersModule {}

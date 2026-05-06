@@ -3,16 +3,16 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import * as ExcelJS from 'exceljs';
 import { Response } from 'express';
-import { Printer } from '../printers/entities/printer.entity';
-import { PrinterMonthlyStat } from '../printers/entities/printer-monthly-stat.entity';
-import { ExportReportDto, ReportType } from './dto/export-report.dto';
+import { Printer } from '../../printers/entities/printer.entity';
+import { PrinterMonthlyStat } from '../../printers/entities/printer-monthly-stat.entity';
+import { ExportReportDto, ReportType } from '../dto/export-report.dto';
 
 /**
  * @description Servicio core agnóstico para la orquestación, mapeo y generación binaria de reportes avanzados.
  * Apalancado con ExcelJS, transfiere modelos estructurados bajo una matrix visual estilizada para las áreas operativas.
  */
 @Injectable()
-export class ReportsService {
+export class ReportsExcelService {
   constructor(
     @InjectRepository(Printer)
     private readonly printerRepository: Repository<Printer>,

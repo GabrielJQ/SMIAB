@@ -8,6 +8,7 @@ import { PrinterStatusLog } from '../printers/entities/printer-status-log.entity
 import { PrinterTonerChange } from '../toners/entities/printer-toner-change.entity';
 import { TelemetryProcessor } from './processors/telemetry.processor';
 import { PrintersModule } from '../printers/printers.module';
+import { ReportsModule } from '../reports/reports.module';
 
 @Module({
   imports: [
@@ -19,6 +20,7 @@ import { PrintersModule } from '../printers/printers.module';
       PrinterTonerChange,
     ]),
     forwardRef(() => PrintersModule),
+    forwardRef(() => ReportsModule),
   ],
   providers: [SnmpService, TelemetryProcessor],
   exports: [SnmpService, TelemetryProcessor],

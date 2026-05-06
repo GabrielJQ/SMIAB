@@ -35,7 +35,7 @@ import { SupabaseAuthGuard } from '../../auth/guards/supabase-auth.guard';
 import { PrintersService } from './printers.service';
 import { PrintersExcelService } from './printers-excel.service';
 import { PrintersStatsService } from './printers-stats.service';
-import { ReportService } from './report.service';
+import { ReportsConsumablesService } from '../reports/services/reports-consumables.service';
 import { CurrentUser } from '../../auth/decorators/current-user.decorator';
 import { PrinterSummaryDto } from './dto/printer-summary.dto';
 import { PrinterHistoryDto } from './dto/printer-history.dto';
@@ -62,7 +62,7 @@ export class PrintersController {
     private readonly printersExcelService: PrintersExcelService,
     private readonly printersStatsService: PrintersStatsService,
     private readonly snmpService: SnmpService,
-    private readonly reportService: ReportService,
+    private readonly reportsConsumablesService: ReportsConsumablesService,
   ) {}
 
   // ==========================================
@@ -574,7 +574,7 @@ export class PrintersController {
     const printer = await this.printersService.getPrinterById(id, unitId);
     if (!printer) throw new NotFoundException('Printer not found');
 
-    return this.reportService.sendConsumableRequest(
+    return this.reportsConsumablesService.sendConsumableRequest(
       id,
       printer.ipAddress,
       email || user.email,
