@@ -2,13 +2,12 @@ import { Injectable, ForbiddenException, BadRequestException } from '@nestjs/com
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Printer } from './entities/printer.entity';
-import { getPrinterByIdQuery } from './queries/get-printer-by-id.query';
+import { PrintersRepository } from './repositories/printers.repository';
 
 @Injectable()
 export class PrintersAccessService {
   constructor(
-    @InjectRepository(Printer)
-    private readonly printerRepository: Repository<Printer>,
+    private readonly printersRepository: PrintersRepository,
   ) {}
 
   /**
@@ -21,7 +20,7 @@ export class PrintersAccessService {
       throw new ForbiddenException('User has no unit assigned');
     }
 
-    const row = await getPrinterByIdQuery(this.printerRepository, printerId);
+    const row = await this.printersRepository.getPrinterByIdQuery(printerId);
     if (!row) {
       throw new BadRequestException('Printer not found');
     }

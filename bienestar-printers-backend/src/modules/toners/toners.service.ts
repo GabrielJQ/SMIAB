@@ -7,12 +7,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { SupabaseService } from '../../integrations/supabase/supabase.service';
 
-import { getUnitTonerHistoryQuery } from './queries/get-unit-toner-history.query';
-import { getPrinterTonerHistoryQuery } from './queries/get-printer-toner-history.query';
-import { getUnitTopConsumersQuery } from './queries/get-unit-top-consumers.query';
-import { getTonerHistoryByUnitQuery } from './queries/get-toner-history-by-unit.query';
-import { getTonerHistoryByPrinterQuery } from './queries/get-toner-history-by-printer.query';
-import { getTonerHistoryMonthlyQuery } from './queries/get-toner-history-monthly.query';
+import { TonersRepository } from './repositories/toners.repository';
 
 import { TonerHistoryDto } from './dto/toner-history.dto';
 import { TonerChangeResponseDto } from './dto/toner-change-response.dto';
@@ -32,6 +27,7 @@ export class TonersService {
     @InjectRepository(PrinterTonerChange)
     private readonly printerTonerChangeRepository: Repository<PrinterTonerChange>,
     private readonly printersAccessService: PrintersAccessService,
+    private readonly tonersRepository: TonersRepository,
   ) {}
 
 
@@ -54,11 +50,10 @@ export class TonersService {
       endMonth?: number;
     },
   ) {
-    const rows = await getUnitTonerHistoryQuery(
-      this.printerTonerChangeRepository,
+    const rows = await this.tonersRepository.getUnitTonerHistoryQuery(
       unitId,
       filters.startYear || new Date().getFullYear(),
-      filters.startMonth || new Date().getMonth() + 1
+      filters.startMonth || new Date().getMonth() + 1,
     );
     return rows.map((row) => new TonerHistoryDto(row));
   }
@@ -83,11 +78,10 @@ export class TonersService {
   ) {
     await this.printersAccessService.validatePrinterAccess(printerId, unitId);
 
-    const rows = await getPrinterTonerHistoryQuery(
-      this.printerTonerChangeRepository,
+    const rows = await this.tonersRepository.getPrinterTonerHistoryQuery(
       printerId,
       filters.startYear || new Date().getFullYear(),
-      filters.startMonth || new Date().getMonth() + 1
+      filters.startMonth || new Date().getMonth() + 1,
     );
     return rows.map((row) => new TonerHistoryDto(row));
   }
@@ -110,11 +104,10 @@ export class TonersService {
       endMonth?: number;
     },
   ) {
-    const rows = await getUnitTopConsumersQuery(
-      this.printerTonerChangeRepository,
+    const rows = await this.tonersRepository.getUnitTopConsumersQuery(
       unitId,
       filters.startYear,
-      filters.startMonth
+      filters.startMonth,
     );
     return rows;
   }
@@ -128,10 +121,7 @@ export class TonersService {
    * @returns {Promise<TonerChangeResponseDto[]>} Lista de cambios recientes mapeados.
    */
   async getRecentChangesByUnit(unitId: string) {
-    const rows = await getTonerHistoryByUnitQuery(
-      this.supabaseService.getAdminClient(),
-      unitId,
-    );
+    const rows = await this.tonersRepository.getTonerHistoryByUnitQuery(unitId);
     return rows.map((row) => new TonerChangeResponseDto(row));
   }
 
@@ -155,8 +145,7 @@ export class TonersService {
   ) {
     await this.printersAccessService.validatePrinterAccess(printerId, unitId);
 
-    const rows = await getTonerHistoryByPrinterQuery(
-      this.supabaseService.getAdminClient(),
+    const rows = await this.tonersRepository.getTonerHistoryByPrinterQuery(
       printerId,
       filters,
     );
@@ -172,8 +161,7 @@ export class TonersService {
    * @returns {Promise<any[]>} Agregado mensual histórico.
    */
   async getMonthlySummaryByUnit(unitId: string, months: number = 12) {
-    const rows = await getTonerHistoryMonthlyQuery(
-      this.supabaseService.getAdminClient(),
+    const rows = await this.tonersRepository.getTonerHistoryMonthlyQuery(
       unitId,
       months,
     );
