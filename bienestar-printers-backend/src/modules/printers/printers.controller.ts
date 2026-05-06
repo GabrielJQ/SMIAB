@@ -574,7 +574,7 @@ export class PrintersController {
     const printer = await this.printersService.getPrinterById(id, unitId);
     if (!printer) throw new NotFoundException('Printer not found');
 
-    return this.reportsConsumablesService.sendConsumableRequest(
+    return this.reportsConsumablesService.enqueueConsumableRequest(
       id,
       printer.ipAddress,
       email || user.email,

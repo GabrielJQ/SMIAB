@@ -12,12 +12,14 @@ import { TonersModule } from './modules/toners/toners.module';
 import { SnmpModule } from './modules/snmp/snmp.module';
 import { MailerModule } from '@nestjs-modules/mailer';
 import { ReportsModule } from './modules/reports/reports.module';
+import { EventEmitterModule } from '@nestjs/event-emitter';
 
 @Module({
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
     }),
+    EventEmitterModule.forRoot(),
     ScheduleModule.forRoot(),
     TypeOrmModule.forRootAsync({
       inject: [ConfigService],
