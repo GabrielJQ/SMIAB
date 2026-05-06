@@ -173,4 +173,17 @@ export class TelemetryProcessor {
     await this.tonerChangeRepository.save(change);
     this.logger.log(`Toner change registered for printer ${assetId} (Type: ${detectionType})`);
   }
+
+  async cleanupOldData(dateThreshold: Date) {
+    try {
+      await this.printerStatusLogRepository
+        .createQueryBuilder()
+        .delete()
+        .where('recorded_at < :date', { date: dateThreshold })
+        .execute();
+      this.logger.log(`Limpieza completada. Registros de estado anteriores a ${dateThreshold.toISOString()} eliminados.`);
+    } catch (e) {
+      this.logger.error(`Error eliminando registros antiguos: ${e.message}`);
+    }
+  }
 }

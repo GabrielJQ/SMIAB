@@ -148,11 +148,7 @@ export class SnmpService implements OnModuleInit {
     const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
 
     try {
-      // Nota: Aquí se asume que SnmpService ya no tiene acceso directo a AlertRepository y StatusLogRepository
-      // Por simplicidad en este refactor, mantendremos esta lógica si los repositorios estuvieran inyectados,
-      // pero como los quitamos del constructor, lo ideal es mover esto al TelemetryProcessor o un MaintanceService.
-      // Por ahora, para no romper el Cron, lo dejamos pero comentamos que requiere inyección o delegación.
-      this.logger.warn('Cleanup cron requiere migración a TelemetryProcessor/MaintenanceService.');
+      await this.telemetryProcessor.cleanupOldData(thirtyDaysAgo);
     } catch (error) {
       this.logger.error('Error durante mantenimiento:', error);
     }
