@@ -1,7 +1,8 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ReportsController } from './reports.controller';
-import { ReportsService } from './reports.service';
+import { ReportsExcelService } from './services/reports-excel.service';
+import { ReportsConsumablesService } from './services/reports-consumables.service';
 import { Printer } from '../printers/entities/printer.entity';
 import { PrinterMonthlyStat } from '../printers/entities/printer-monthly-stat.entity';
 import { PrinterTonerChange } from '../toners/entities/printer-toner-change.entity';
@@ -19,7 +20,7 @@ import { UsersModule } from '../users/users.module';
     UsersModule,
   ],
   controllers: [ReportsController],
-  providers: [ReportsService],
-  exports: [ReportsService],
+  providers: [ReportsExcelService, ReportsConsumablesService],
+  exports: [ReportsExcelService, ReportsConsumablesService],
 })
 export class ReportsModule {}

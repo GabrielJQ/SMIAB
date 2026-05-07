@@ -5,7 +5,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import puppeteer from 'puppeteer';
 import pLimit from 'p-limit';
-import { Printer } from './entities/printer.entity';
+import { Printer } from '../../printers/entities/printer.entity';
 
 /**
  * Servicio encargado de la generación de reportes visuales y envío de correos institucionales.
@@ -21,8 +21,8 @@ import { Printer } from './entities/printer.entity';
  * El servicio garantiza la estabilidad operativa mediante una arquitectura de embudo para el manejo de RAM.
  */
 @Injectable()
-export class ReportService {
-  private readonly logger = new Logger(ReportService.name);
+export class ReportsConsumablesService {
+  private readonly logger = new Logger(ReportsConsumablesService.name);
 
   /**
    * @private

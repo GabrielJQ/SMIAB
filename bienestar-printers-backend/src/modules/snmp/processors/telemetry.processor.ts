@@ -4,7 +4,7 @@ import { Repository } from 'typeorm';
 import { Alert } from '../../printers/entities/alert.entity';
 import { PrinterStatusLog } from '../../printers/entities/printer-status-log.entity';
 import { PrinterTonerChange } from '../../toners/entities/printer-toner-change.entity';
-import { ReportService } from '../../printers/report.service';
+import { ReportsConsumablesService } from '../../reports/services/reports-consumables.service';
 
 /**
  * @class TelemetryProcessor
@@ -22,7 +22,7 @@ export class TelemetryProcessor {
     private readonly printerStatusLogRepository: Repository<PrinterStatusLog>,
     @InjectRepository(PrinterTonerChange)
     private readonly tonerChangeRepository: Repository<PrinterTonerChange>,
-    private readonly reportService: ReportService,
+    private readonly reportService: ReportsConsumablesService,
   ) {}
 
   /**
@@ -182,12 +182,17 @@ export class TelemetryProcessor {
     const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
     this.logger.log(`Iniciando purga de telemetría anterior a ${thirtyDaysAgo.toISOString()}`);
 
-    const result = await this.printerStatusLogRepository
-      .createQueryBuilder()
-      .delete()
-      .where('recordedAt < :date', { date: thirtyDaysAgo })
-      .execute();
+    try {
+      const result = await this.printerStatusLogRepository
+        .createQueryBuilder()
+        .delete()
+        .where('recordedAt < :date', { date: thirtyDaysAgo })
+        .execute();
 
-    this.logger.log(`Purga completada. Registros eliminados: ${result.affected || 0}`);
+      this.logger.log(`Purga completada. Registros eliminados: ${result.affected || 0}`);
+    } catch (e) {
+      this.logger.error(`Error eliminando registros antiguos: ${e.message}`);
+    }
+  }
   }
 }

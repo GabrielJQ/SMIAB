@@ -117,7 +117,7 @@ export class TonersController {
   ) {
     const unitId = user.unitId || user.areaId;
     if (!unitId) throw new ForbiddenException('User has no unit assigned');
-    return this.tonersService.getPrinterHistory(id, {
+    return this.tonersService.getPrinterHistory(id, unitId, {
       startYear: year ? parseInt(year) : undefined,
       startMonth: month ? parseInt(month) : undefined,
     });
