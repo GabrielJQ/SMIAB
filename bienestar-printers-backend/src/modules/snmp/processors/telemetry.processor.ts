@@ -112,7 +112,7 @@ export class TelemetryProcessor {
           this.logger.log(`Disparando correo automático de consumibles para ${printerId} a ${recipientEmail}`);
           
           try {
-            await this.reportService.sendConsumableRequest(printerId, printerIp || alertToNotify.printer?.ipPrinter, recipientEmail);
+            await this.reportService.enqueueConsumableRequest(printerId, printerIp || alertToNotify.printer?.ipPrinter, recipientEmail);
             
             // Protección contra metadata null y actualización segura
             const currentMetadata = alertToNotify.metadata || {};

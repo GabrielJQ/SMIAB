@@ -3,6 +3,7 @@ import { MailerService } from '@nestjs-modules/mailer';
 import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
+import { EventEmitter2, OnEvent } from '@nestjs/event-emitter';
 import puppeteer from 'puppeteer';
 import pLimit from 'p-limit';
 import { Printer } from '../../printers/entities/printer.entity';
@@ -39,6 +40,7 @@ export class ReportsConsumablesService {
     private readonly configService: ConfigService,
     @InjectRepository(Printer)
     private readonly printerRepository: Repository<Printer>,
+    private readonly eventEmitter: EventEmitter2,
   ) { }
 
   /**
@@ -65,7 +67,18 @@ export class ReportsConsumablesService {
    * @returns {Promise<void>}
    * @protected_by p-limit(1) - Protección de memoria para prevenir desbordamientos de RAM (OOM).
    */
-  async sendConsumableRequest(printerId: string, printerIp: string, userEmail: string) {
+  async enqueueConsumableRequest(printerId: string, printerIp: string, userEmail: string) {
+    this.logger.log(`Encolando solicitud de consumibles para ${printerId}...`);
+    this.eventEmitter.emit('report.consumable.requested', { printerId, printerIp, userEmail });
+    return { 
+      success: true, 
+      message: 'Solicitud encolada exitosamente. El correo será enviado en breve.' 
+    };
+  }
+
+  @OnEvent('report.consumable.requested', { async: true })
+  private async processConsumableRequestEvent(payload: { printerId: string, printerIp: string, userEmail: string }) {
+    const { printerId, printerIp, userEmail } = payload;
     return this.limit(async () => {
       this.logger.log(`Iniciando solicitud de consumibles para impresora ${printerId} (${printerIp})`);
 
