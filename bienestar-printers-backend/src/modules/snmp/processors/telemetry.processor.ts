@@ -194,5 +194,4 @@ export class TelemetryProcessor {
       this.logger.error(`Error eliminando registros antiguos: ${e.message}`);
     }
   }
-  }
 }
