@@ -21,6 +21,7 @@ import { AssetAssignment } from './entities/asset-assignment.entity';
 import { Address } from './entities/address.entity';
 import { SnmpModule } from '../snmp/snmp.module';
 import { ReportsModule } from '../reports/reports.module';
+import { PrintersRepository } from './repositories/printers.repository';
 
 @Module({
   imports: [
@@ -49,12 +50,14 @@ import { ReportsModule } from '../reports/reports.module';
     PrintersExcelService,
     PrintersAccessService,
     PrintersStatsService,
+    PrintersRepository,
   ],
   exports: [
     PrintersService,
     PrintersExcelService,
     PrintersAccessService,
     PrintersStatsService,
+    PrintersRepository,
   ],
 })
 export class PrintersModule {}

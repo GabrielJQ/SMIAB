@@ -8,6 +8,7 @@ import { PrinterTonerChange } from './entities/printer-toner-change.entity';
 import { AuthModule } from '../../auth/auth.module';
 import { UsersModule } from '../users/users.module';
 import { PrintersModule } from '../printers/printers.module';
+import { TonersRepository } from './repositories/toners.repository';
 
 @Module({
   imports: [
@@ -18,7 +19,7 @@ import { PrintersModule } from '../printers/printers.module';
     PrintersModule,
   ],
   controllers: [TonersController],
-  providers: [TonersService],
-  exports: [TonersService],
+  providers: [TonersService, TonersRepository],
+  exports: [TonersService, TonersRepository],
 })
 export class TonersModule {}

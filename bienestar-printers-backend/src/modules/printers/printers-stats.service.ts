@@ -9,11 +9,7 @@ import { Alert } from './entities/alert.entity';
 import { PrintersAccessService } from './printers-access.service';
 
 // Queries / DTOs
-import { getPrinterHistoryQuery } from './queries/get-printer-history.query';
-import { getPrinterYearlySummaryQuery } from './queries/get-printer-yearly-summary.query';
-import { getPrinterComparisonQuery } from './queries/get-printer-comparison.query';
-import { getUnitHistoryQuery } from './queries/get-unit-history.query';
-import { getPrinterByIdQuery } from './queries/get-printer-by-id.query';
+import { PrintersRepository } from './repositories/printers.repository';
 import { PrinterHistoryDto } from './dto/printer-history.dto';
 import { PrinterYearlySummaryDto } from './dto/printer-yearly-summary.dto';
 import { PrinterComparisonDto } from './dto/printer-comparison.dto';
@@ -22,6 +18,7 @@ import { PrinterComparisonDto } from './dto/printer-comparison.dto';
 export class PrintersStatsService {
   constructor(
     private readonly accessService: PrintersAccessService,
+    private readonly printersRepository: PrintersRepository,
     @InjectRepository(Printer)
     private readonly printerRepository: Repository<Printer>,
     @InjectRepository(PrinterMonthlyStat)
@@ -39,7 +36,7 @@ export class PrintersStatsService {
   ) {
     await this.accessService.validatePrinterAccess(printerId, userAreaId);
 
-    const rows = await getPrinterHistoryQuery(this.printerMonthlyStatRepository, { printerId, ...filters });
+    const rows = await this.printersRepository.getPrinterHistoryQuery({ printerId, ...filters });
 
     const today = new Date();
     const currentYear = today.getFullYear();
@@ -49,7 +46,7 @@ export class PrintersStatsService {
                                   (!filters.endYear || currentYear <= filters.endYear);
     
     if (isCurrentInYearRange && !rows.some(r => r.year === currentYear && r.month === currentMonth)) {
-        const printer = await getPrinterByIdQuery(this.printerRepository, printerId);
+        const printer = await this.printersRepository.getPrinterByIdQuery(printerId);
         if (printer && Number(printer.totalPagesPrinted) > 0) {
             let prevM = currentMonth - 1, prevY = currentYear;
             if (prevM === 0) { prevM = 12; prevY = currentYear - 1; }
@@ -105,7 +102,7 @@ export class PrintersStatsService {
     const today = new Date(), currentYear = today.getFullYear(), currentMonth = today.getMonth() + 1;
 
     if (!formattedData.some(d => d.year === currentYear && d.month === currentMonth)) {
-        const printer = await getPrinterByIdQuery(this.printerRepository, printerId);
+        const printer = await this.printersRepository.getPrinterByIdQuery(printerId);
         if (printer && Number(printer.totalPagesPrinted) > 0) {
             let prevM = currentMonth - 1, prevY = currentYear;
             if (prevM === 0) { prevM = 12; prevY = currentYear - 1; }
@@ -128,19 +125,19 @@ export class PrintersStatsService {
 
   async getPrinterYearlySummary(printerId: string, userAreaId: string, year: number) {
     await this.accessService.validatePrinterAccess(printerId, userAreaId);
-    const rows = await getPrinterYearlySummaryQuery(this.printerMonthlyStatRepository, printerId, year);
+    const rows = await this.printersRepository.getPrinterYearlySummaryQuery(printerId, year);
     return new PrinterYearlySummaryDto(year, rows);
   }
 
   async getPrinterComparison(printerId: string, userAreaId: string, months: number) {
     await this.accessService.validatePrinterAccess(printerId, userAreaId);
-    const rows = await getPrinterComparisonQuery(this.printerMonthlyStatRepository, printerId, months);
+    const rows = await this.printersRepository.getPrinterComparisonQuery(printerId, months);
     return rows.map((row) => new PrinterComparisonDto(row));
   }
 
   async getUnitHistory(userUnitId: string, year: number, month: number) {
     if (!userUnitId) throw new ForbiddenException('User has no unit assigned');
-    const rows = await getUnitHistoryQuery(this.printerMonthlyStatRepository, userUnitId, year, month);
+    const rows = await this.printersRepository.getUnitHistoryQuery(userUnitId, year, month);
     const today = new Date(), currentYear = today.getFullYear(), currentMonth = today.getMonth() + 1;
 
     if (year === currentYear && month >= currentMonth && !rows.some(r => r.month === currentMonth)) {

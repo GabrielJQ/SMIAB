@@ -8,8 +8,7 @@ import { Repository } from 'typeorm';
 import { SupabaseService } from '../../integrations/supabase/supabase.service';
 
 // Basic Queries / DTOs
-import { getPrintersByAreaQuery } from './queries/get-printers-by-area.query';
-import { getPrintersByUnitQuery } from './queries/get-printers-by-unit.query';
+import { PrintersRepository } from './repositories/printers.repository';
 import { PrinterSummaryDto } from './dto/printer-summary.dto';
 
 // Entities
@@ -31,6 +30,7 @@ export class PrintersService {
   constructor(
     private readonly supabaseService: SupabaseService,
     private readonly accessService: PrintersAccessService,
+    private readonly printersRepository: PrintersRepository,
     @InjectRepository(Printer)
     private readonly printerRepository: Repository<Printer>,
     @InjectRepository(PrinterMonthlyStat)
@@ -48,14 +48,14 @@ export class PrintersService {
   // ==========================================
 
   async getPrintersByUserArea(areaId: string) {
-    const rows = await getPrintersByAreaQuery(this.printerRepository, areaId);
+    const rows = await this.printersRepository.getPrintersByAreaQuery(areaId);
     if (!rows) return [];
     return rows.map((row) => new PrinterSummaryDto(row));
   }
 
   async getPrintersByUnit(userUnitId: string) {
     if (!userUnitId) throw new ForbiddenException('User has no unit assigned');
-    const rows = await getPrintersByUnitQuery(this.printerRepository, userUnitId);
+    const rows = await this.printersRepository.getPrintersByUnitQuery(userUnitId);
     if (!rows) return [];
     return rows.map((row) => new PrinterSummaryDto(row));
   }
